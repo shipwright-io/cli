@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/otaviof/shp/pkg/shp/cmd"
 	"github.com/spf13/pflag"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/shipwright-io/cli/pkg/shp/cmd"
 )
 
 // ApplicationName application name.
-const ApplicationName = "kubectl-shp"
+const ApplicationName = "shp"
 
 func main() {
 	flags := pflag.NewFlagSet(ApplicationName, pflag.ExitOnError)

@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"github.com/otaviof/shp/pkg/shp/buildrun"
-	"github.com/otaviof/shp/pkg/shp/initialize"
 	"github.com/spf13/cobra"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/shipwright-io/cli/pkg/shp/cmd/build"
+	"github.com/shipwright-io/cli/pkg/shp/params"
 )
 
 var rootCmd = &cobra.Command{
@@ -15,31 +16,10 @@ var rootCmd = &cobra.Command{
 
 // NewCmdSHP create a new SHP root command, linking together all sub-commands organized by groups.
 func NewCmdSHP(ioStreams genericclioptions.IOStreams) *cobra.Command {
-	opts := NewOptions()
-	// wiring up root command flags with options instance
-	opts.AddFlags(rootCmd.Flags())
+	p := params.NewParams()
+	p.AddFlags(rootCmd.PersistentFlags())
 
-	// declaring all other sub-command organized by groups, those are wrapped with a Runner instance
-	// that will both implement the component lifecycle and share cobra.Commands. At the end, all is
-	// linked against root command
-	cg := templates.CommandGroups{{
-		Message: "Initialize repository commands:",
-		Commands: []*cobra.Command{
-			NewRunner(opts, ioStreams, initialize.NewInitialize()).Cmd(),
-		},
-	}, {
-		Message: "Manage BuildRun Resources:",
-		Commands: []*cobra.Command{
-			NewRunner(opts, ioStreams, buildrun.NewCreateBuildRun()).Cmd(),
-			NewRunner(opts, ioStreams, buildrun.NewDeleteBuildRun()).Cmd(),
-		},
-	}, {
-		Message: "Manage Build Resources:",
-		Commands: []*cobra.Command{
-			NewRunner(opts, ioStreams, buildrun.NewRunBuild()).Cmd(),
-		},
-	}}
-	cg.Add(rootCmd)
+	rootCmd.AddCommand(build.Command(p))
 
 	return rootCmd
 }
