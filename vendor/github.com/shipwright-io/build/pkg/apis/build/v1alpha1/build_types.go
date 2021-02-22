@@ -1,5 +1,5 @@
 // Copyright The Shipwright Contributors
-// 
+//
 // SPDX-License-Identifier: Apache-2.0
 
 package v1alpha1
@@ -9,11 +9,56 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	LabelBuild                 = "build.build.dev/name"
-	LabelBuildGeneration       = "build.build.dev/generation"
-	AnnotationBuildRunDeletion = "build.build.dev/build-run-deletion"
-	BuildFinalizer             = "finalizer.build.build.dev"
+// BuildReason is a type used for populating the
+// Build Status.Reason field
+type BuildReason string
+
+const (
+	// SucceedStatus indicates that all validations Succeeded
+	SucceedStatus BuildReason = "Succeeded"
+	// BuildStrategyNotFound indicates that a namespaced-scope strategy was not found in the namespace
+	BuildStrategyNotFound BuildReason = "BuildStrategyNotFound"
+	// ClusterBuildStrategyNotFound indicates that a cluster-scope strategy was not found
+	ClusterBuildStrategyNotFound BuildReason = "ClusterBuildStrategyNotFound"
+	// SetOwnerReferenceFailed indicates that setting ownerReferences between a Build and a BuildRun failed
+	SetOwnerReferenceFailed BuildReason = "SetOwnerReferenceFailed"
+	// SpecSourceSecretRefNotFound indicates the referenced secret in source is missing
+	SpecSourceSecretRefNotFound BuildReason = "SpecSourceSecretRefNotFound"
+	// SpecOutputSecretRefNotFound indicates the referenced secret in output is missing
+	SpecOutputSecretRefNotFound BuildReason = "SpecOutputSecretRefNotFound"
+	// SpecRuntimeSecretRefNotFound indicates the referenced secret in runtime is missing
+	SpecRuntimeSecretRefNotFound BuildReason = "SpecRuntimeSecretRefNotFound"
+	// MultipleSecretRefNotFound indicates that multiple secrets are missing
+	MultipleSecretRefNotFound BuildReason = "MultipleSecretRefNotFound"
+	// RuntimePathsCanNotBeEmpty indicates that the spec.runtime feature is used but the paths were not specified
+	RuntimePathsCanNotBeEmpty BuildReason = "RuntimePathsCanNotBeEmpty"
+	// RemoteRepositoryUnreachable indicates the referenced repository is unreachable
+	RemoteRepositoryUnreachable BuildReason = "RemoteRepositoryUnreachable"
+	// AllValidationsSucceeded indicates a Build was successfully validated
+	AllValidationsSucceeded = "all validations succeeded"
+)
+
+const (
+	// BuildDomain is the domain used for all labels and annotations for this resource
+	BuildDomain = "build.build.dev"
+
+	// LabelBuild is a label key for defining the build name
+	LabelBuild = BuildDomain + "/name"
+
+	// LabelBuildGeneration is a label key for defining the build generation
+	LabelBuildGeneration = BuildDomain + "/generation"
+
+	// AnnotationBuildRunDeletion is a label key for enabling/disabling the BuildRun deletion
+	AnnotationBuildRunDeletion = BuildDomain + "/build-run-deletion"
+
+	// AnnotationBuildRefSecret is an annotation that tells the Build Controller to reconcile on
+	// events of the secret only if is referenced by a Build in the same namespace
+	AnnotationBuildRefSecret = BuildDomain + "/referenced.secret"
+
+	// AnnotationBuildVerifyRepository tells the Build Controller to check a remote repository. If the annotation is not set
+	// or has a value of 'true', the controller triggers the validation. A value of 'false' means the controller
+	// will bypass checking the remote repository.
+	AnnotationBuildVerifyRepository = BuildDomain + "/verify.repository"
 )
 
 // BuildSpec defines the desired state of Build
@@ -103,7 +148,7 @@ type Runtime struct {
 	Entrypoint []string `json:"entrypoint,omitempty"`
 }
 
-// UUser holds the user name and group information for runtime-image.
+// User holds the user name and group information for runtime-image.
 type User struct {
 	// Name user name to be employed in runtime-image.
 	Name string `json:"name"`
@@ -119,11 +164,16 @@ type BuildStatus struct {
 	// +optional
 	Registered corev1.ConditionStatus `json:"registered,omitempty"`
 
-	// The reason of the registered Build, either an error or succeed message
+	// The reason of the registered Build, it's an one-word camelcase
 	// +optional
-	Reason string `json:"reason,omitempty"`
+	Reason BuildReason `json:"reason,omitempty"`
+
+	// The message of the registered Build, either an error or succeed message
+	// +optional
+	Message string `json:"message,omitempty"`
 }
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Build is the Schema representing a Build definition
