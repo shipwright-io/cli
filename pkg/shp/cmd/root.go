@@ -6,20 +6,24 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/build"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/buildrun"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "shp [command] [resource] [flags]",
-	Short: "Command-line client for Shipwright's Build API.",
+	Use:           "shp [command] [resource] [flags]",
+	Short:         "Command-line client for Shipwright's Build API.",
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
 // NewCmdSHP create a new SHP root command, linking together all sub-commands organized by groups.
-func NewCmdSHP(ioStreams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdSHP(ioStreams *genericclioptions.IOStreams) *cobra.Command {
 	p := params.NewParams()
 	p.AddFlags(rootCmd.PersistentFlags())
 
-	rootCmd.AddCommand(build.Command(p))
+	rootCmd.AddCommand(build.Command(p, ioStreams))
+	rootCmd.AddCommand(buildrun.Command(p, ioStreams))
 
 	return rootCmd
 }

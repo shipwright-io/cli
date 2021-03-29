@@ -1,4 +1,4 @@
-package build
+package buildrun
 
 import (
 	"github.com/spf13/cobra"
@@ -9,13 +9,11 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/params"
 )
 
-// Command returns Build subcommand of Shipwright CLI
-// for interaction with shipwright builds
 func Command(p *params.Params, ioStreams *genericclioptions.IOStreams) *cobra.Command {
 	command := &cobra.Command{
-		Use:     "build",
-		Aliases: []string{"bd"},
-		Short:   "Manage Builds",
+		Use:     "buildrun",
+		Aliases: []string{"br"},
+		Short:   "Manage BuildRuns",
 		Annotations: map[string]string{
 			"commandType": "main",
 		},
@@ -23,10 +21,9 @@ func Command(p *params.Params, ioStreams *genericclioptions.IOStreams) *cobra.Co
 
 	// TODO: add support for `update` and `get` commands
 	command.AddCommand(
-		runner.NewRunner(p, ioStreams, createCmd()).Cmd(),
 		runner.NewRunner(p, ioStreams, listCmd()).Cmd(),
+		runner.NewRunner(p, ioStreams, logsCmd()).Cmd(),
 		runner.NewRunner(p, ioStreams, deleteCmd()).Cmd(),
-		runner.NewRunner(p, ioStreams, runCmd()).Cmd(),
 	)
 	return command
 }

@@ -28,16 +28,16 @@ func (m *mockedSubCommand) Validate() error {
 	return nil
 }
 
-func (m *mockedSubCommand) Run(p *params.Params) error {
+func (m *mockedSubCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStreams) error {
 	return nil
 }
 
 func TestCMD_Runner(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := gomega.NewGomegaWithT(t)
 
 	p := params.NewParams()
 
-	genericStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
+	genericStreams := &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	r := NewRunner(p, genericStreams, &mockedSubCommand{})
 
 	t.Run("cmd", func(t *testing.T) {

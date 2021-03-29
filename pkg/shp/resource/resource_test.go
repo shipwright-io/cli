@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -22,7 +23,7 @@ func TestResource(t *testing.T) {
 
 	p := params.NewParams()
 
-	buildResource := NewShpResource(p, buildv1alpha1.SchemeGroupVersion, kind, resource)
+	buildResource := newResource(p, buildv1alpha1.SchemeGroupVersion, kind, resource)
 	ri, err := buildResource.getResourceInterface()
 
 	g.Expect(ri).NotTo(gomega.BeNil(), "ResourceInterface should not be nil")
@@ -31,13 +32,13 @@ func TestResource(t *testing.T) {
 	buildResource.resourceInterface = stub.NewFakeClient().Resource(buildv1alpha1.SchemeGroupVersion.WithResource(resource))
 
 	build := stub.TestBuild(name, image, source)
-	err = buildResource.Create("name", build)
+	err = buildResource.Create(context.TODO(), "name", build)
 
 	g.Expect(err).To(gomega.BeNil(), "Error from creation must be nil")
 
 	t.Run("Resource Get", func(t *testing.T) {
 		var build1 buildv1alpha1.Build
-		err = buildResource.Get(name, &build1)
+		err = buildResource.Get(context.TODO(), name, &build1)
 
 		g.Expect(err).To(gomega.BeNil(), "Error from creation must be nil")
 		g.Expect(build1.Name).To(gomega.Equal(name))
@@ -46,13 +47,12 @@ func TestResource(t *testing.T) {
 
 	t.Run("Resource List", func(t *testing.T) {
 		var buildList buildv1alpha1.BuildList
-		err = buildResource.List(&buildList)
+		err = buildResource.List(context.TODO(), &buildList)
 
 		g.Expect(err).To(gomega.BeNil(), "Error from List must be nil")
 		g.Expect(len(buildList.Items)).To(gomega.Equal(1))
 	})
 
-	err = buildResource.Delete(name)
+	err = buildResource.Delete(context.TODO(), name)
 	g.Expect(err).To(gomega.BeNil(), "Error from Delete must be nil")
-
 }
