@@ -65,11 +65,11 @@ func (c *CreateCommand) initializeBuild() {
 			Name: c.name,
 		},
 		Spec: buildv1alpha1.BuildSpec{
-			StrategyRef: &buildv1alpha1.StrategyRef{
+			Strategy: &buildv1alpha1.Strategy{
 				Name: c.strategy,
 				Kind: &strategyKind,
 			},
-			Source: buildv1alpha1.GitSource{
+			Source: buildv1alpha1.Source{
 				URL: c.url,
 			},
 		},
@@ -77,7 +77,7 @@ func (c *CreateCommand) initializeBuild() {
 
 	if c.image != "" {
 		c.build.Spec.Output = buildv1alpha1.Image{
-			ImageURL: c.image,
+			Image: c.image,
 		}
 	}
 }

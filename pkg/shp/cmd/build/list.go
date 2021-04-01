@@ -67,7 +67,7 @@ func (c *ListCommand) Run(params *params.Params) error {
 	}
 
 	for _, b := range buildList.Items {
-		fmt.Fprintf(writer, columnTemplate, b.Name, b.Spec.Output.ImageURL, b.Status.Message)
+		fmt.Fprintf(writer, columnTemplate, b.Name, b.Spec.Output.Image, b.Status.Message)
 	}
 
 	writer.Flush()

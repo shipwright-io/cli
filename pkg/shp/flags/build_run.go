@@ -18,7 +18,7 @@ func BuildRunSpecFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 		ServiceAccount: &buildv1alpha1.ServiceAccount{Name: &empty},
 		Timeout:        &metav1.Duration{},
 		Output: &buildv1alpha1.Image{
-			SecretRef: &corev1.LocalObjectReference{},
+			Credentials: &corev1.LocalObjectReference{},
 		},
 	}
 
@@ -75,12 +75,12 @@ func timeoutFlags(flags *pflag.FlagSet, timeout *metav1.Duration) {
 // serviceAccountFlags register flags for BuildRun's spec.output attribute.
 func outputFlags(flags *pflag.FlagSet, output *buildv1alpha1.Image) {
 	flags.StringVar(
-		&output.ImageURL,
+		&output.Image,
 		"output-image",
 		"",
 		"output image URL",
 	)
-	secretRefFlags(flags, output.SecretRef)
+	secretRefFlags(flags, output.Credentials)
 }
 
 // serviceAccountFlags register flags for BuildRun's spec.output.credentials attribute.
