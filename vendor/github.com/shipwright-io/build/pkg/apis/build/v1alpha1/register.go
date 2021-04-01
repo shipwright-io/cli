@@ -6,7 +6,7 @@
 
 // Package v1alpha1 contains API Schema definitions for the build v1alpha1 API group
 // +k8s:deepcopy-gen=package,register
-// +groupName=build.dev
+// +groupName=shipwright.io
 package v1alpha1
 
 import (
@@ -16,7 +16,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "build.dev", Version: "v1alpha1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "shipwright.io", Version: "v1alpha1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
@@ -24,3 +24,13 @@ var (
 	// AddToScheme is used in the generated kube code
 	AddToScheme = SchemeBuilder.AddToScheme
 )
+
+// Kind takes an unqualified kind and returns back a Group qualified GroupKind
+func Kind(kind string) schema.GroupKind {
+	return SchemeGroupVersion.WithKind(kind).GroupKind()
+}
+
+// Resource takes an unqualified resource and returns a Group qualified GroupResource
+func Resource(resource string) schema.GroupResource {
+	return SchemeGroupVersion.WithResource(resource).GroupResource()
+}
