@@ -11,8 +11,8 @@ import (
 // Runner execute the sub-command lifecycle, wrapper around sub-commands.
 type Runner struct {
 	p         *params.Params
-	ioStreams genericclioptions.IOStreams // input, output and error io streams
-	subCmd    SubCommand                  // sub-command instance
+	ioStreams *genericclioptions.IOStreams // input, output and error io streams
+	subCmd    SubCommand                   // sub-command instance
 }
 
 // Cmd is a wrapper around sub-command's Cobra, it wires up global flags and set a single RunE
@@ -32,10 +32,10 @@ func (r *Runner) RunE(cmd *cobra.Command, args []string) error {
 	if err := r.subCmd.Validate(); err != nil {
 		return err
 	}
-	return r.subCmd.Run(r.p)
+	return r.subCmd.Run(r.p, r.ioStreams)
 }
 
 // NewRunner instantiate a Runner.
-func NewRunner(params *params.Params, ioStreams genericclioptions.IOStreams, subCmd SubCommand) *Runner {
+func NewRunner(params *params.Params, ioStreams *genericclioptions.IOStreams, subCmd SubCommand) *Runner {
 	return &Runner{p: params, ioStreams: ioStreams, subCmd: subCmd}
 }

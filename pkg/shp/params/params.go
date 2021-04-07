@@ -6,12 +6,14 @@ import (
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 )
 
 // ShipwrightParams is a place for Shipwright CLI to store its runtime parameters
 // including configured dynamic client and global flags
 type Params struct {
-	client dynamic.Interface
+	client    dynamic.Interface
+	clientset *kubernetes.Clientset
 
 	configFlags *genericclioptions.ConfigFlags
 	namespace   string
@@ -47,6 +49,25 @@ func (p *Params) Client() (dynamic.Interface, error) {
 	}
 
 	return p.client, nil
+}
+
+func (p *Params) ClientSet() (*kubernetes.Clientset, error) {
+	if p.clientset != nil {
+		return p.clientset, nil
+	}
+
+	clientConfig := p.configFlags.ToRawKubeConfigLoader()
+	config, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	p.clientset, err = kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.clientset, nil
 }
 
 // Namespace returns kubernetes namespace with alle the overrides

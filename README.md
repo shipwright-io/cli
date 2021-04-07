@@ -10,12 +10,12 @@
     </a>
 </p>
 
-`shp` (PoC)
+`shp`
 -----------
 
-This is a proof-of-concept implementation of a command-line client for
-[Shipwright's Build](shipwrightbuild) operator, which uses the same pattern than `kubectl`/`oc` and
-can be used as a staandalone binary and as a `kubectl` plugin.
+This is an implementation of a command-line client for
+[Shipwright's Build](shipwrightbuild) operator, which uses the same pattern as `kubectl`/`oc` and
+can be used as a standalone binary and as a `kubectl` plugin.
 
 You can expect to read developer's documentation below, the focus on final users with extend
 usage documentation will come in the near future.
@@ -25,7 +25,7 @@ usage documentation will come in the near future.
 To install it run:
 
 ```sh
-go get -u github.com/otaviof/shp/cmd/shp
+go get -u github.com/shipwright-io/cli/cmd/shp
 ```
 
 Or clone the repository, and run `make` to build the binary at `_output` directory:

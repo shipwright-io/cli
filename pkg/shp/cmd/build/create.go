@@ -2,14 +2,17 @@ package build
 
 import (
 	"errors"
+	"fmt"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/resource"
 )
 
 // CreateCommand contains data input from user
@@ -28,12 +31,17 @@ type CreateCommand struct {
 func createCmd() runner.SubCommand {
 	createCommand := &CreateCommand{
 		cmd: &cobra.Command{
-			Use:   "create [flags] name strategy url",
+			Use:   "create <name> [flags]",
 			Short: "Create Build",
+			Args:  cobra.ExactArgs(1),
 		},
 	}
 
 	createCommand.cmd.Flags().StringVarP(&createCommand.image, "output-image", "i", "", "Output image created by build")
+	createCommand.cmd.Flags().StringVarP(&createCommand.strategy, "strategy", "", "buildah", "Build strategy")
+	createCommand.cmd.Flags().StringVarP(&createCommand.image, "source-url", "u", "", "Source URL to run the build from")
+
+	createCommand.cmd.MarkFlagRequired("source-url")
 
 	return createCommand
 }
@@ -45,14 +53,7 @@ func (c *CreateCommand) Cmd() *cobra.Command {
 
 // Complete fills internal subcommand structure for future work with user input
 func (c *CreateCommand) Complete(params *params.Params, args []string) error {
-
-	if len(args) < 3 {
-		return errors.New("not enough arguments for Build create")
-	}
-
 	c.name = args[0]
-	c.strategy = args[1]
-	c.url = args[2]
 
 	return nil
 }
@@ -92,8 +93,14 @@ func (c *CreateCommand) Validate() error {
 }
 
 // Run contains main logic of the create subcommand
-func (c *CreateCommand) Run(params *params.Params) error {
-	c.initializeBuild()
+func (sc *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
+	sc.initializeBuild()
+	buildResource := resource.GetBuildResource(params)
 
-	return buildResource.Create(c.name, c.build)
+	if err := buildResource.Create(sc.cmd.Context(), sc.name, sc.build); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(io.Out, "Build created %q\n", sc.name)
+	return nil
 }

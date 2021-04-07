@@ -3,6 +3,8 @@ package runner
 import (
 	"github.com/spf13/cobra"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/shipwright-io/cli/pkg/shp/params"
 )
 
@@ -15,5 +17,5 @@ type SubCommand interface {
 	// Validate perform validation against the context collected.
 	Validate() error
 	// Run execute the primary sub-command logic.
-	Run(params *params.Params) error
+	Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error
 }

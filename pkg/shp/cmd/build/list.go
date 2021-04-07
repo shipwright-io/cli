@@ -2,14 +2,16 @@ package build
 
 import (
 	"fmt"
-	"os"
 	"text/tabwriter"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/resource"
 )
 
 // ListCommand struct contains user input to the List subcommand of Build
@@ -48,17 +50,19 @@ func (c *ListCommand) Validate() error {
 }
 
 // Run contains main logic of List subcommand of Build
-func (c *ListCommand) Run(params *params.Params) error {
+func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
 	// TODO: Support multiple output formats here, not only tabwriter
 	//       find out more in kubectl libraries and use them
 
 	// Initialize tabwriter for command output
-	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 2, '\t', 0)
+	writer := tabwriter.NewWriter(io.Out, 0, 8, 2, '\t', 0)
 	columnNames := "NAME\tOUTPUT\tSTATUS"
 	columnTemplate := "%s\t%s\t%s\n"
 
 	var buildList buildv1alpha1.BuildList
-	if err := buildResource.List(&buildList); err != nil {
+	br := resource.GetBuildResource(params)
+
+	if err := br.List(c.cmd.Context(), &buildList); err != nil {
 		return err
 	}
 

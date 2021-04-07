@@ -19,9 +19,9 @@ func main() {
 	pflag.CommandLine = flags
 
 	streams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
-	rootCmd := cmd.NewCmdSHP(streams)
+	rootCmd := cmd.NewCmdSHP(&streams)
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Printf("[ERROR] %#v\n", err)
+		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		os.Exit(1)
 	}
 }
