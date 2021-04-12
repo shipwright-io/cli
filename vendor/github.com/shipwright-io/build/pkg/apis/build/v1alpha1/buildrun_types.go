@@ -11,7 +11,7 @@ import (
 
 const (
 	// BuildRunDomain is the domain used for all labels and annotations for this resource
-	BuildRunDomain = "buildrun.build.dev"
+	BuildRunDomain = "buildrun.shipwright.io"
 
 	// LabelBuildRun is a label key for BuildRuns to define the name of the BuildRun
 	LabelBuildRun = BuildRunDomain + "/name"
@@ -22,7 +22,6 @@ const (
 
 // BuildRunSpec defines the desired state of BuildRun
 type BuildRunSpec struct {
-
 	// BuildRef refers to the Build
 	BuildRef *BuildRef `json:"buildRef"`
 
@@ -45,19 +44,27 @@ type BuildRunSpec struct {
 
 // BuildRunStatus defines the observed state of BuildRun
 type BuildRunStatus struct {
-
-	// Conditions
+	// Conditions holds the latest available observations of a resource's current state.
 	Conditions Conditions `json:"conditions,omitempty"`
 
 	// The Succeeded status of the TaskRun
+	//
+	// Deprecated: Use Conditions instead. This will be removed in a future release.
+	//
 	// +optional
 	Succeeded corev1.ConditionStatus `json:"succeeded,omitempty"`
 
 	// The Succeeded reason of the TaskRun
+	//
+	// Deprecated: Use Conditions instead. This will be removed in a future release.
+	//
 	// +optional
 	Reason string `json:"reason,omitempty"`
 
-	// PodName is the name of the pod responsible for executing this task's steps.
+	// LatestTaskRunRef is the name of the TaskRun responsible for executing this BuildRun.
+	//
+	// TODO: This should be called something like "TaskRunName"
+	//
 	// +optional
 	LatestTaskRunRef *string `json:"latestTaskRunRef,omitempty"`
 
@@ -205,6 +212,17 @@ func (brs *BuildRunStatus) GetCondition(t Type) *Condition {
 		}
 	}
 	return nil
+}
+
+// IsFailed returns a condition with a False Status
+// based on a type from a list of Conditions.
+func (brs *BuildRunStatus) IsFailed(t Type) bool {
+	for _, c := range brs.Conditions {
+		if c.Type == t {
+			return c.Status == corev1.ConditionFalse
+		}
+	}
+	return false
 }
 
 // SetCondition updates a list of conditions with the provided condition
