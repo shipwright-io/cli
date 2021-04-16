@@ -2,13 +2,13 @@ package build
 
 import (
 	"errors"
-	"fmt"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog/v2"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -101,6 +101,7 @@ func (sc *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStre
 		return err
 	}
 
-	fmt.Fprintf(io.Out, "Build created %q\n", sc.name)
+	klog.Infof("Created build %q", sc.name)
+
 	return nil
 }

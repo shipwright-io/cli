@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog/v2"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -73,7 +74,7 @@ func (c *LogsCommand) Run(params *params.Params, ioStreams *genericclioptions.IO
 		return fmt.Errorf("no builder pod found for BuildRun %q", c.name)
 	}
 
-	fmt.Fprintf(ioStreams.Out, "Obtaining logs for BuildRun %q\n\n", c.name)
+	klog.V(5).Infof("Obtaining logs for BuildRun %q", c.name)
 
 	var b strings.Builder
 	pod := pods.Items[0]

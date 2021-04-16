@@ -8,6 +8,7 @@ import (
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog/v2"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -73,12 +74,12 @@ func (c *DeleteCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 
 		for _, buildrun := range brList.Items {
 			if err := brr.Delete(c.cmd.Context(), buildrun.Name); err != nil {
-				fmt.Fprintf(io.ErrOut, "Error deleting BuildRun %q: %v\n", buildrun.Name, err)
+				klog.Errorf("Error deleting BuildRun %q: %v", buildrun.Name, err)
 			}
 		}
 	}
 
-	fmt.Fprintf(io.Out, "Build deleted %q\n", c.name)
+	klog.Infof("Deleted build %q", c.name)
 
 	return nil
 }

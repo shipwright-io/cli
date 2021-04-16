@@ -1,11 +1,10 @@
 package buildrun
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog/v2"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -54,7 +53,7 @@ func (c *DeleteCommand) Run(params *params.Params, ioStreams *genericclioptions.
 		return err
 	}
 
-	fmt.Fprintf(ioStreams.Out, "BuildRun deleted '%v'\n", c.name)
+	klog.Infof("Deleted buildrun %q", c.name)
 
 	return nil
 }
