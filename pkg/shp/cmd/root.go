@@ -8,6 +8,7 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/cmd/build"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/buildrun"
 	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/suggestion"
 )
 
 var rootCmd = &cobra.Command{
@@ -25,5 +26,28 @@ func NewCmdSHP(ioStreams *genericclioptions.IOStreams) *cobra.Command {
 	rootCmd.AddCommand(build.Command(p, ioStreams))
 	rootCmd.AddCommand(buildrun.Command(p, ioStreams))
 
+	visitCommands(rootCmd, reconfigureCommandWithSubcommand)
+
 	return rootCmd
+}
+
+func reconfigureCommandWithSubcommand(cmd *cobra.Command) {
+	if len(cmd.Commands()) == 0 {
+		return
+	}
+
+	if cmd.Args == nil {
+		cmd.Args = cobra.ArbitraryArgs
+	}
+
+	if cmd.RunE == nil {
+		cmd.RunE = suggestion.SubcommandsRequiredWithSuggestions
+	}
+}
+
+func visitCommands(cmd *cobra.Command, f func(*cobra.Command)) {
+	f(cmd)
+	for _, child := range cmd.Commands() {
+		visitCommands(child, f)
+	}
 }

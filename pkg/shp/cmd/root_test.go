@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/onsi/gomega"
+	"github.com/shipwright-io/cli/test/stub"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -15,5 +17,13 @@ func TestCMD_NewCmdSHP(t *testing.T) {
 	genericOpts := &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	cmd := NewCmdSHP(genericOpts)
 
-	g.Expect(cmd).NotTo(gomega.BeNil())
+	out, err := stub.ExecuteCommand(cmd, "build", "cr")
+
+	if err == nil {
+		t.Errorf("No errors was defined. Output: %s", out)
+	}
+
+	expected := fmt.Sprintf("unknown command %q for %q\n\nDid you mean this?\n\t%s\n", "cr", "shp build", "create")
+
+	g.Expect(err.Error()).To(gomega.Equal(expected))
 }

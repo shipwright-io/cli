@@ -8,6 +8,7 @@ require (
 	github.com/shipwright-io/build v0.3.1-0.20210330182238-23d2672f2f61
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
+	github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
 	k8s.io/api v0.19.7
 	k8s.io/apimachinery v0.19.7
 	k8s.io/cli-runtime v0.19.7

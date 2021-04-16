@@ -87,6 +87,9 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit
 github.com/spf13/pflag
+# github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
+## explicit
+github.com/texttheater/golang-levenshtein/levenshtein
 # golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20210119194325-5f4716e94777
