@@ -2,11 +2,13 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -82,4 +84,21 @@ func ListObjectWithOptions(ctx context.Context, resource dynamic.ResourceInterfa
 	}
 
 	return fromUnstructured(u.UnstructuredContent(), result)
+}
+
+type patchStringValue struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value string `json:"value"`
+}
+
+func PatchObject(ctx context.Context, resource dynamic.ResourceInterface, name, op, path, value string) error {
+	payload := []patchStringValue{{
+		Op:    op,
+		Path:  path,
+		Value: value,
+	}}
+	data, _ := json.Marshal(payload)
+	_, err := resource.Patch(ctx, name, types.JSONPatchType, data, v1.PatchOptions{})
+	return err
 }
