@@ -78,7 +78,7 @@ github.com/peterbourgon/diskv
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/shipwright-io/build v0.3.1-0.20210330182238-23d2672f2f61
+# github.com/shipwright-io/build v0.4.0
 ## explicit
 github.com/shipwright-io/build/pkg/apis/build/v1alpha1
 # github.com/spf13/cobra v1.1.3
