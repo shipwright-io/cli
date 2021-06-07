@@ -1,106 +1,88 @@
 package build
 
 import (
-	"errors"
 	"fmt"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	"github.com/spf13/cobra"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
+	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/resource"
+	"github.com/spf13/cobra"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // CreateCommand contains data input from user
 type CreateCommand struct {
-	url      string
-	strategy string
-	name     string
+	cmd *cobra.Command // cobra command instance
 
-	image string
-
-	build *buildv1alpha1.Build
-
-	cmd *cobra.Command
+	name      string                   // build resource's name
+	buildSpec *buildv1alpha1.BuildSpec // stores command-line flags
 }
 
-func createCmd() runner.SubCommand {
-	createCommand := &CreateCommand{
-		cmd: &cobra.Command{
-			Use:   "create <name> [flags]",
-			Short: "Create Build",
-			Args:  cobra.ExactArgs(1),
-		},
-	}
+const buildCreateLongDesc = `
+Creates a new Build instance using the first argument as its name. For example:
 
-	createCommand.cmd.Flags().StringVarP(&createCommand.image, "output-image", "i", "", "Output image created by build")
-	createCommand.cmd.Flags().StringVarP(&createCommand.strategy, "strategy", "", "buildah", "Build strategy")
-	createCommand.cmd.Flags().StringVarP(&createCommand.image, "source-url", "u", "", "Source URL to run the build from")
+	$ shp build create my-app --source-url="..." --output-image="..."
+`
 
-	createCommand.cmd.MarkFlagRequired("source-url")
-
-	return createCommand
-}
-
-// Cmd returns cobra Command object of the create subcommand
+// Cmd returns cobra.Command object of the create subcommand.
 func (c *CreateCommand) Cmd() *cobra.Command {
 	return c.cmd
 }
 
 // Complete fills internal subcommand structure for future work with user input
 func (c *CreateCommand) Complete(params *params.Params, args []string) error {
-	c.name = args[0]
-
+	switch len(args) {
+	case 1:
+		c.name = args[0]
+	default:
+		return fmt.Errorf("one argument is expected")
+	}
 	return nil
 }
 
-func (c *CreateCommand) initializeBuild() {
-	strategyKind := buildv1alpha1.ClusterBuildStrategyKind
-
-	c.build = &buildv1alpha1.Build{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: c.name,
-		},
-		Spec: buildv1alpha1.BuildSpec{
-			Strategy: &buildv1alpha1.Strategy{
-				Name: c.strategy,
-				Kind: &strategyKind,
-			},
-			Source: buildv1alpha1.Source{
-				URL: c.url,
-			},
-		},
-	}
-
-	if c.image != "" {
-		c.build.Spec.Output = buildv1alpha1.Image{
-			Image: c.image,
-		}
-	}
-}
-
-// Validate is used for user input validation of flags and other data
+// Validate is used for user input validation of flags and other data.
 func (c *CreateCommand) Validate() error {
-	if c.strategy != "buildah" {
-		return errors.New("incorrect strategy, must be 'buildah'")
+	if c.name == "" {
+		return fmt.Errorf("name must be provided")
 	}
-
 	return nil
 }
 
-// Run contains main logic of the create subcommand
-func (sc *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
-	sc.initializeBuild()
-	buildResource := resource.GetBuildResource(params)
+// Run executes the creation of a new Build instance using flags to fill up the details.
+func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
+	b := &buildv1alpha1.Build{Spec: *c.buildSpec}
+	flags.SanitizeBuildSpec(&b.Spec)
 
-	if err := buildResource.Create(sc.cmd.Context(), sc.name, sc.build); err != nil {
+	buildResource := resource.GetBuildResource(params)
+	if err := buildResource.Create(c.cmd.Context(), c.name, b); err != nil {
 		return err
 	}
-
-	fmt.Fprintf(io.Out, "Build created %q\n", sc.name)
+	fmt.Fprintf(io.Out, "Created build %q\n", c.name)
 	return nil
+}
+
+// createCmd instantiate the "build create" subcommand.
+func createCmd() runner.SubCommand {
+	cmd := &cobra.Command{
+		Use:   "create <name> [flags]",
+		Short: "Create Build",
+		Long:  buildCreateLongDesc,
+	}
+
+	// instantiating command-line flags and the build-spec structure which receives the informed flag
+	// values, also marking certain flags as mandatory
+	buildSpecFlags := flags.BuildSpecFromFlags(cmd.Flags())
+	if err := cmd.MarkFlagRequired(flags.SourceURLFlag); err != nil {
+		panic(err)
+	}
+	if err := cmd.MarkFlagRequired(flags.OutputImageFlag); err != nil {
+		panic(err)
+	}
+
+	return &CreateCommand{
+		cmd:       cmd,
+		buildSpec: buildSpecFlags,
+	}
 }
