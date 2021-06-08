@@ -8,8 +8,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// BuildRunSpecFlags BuildRun's spec represtantation as command-line flags.
-func BuildRunSpecFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
+// BuildRunSpecFromFlags creates a BuildRun spec from command-line flags.
+func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 	spec := &buildv1alpha1.BuildRunSpec{
 		BuildRef:       &buildv1alpha1.BuildRef{},
 		ServiceAccount: &buildv1alpha1.ServiceAccount{},
@@ -27,7 +27,7 @@ func BuildRunSpecFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 	return spec
 }
 
-// SanitizeBuildRunSpec when inner elements are empty, making sure they are replace by a nil pointer.
+// SanitizeBuildRunSpec checks for empty inner data structures and replaces them with nil.
 func SanitizeBuildRunSpec(br *buildv1alpha1.BuildRunSpec) {
 	if br == nil {
 		return

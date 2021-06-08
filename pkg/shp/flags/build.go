@@ -7,8 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// BuildSpecFlags creates a BuildSpec instance based on command-line flags.
-func BuildSpecFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
+// BuildSpecFromFlags creates a BuildSpec instance based on command-line flags.
+func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	clusterBuildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
 	spec := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
@@ -45,7 +45,7 @@ func BuildSpecFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	return spec
 }
 
-// SanitizeBuildSpec checks for empty inner data structure and replaces them with nil.
+// SanitizeBuildSpec checks for empty inner data structures and replaces them with nil.
 func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
 	if b == nil {
 		return
