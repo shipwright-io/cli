@@ -3,6 +3,7 @@ module github.com/shipwright-io/cli
 go 1.15
 
 require (
+	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/onsi/gomega v1.10.3
 	github.com/pkg/errors v0.9.1
 	github.com/shipwright-io/build v0.4.0
