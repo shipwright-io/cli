@@ -7,7 +7,7 @@ PKG = ./pkg/...
 BIN ?= $(OUTPUT_DIR)/$(APP)
 KUBECTL_BIN ?= $(OUTPUT_DIR)/kubectl-$(APP)
 
-GO_FLAGS ?= -v -mod=vendor
+GO_FLAGS ?= -mod=vendor
 GO_TEST_FLAGS ?= -race -cover
 
 ARGS ?=
@@ -17,6 +17,9 @@ $(BIN):
 	go build $(GO_FLAGS) -o $(BIN) $(CMD)
 
 build: $(BIN)
+
+build-cross:
+	hack/build-cross.sh "$(GO_FLAGS)" $(OUTPUT_DIR)
 
 install: build
 	install -m 0755 $(BIN) /usr/local/bin/
