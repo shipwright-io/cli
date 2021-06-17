@@ -2,6 +2,7 @@ package buildrun
 
 import (
 	"fmt"
+	pod2 "github.com/shipwright-io/cli/pkg/shp/cmd/pod"
 	"strings"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
@@ -14,7 +15,6 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/resource"
-	"github.com/shipwright-io/cli/pkg/shp/util"
 )
 
 // LogsCommand contains data input from user for logs sub-command
@@ -78,7 +78,7 @@ func (c *LogsCommand) Run(params *params.Params, ioStreams *genericclioptions.IO
 	var b strings.Builder
 	pod := pods.Items[0]
 	for _, container := range pod.Spec.Containers {
-		logs, err := util.GetPodLogs(c.cmd.Context(), clientset, pod, container.Name)
+		logs, err := pod2.GetPodLogs(c.cmd.Context(), clientset, pod, container.Name)
 		if err != nil {
 			return err
 		}
