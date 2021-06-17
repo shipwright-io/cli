@@ -1,5 +1,6 @@
 package build
 
+/*
 import (
 	tkncli "github.com/tektoncd/cli/pkg/cli"
 	tknlog "github.com/tektoncd/cli/pkg/log"
@@ -36,3 +37,4 @@ func getTKNLogOpts(params tkncli.Params, ioStreams *genericclioptions.IOStreams,
 	}
 
 }
+*/

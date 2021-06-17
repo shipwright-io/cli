@@ -3,6 +3,8 @@ package resource
 import (
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 
+	v1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -35,5 +37,15 @@ func GetBuildResource(p *params.Params) *Resource {
 		buildv1alpha1.SchemeBuilder.GroupVersion,
 		"Build",
 		"builds",
+	)
+}
+
+// GetTaskRunResource returns a Resource for working with taskRun objects
+func GetTaskRunResource(p *params.Params) *Resource {
+	return newResource(
+		p,
+		v1beta1.SchemeGroupVersion,
+		"taskRun",
+		"taskruns",
 	)
 }

@@ -1,5 +1,6 @@
 package build
 
+/*
 import (
 	"testing"
 	"time"
@@ -24,7 +25,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
-
+*/
+/*
 func setupFakeClientsAndObjects() (tkncli.Params, string, string, string) {
 	podName := "pod-for-tr"
 	containerName := "container"
@@ -168,3 +170,4 @@ func (t *TestTKNParams) SetNoColour(bool) {
 func (t *TestTKNParams) Time() clockwork.Clock {
 	return clockwork.NewFakeClock()
 }
+*/

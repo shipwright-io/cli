@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/pod"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/taskrun"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/resource"
 	"github.com/spf13/cobra"
-	tkncli "github.com/tektoncd/cli/pkg/cli"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -21,7 +23,7 @@ type RunCommand struct {
 
 	buildName    string                      // build name
 	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
-	Follow bool
+	Follow       bool
 }
 
 const buildRunLongDesc = `
@@ -94,11 +96,33 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		return fmt.Errorf("build run %s terminated before task run ref was set, inspect build run status for details", br.Name)
 	}
 
-	tparams := &tkncli.TektonParams{}
-	tparams.SetNamespace(br.Namespace)
-	logOpts := getTKNLogOpts(tparams, ioStreams, *br.Status.LatestTaskRunRef)
+	taskRunResource := resource.GetTaskRunResource(params)
+	taskRunName := *br.Status.LatestTaskRunRef
 
-	return Tail(logOpts)
+	tr, err := taskrun.WaitForTaskRunToHavePod(r.cmd.Context(), taskRunName, taskRunResource, ioStreams)
+	if err != nil {
+		return err
+	}
+	if tr == nil {
+		return fmt.Errorf("task run watch function exitted unexpectedly")
+	}
+	if tr.ObjectMeta.DeletionTimestamp != nil {
+		return fmt.Errorf("task run %s was deleted before it terminated", tr.Name)
+	}
+	podName := tr.Status.PodName
+
+	kube, err := params.ClientSet()
+	if err != nil {
+		return fmt.Errorf("could not build k8s client: %s", err.Error())
+	}
+	pod.Tail(podName, taskRunName, br.Namespace, kube, ioStreams)
+	return nil
+
+	/*tparams := &tkncli.TektonParams{}
+	tparams.SetNamespace(br.Namespace)
+	logOpts := getTKNLogOpts(tparams, ioStreams, *br.status.LatestTaskRunRef)
+
+	return Tail(logOpts)*/
 }
 
 // runCmd instantiate the "build run" sub-command using common BuildRun flags.
