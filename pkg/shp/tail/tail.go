@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -51,9 +52,10 @@ func (t *Tail) Start(ns, podName, container string) {
 			stream.Close()
 		}()
 
+		containerName := strings.TrimPrefix(container, "step-")
 		sc := bufio.NewScanner(stream)
 		for sc.Scan() {
-			fmt.Fprintf(t.stdout, ">>> %s\n", sc.Text())
+			fmt.Fprintf(t.stdout, "[%s] %s\n", containerName, sc.Text())
 		}
 	}()
 	go func() {
