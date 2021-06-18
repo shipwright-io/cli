@@ -61,19 +61,9 @@ func (r *RunCommand) Complete(params *params.Params, args []string) error {
 	if r.clientset, err = params.ClientSet(); err != nil {
 		return err
 	}
-	ctx := r.Cmd().Context()
 
-	r.logTail = tail.NewTail(ctx, r.clientset)
+	r.logTail = tail.NewTail(r.Cmd().Context(), r.clientset)
 	r.ns = params.Namespace()
-
-	// instantiating a pod watcher with a specific label-selector to find the indented pod where the
-	// actual build started by this subcommand is being executed
-	labelSelector := fmt.Sprintf("build.shipwright.io/name=%s", r.buildName)
-	listOpts := metav1.ListOptions{LabelSelector: labelSelector}
-	r.pw, err = reactor.NewPodWatcher(ctx, r.clientset, listOpts, r.ns)
-	if err != nil {
-		return err
-	}
 
 	// overwriting build-ref name to use what's on arguments
 	return r.Cmd().Flags().Set(flags.BuildrefNameFlag, r.buildName)
@@ -139,13 +129,27 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
 	buildRunResource := resource.GetBuildRunResource(params)
-	if err := buildRunResource.Create(r.cmd.Context(), "", br); err != nil {
+	err := buildRunResource.Create(r.cmd.Context(), "", br)
+	if err != nil {
 		return err
 	}
 
 	if !r.Follow {
 		fmt.Fprintf(ioStreams.Out, "BuildRun created %q for build %q\n", br.GetName(), r.buildName)
 		return nil
+	}
+
+	// instantiating a pod watcher with a specific label-selector to find the indented pod where the
+	// actual build started by this subcommand is being executed, including the randomized buildrun
+	// name
+	listOpts := metav1.ListOptions{LabelSelector: fmt.Sprintf(
+		"build.shipwright.io/name=%s,buildrun.shipwright.io/name=%s",
+		r.buildName,
+		br.GetName(),
+	)}
+	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), r.clientset, listOpts, r.ns)
+	if err != nil {
+		return err
 	}
 
 	r.ioStreams = ioStreams
