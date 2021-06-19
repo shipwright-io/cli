@@ -17,40 +17,40 @@ type PodWatcher struct {
 	stopCh  chan bool       // stops the event loop execution
 	watcher watch.Interface // client watch instance
 
-	skipPODFn       SkipPODFn
-	onPoDAddedFn    OnPodEventFn
-	onPoDModifiedFn OnPodEventFn
-	onPoDDeletedFn  OnPodEventFn
+	skipPodFn       SkipPodFn
+	onPodAddedFn    OnPodEventFn
+	onPodModifiedFn OnPodEventFn
+	onPodDeletedFn  OnPodEventFn
 }
 
-// SkipPODFn a given pod instance is informed and expects a boolean as return. When true is returned
+// SkipPodFn a given pod instance is informed and expects a boolean as return. When true is returned
 // this container state processing is skipped completely.
-type SkipPODFn func(pod *corev1.Pod) bool
+type SkipPodFn func(pod *corev1.Pod) bool
 
 // OnPodEventFn when a pod is modified this method handles the event.
 type OnPodEventFn func(pod *corev1.Pod) error
 
 // WithSkipPodFn sets the skip function instance.
-func (p *PodWatcher) WithSkipPodFn(fn SkipPODFn) *PodWatcher {
-	p.skipPODFn = fn
+func (p *PodWatcher) WithSkipPodFn(fn SkipPodFn) *PodWatcher {
+	p.skipPodFn = fn
 	return p
 }
 
 // WithOnPodAddedFn sets the function executed when a pod is added.
 func (p *PodWatcher) WithOnPodAddedFn(fn OnPodEventFn) *PodWatcher {
-	p.onPoDAddedFn = fn
+	p.onPodAddedFn = fn
 	return p
 }
 
 // WithOnPodModifiedFn sets the funcion executed when a pod is modified.
 func (p *PodWatcher) WithOnPodModifiedFn(fn OnPodEventFn) *PodWatcher {
-	p.onPoDModifiedFn = fn
+	p.onPodModifiedFn = fn
 	return p
 }
 
 // WithOnPodDeletedFn sets the funcion executed when a pod is modified.
 func (p *PodWatcher) WithOnPodDeletedFn(fn OnPodEventFn) *PodWatcher {
-	p.onPoDDeletedFn = fn
+	p.onPodDeletedFn = fn
 	return p
 }
 
@@ -70,26 +70,26 @@ func (p *PodWatcher) Start() error {
 				continue
 			}
 
-			if p.skipPODFn != nil && p.skipPODFn(pod) {
+			if p.skipPodFn != nil && p.skipPodFn(pod) {
 				continue
 			}
 
 			switch event.Type {
 			case watch.Added:
-				if p.onPoDAddedFn != nil {
-					if err := p.onPoDAddedFn(pod); err != nil {
+				if p.onPodAddedFn != nil {
+					if err := p.onPodAddedFn(pod); err != nil {
 						return err
 					}
 				}
 			case watch.Modified:
-				if p.onPoDModifiedFn != nil {
-					if err := p.onPoDModifiedFn(pod); err != nil {
+				if p.onPodModifiedFn != nil {
+					if err := p.onPodModifiedFn(pod); err != nil {
 						return err
 					}
 				}
 			case watch.Deleted:
-				if p.onPoDDeletedFn != nil {
-					if err := p.onPoDDeletedFn(pod); err != nil {
+				if p.onPodDeletedFn != nil {
+					if err := p.onPodDeletedFn(pod); err != nil {
 						return err
 					}
 				}
