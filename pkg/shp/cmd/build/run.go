@@ -16,7 +16,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/kubernetes"
 )
 
 // RunCommand represents the `build run` sub-command, which creates a unique BuildRun instance to run
@@ -24,12 +23,10 @@ import (
 type RunCommand struct {
 	cmd *cobra.Command // cobra command instance
 
-	clientset       kubernetes.Interface         // kubernetes client
 	ioStreams       *genericclioptions.IOStreams // io-streams instance
-	ns              string                       // namespace name
 	pw              *reactor.PodWatcher          // pod-watcher instance
 	logTail         *tail.Tail                   // follow container logs
-	tailLogsStarted map[string]bool
+	tailLogsStarted map[string]bool              // controls tail instance per container
 
 	buildName    string                      // build name
 	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
@@ -57,13 +54,11 @@ func (r *RunCommand) Complete(params *params.Params, args []string) error {
 		return errors.New("Build name is not informed")
 	}
 
-	var err error
-	if r.clientset, err = params.ClientSet(); err != nil {
+	clientset, err := params.ClientSet()
+	if err != nil {
 		return err
 	}
-
-	r.logTail = tail.NewTail(r.Cmd().Context(), r.clientset)
-	r.ns = params.Namespace()
+	r.logTail = tail.NewTail(r.Cmd().Context(), clientset)
 
 	// overwriting build-ref name to use what's on arguments
 	return r.Cmd().Flags().Set(flags.BuildrefNameFlag, r.buildName)
@@ -139,6 +134,11 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		return nil
 	}
 
+	clientset, err := params.ClientSet()
+	if err != nil {
+		return err
+	}
+
 	// instantiating a pod watcher with a specific label-selector to find the indented pod where the
 	// actual build started by this subcommand is being executed, including the randomized buildrun
 	// name
@@ -147,7 +147,7 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		r.buildName,
 		br.GetName(),
 	)}
-	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), r.clientset, listOpts, r.ns)
+	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), clientset, listOpts, params.Namespace())
 	if err != nil {
 		return err
 	}
