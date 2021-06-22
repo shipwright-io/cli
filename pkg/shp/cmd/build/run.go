@@ -3,15 +3,17 @@ package build
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/pod"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/taskrun"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/shipwright-io/cli/pkg/shp/resource"
+	"github.com/shipwright-io/cli/pkg/shp/tail"
 	"github.com/spf13/cobra"
-
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -21,9 +23,14 @@ import (
 type RunCommand struct {
 	cmd *cobra.Command // cobra command instance
 
+	ioStreams       *genericclioptions.IOStreams // io-streams instance
+	pw              *reactor.PodWatcher          // pod-watcher instance
+	logTail         *tail.Tail                   // follow container logs
+	tailLogsStarted map[string]bool              // controls tail instance per container
+
 	buildName    string                      // build name
 	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
-	Follow       bool
+	Follow       bool                        // flag to tail pod logs
 }
 
 const buildRunLongDesc = `
@@ -38,7 +45,7 @@ func (r *RunCommand) Cmd() *cobra.Command {
 	return r.cmd
 }
 
-// Complete picks the build resource name from arguments, or error when not informed.
+// Complete picks the build resource name from arguments, and instantiate additional components.
 func (r *RunCommand) Complete(params *params.Params, args []string) error {
 	switch len(args) {
 	case 1:
@@ -46,6 +53,13 @@ func (r *RunCommand) Complete(params *params.Params, args []string) error {
 	default:
 		return errors.New("Build name is not informed")
 	}
+
+	clientset, err := params.ClientSet()
+	if err != nil {
+		return err
+	}
+	r.logTail = tail.NewTail(r.Cmd().Context(), clientset)
+
 	// overwriting build-ref name to use what's on arguments
 	return r.Cmd().Flags().Set(flags.BuildrefNameFlag, r.buildName)
 }
@@ -56,6 +70,59 @@ func (r *RunCommand) Validate() error {
 		return fmt.Errorf("name is not informed")
 	}
 	return nil
+}
+
+// tailLogs start tailing logs for each container name in init-containers and containers, if not
+// started already.
+func (r *RunCommand) tailLogs(pod *corev1.Pod) {
+	containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
+	for _, container := range containers {
+		if _, exists := r.tailLogsStarted[container.Name]; exists {
+			continue
+		}
+		r.tailLogsStarted[container.Name] = true
+		r.logTail.Start(pod.GetNamespace(), pod.GetName(), container.Name)
+	}
+}
+
+// onEvent reacts on pod state changes, to start and stop tailing container logs.
+func (r *RunCommand) onEvent(pod *corev1.Pod) error {
+	if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodUnknown {
+		// handle any issues with pulling images that may fail
+		for _, c := range pod.Status.Conditions {
+			if c.Type == corev1.PodInitialized || c.Type == corev1.ContainersReady {
+				if c.Status == corev1.ConditionUnknown {
+					return fmt.Errorf(c.Message)
+				}
+			}
+		}
+	}
+
+	switch pod.Status.Phase {
+	case corev1.PodPending:
+		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' is pending...\n", pod.GetName())
+	case corev1.PodRunning:
+		// graceful time to wait for container start
+		time.Sleep(3 * time.Second)
+		// start tailing container logs
+		r.tailLogs(pod)
+	case corev1.PodFailed:
+		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' has failed!\n", pod.GetName())
+		r.stop()
+		return fmt.Errorf("build pod '%s' has failed", pod.GetName())
+	case corev1.PodSucceeded:
+		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' has succeeded!\n", pod.GetName())
+		r.stop()
+	case corev1.PodUnknown:
+		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' is on unknown state...\n", pod.GetName())
+	}
+	return nil
+}
+
+// stop invoke stop on streaming components.
+func (r *RunCommand) stop() {
+	r.logTail.Stop()
+	r.pw.Stop()
 }
 
 // Run creates a BuildRun resource based on Build's name informed on arguments.
@@ -70,7 +137,8 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
 	buildRunResource := resource.GetBuildRunResource(params)
-	if err := buildRunResource.Create(r.cmd.Context(), "", br); err != nil {
+	err := buildRunResource.Create(r.cmd.Context(), "", br)
+	if err != nil {
 		return err
 	}
 
@@ -79,50 +147,28 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		return nil
 	}
 
-	br, err := waitForBuildRunToHaveTaskRun(r.cmd.Context(), br.Name, buildRunResource, ioStreams)
+	clientset, err := params.ClientSet()
 	if err != nil {
 		return err
 	}
-	if br == nil {
-		// not expected, but sanity check to avoid panic
-		return fmt.Errorf("build run watch function exitted unexpectedly")
-	}
 
-	if br.ObjectMeta.DeletionTimestamp != nil {
-		return fmt.Errorf("build run %s was deleted before it terminated", br.Name)
-	}
-
-	if br.Status.LatestTaskRunRef == nil {
-		return fmt.Errorf("build run %s terminated before task run ref was set, inspect build run status for details", br.Name)
-	}
-
-	taskRunResource := resource.GetTaskRunResource(params)
-	taskRunName := *br.Status.LatestTaskRunRef
-
-	tr, err := taskrun.WaitForTaskRunToHavePod(r.cmd.Context(), taskRunName, taskRunResource, ioStreams)
+	// instantiating a pod watcher with a specific label-selector to find the indented pod where the
+	// actual build started by this subcommand is being executed, including the randomized buildrun
+	// name
+	listOpts := metav1.ListOptions{LabelSelector: fmt.Sprintf(
+		"build.shipwright.io/name=%s,buildrun.shipwright.io/name=%s",
+		r.buildName,
+		br.GetName(),
+	)}
+	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), clientset, listOpts, params.Namespace())
 	if err != nil {
 		return err
 	}
-	if tr == nil {
-		return fmt.Errorf("task run watch function exitted unexpectedly")
-	}
-	if tr.ObjectMeta.DeletionTimestamp != nil {
-		return fmt.Errorf("task run %s was deleted before it terminated", tr.Name)
-	}
-	podName := tr.Status.PodName
 
-	kube, err := params.ClientSet()
-	if err != nil {
-		return fmt.Errorf("could not build k8s client: %s", err.Error())
-	}
-	pod.Tail(podName, taskRunName, br.Namespace, kube, ioStreams)
-	return nil
-
-	/*tparams := &tkncli.TektonParams{}
-	tparams.SetNamespace(br.Namespace)
-	logOpts := getTKNLogOpts(tparams, ioStreams, *br.status.LatestTaskRunRef)
-
-	return Tail(logOpts)*/
+	r.ioStreams = ioStreams
+	r.pw.WithOnPodModifiedFn(r.onEvent)
+	_, err = r.pw.Start()
+	return err
 }
 
 // runCmd instantiate the "build run" sub-command using common BuildRun flags.
@@ -133,8 +179,9 @@ func runCmd() runner.SubCommand {
 		Long:  buildRunLongDesc,
 	}
 	runCommand := &RunCommand{
-		cmd:          cmd,
-		buildRunSpec: flags.BuildRunSpecFromFlags(cmd.Flags()),
+		cmd:             cmd,
+		buildRunSpec:    flags.BuildRunSpecFromFlags(cmd.Flags()),
+		tailLogsStarted: make(map[string]bool),
 	}
 	cmd.Flags().BoolVarP(&runCommand.Follow, "follow", "F", runCommand.Follow, "Start a build and watch its log until it completes or fails.")
 	return runCommand
