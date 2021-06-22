@@ -48,7 +48,7 @@ func Test_PodWatcherEvents(t *testing.T) {
 	// executing the event loop in the background, and waiting for the stop channel before inspecting
 	// for errors
 	go func() {
-		err := pw.Start()
+		_, err := pw.Start()
 		<-pw.stopCh
 		g.Expect(err).To(o.BeNil())
 		eventsDoneCh <- true

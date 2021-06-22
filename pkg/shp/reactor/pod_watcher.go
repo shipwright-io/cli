@@ -56,7 +56,7 @@ func (p *PodWatcher) WithOnPodDeletedFn(fn OnPodEventFn) *PodWatcher {
 
 // Start runs the event loop based on a watch instantiated against informed pod. In case of errors
 // the loop is interrupted.
-func (p *PodWatcher) Start() error {
+func (p *PodWatcher) Start() (*corev1.Pod, error) {
 	for {
 		select {
 		// handling the regular pod modification events, which should trigger calling event functions
@@ -78,19 +78,19 @@ func (p *PodWatcher) Start() error {
 			case watch.Added:
 				if p.onPodAddedFn != nil {
 					if err := p.onPodAddedFn(pod); err != nil {
-						return err
+						return pod, err
 					}
 				}
 			case watch.Modified:
 				if p.onPodModifiedFn != nil {
 					if err := p.onPodModifiedFn(pod); err != nil {
-						return err
+						return pod, err
 					}
 				}
 			case watch.Deleted:
 				if p.onPodDeletedFn != nil {
 					if err := p.onPodDeletedFn(pod); err != nil {
-						return err
+						return pod, err
 					}
 				}
 			}
@@ -98,11 +98,11 @@ func (p *PodWatcher) Start() error {
 		// the event loop as well.
 		case <-p.ctx.Done():
 			p.watcher.Stop()
-			return nil
+			return nil, nil
 		// watching over stop channel to stop the event loop on demand.
 		case <-p.stopCh:
 			p.watcher.Stop()
-			return nil
+			return nil, nil
 		}
 	}
 }
