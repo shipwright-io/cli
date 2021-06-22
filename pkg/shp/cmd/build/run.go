@@ -87,20 +87,7 @@ func (r *RunCommand) tailLogs(pod *corev1.Pod) {
 
 // onEvent reacts on pod state changes, to start and stop tailing container logs.
 func (r *RunCommand) onEvent(pod *corev1.Pod) error {
-	if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodUnknown {
-		// handle any issues with pulling images that may fail
-		for _, c := range pod.Status.Conditions {
-			if c.Type == corev1.PodInitialized || c.Type == corev1.ContainersReady {
-				if c.Status == corev1.ConditionUnknown {
-					return fmt.Errorf(c.Message)
-				}
-			}
-		}
-	}
-
 	switch pod.Status.Phase {
-	case corev1.PodPending:
-		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' is pending...\n", pod.GetName())
 	case corev1.PodRunning:
 		// graceful time to wait for container start
 		time.Sleep(3 * time.Second)
@@ -113,8 +100,16 @@ func (r *RunCommand) onEvent(pod *corev1.Pod) error {
 	case corev1.PodSucceeded:
 		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' has succeeded!\n", pod.GetName())
 		r.stop()
-	case corev1.PodUnknown:
-		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' is on unknown state...\n", pod.GetName())
+	default:
+		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' is in state %q...\n", pod.GetName(), string(pod.Status.Phase))
+		// handle any issues with pulling images that may fail
+		for _, c := range pod.Status.Conditions {
+			if c.Type == corev1.PodInitialized || c.Type == corev1.ContainersReady {
+				if c.Status == corev1.ConditionUnknown {
+					return fmt.Errorf(c.Message)
+				}
+			}
+		}
 	}
 	return nil
 }
