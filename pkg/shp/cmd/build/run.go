@@ -72,9 +72,11 @@ func (r *RunCommand) Validate() error {
 	return nil
 }
 
-// tailLogs start tailing logs for each container name, if not started already.
+// tailLogs start tailing logs for each container name in init-containers and containers, if not
+// started already.
 func (r *RunCommand) tailLogs(pod *corev1.Pod) {
-	for _, container := range pod.Spec.Containers {
+	containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
+	for _, container := range containers {
 		if _, exists := r.tailLogsStarted[container.Name]; exists {
 			continue
 		}
@@ -100,8 +102,8 @@ func (r *RunCommand) onEvent(pod *corev1.Pod) error {
 	case corev1.PodSucceeded:
 		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' has succeeded!\n", pod.GetName())
 		r.stop()
-		// TODO: print out details of the container image that has just been built;
-		return nil
+	case corev1.PodUnknown:
+		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' is on unknown state...\n", pod.GetName())
 	}
 	return nil
 }
