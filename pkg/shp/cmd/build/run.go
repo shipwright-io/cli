@@ -87,6 +87,17 @@ func (r *RunCommand) tailLogs(pod *corev1.Pod) {
 
 // onEvent reacts on pod state changes, to start and stop tailing container logs.
 func (r *RunCommand) onEvent(pod *corev1.Pod) error {
+	if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodUnknown {
+		// handle any issues with pulling images that may fail
+		for _, c := range pod.Status.Conditions {
+			if c.Type == corev1.PodInitialized || c.Type == corev1.ContainersReady {
+				if c.Status == corev1.ConditionUnknown {
+					return fmt.Errorf(c.Message)
+				}
+			}
+		}
+	}
+
 	switch pod.Status.Phase {
 	case corev1.PodPending:
 		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' is pending...\n", pod.GetName())
@@ -156,7 +167,8 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 
 	r.ioStreams = ioStreams
 	r.pw.WithOnPodModifiedFn(r.onEvent)
-	return r.pw.Start()
+	_, err = r.pw.Start()
+	return err
 }
 
 // runCmd instantiate the "build run" sub-command using common BuildRun flags.
