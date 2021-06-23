@@ -40,6 +40,19 @@ func CreateObject(ctx context.Context, resource dynamic.ResourceInterface, name 
 	return fromUnstructured(result.Object, obj)
 }
 
+func UpdateObject(ctx context.Context, resource dynamic.ResourceInterface, name string, gvk schema.GroupVersionKind, obj interface{}) error {
+	u, err := toUnstructured(name, gvk, obj)
+	if err != nil {
+		return err
+	}
+
+	result, err := resource.Update(ctx, u, v1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+	return fromUnstructured(result.Object, obj)
+}
+
 // GetObject returns the object using dynamic client
 func GetObject(ctx context.Context, resource dynamic.ResourceInterface, name string, obj interface{}) error {
 	u, err := resource.Get(context.TODO(), name, v1.GetOptions{})

@@ -10,7 +10,7 @@ import (
 )
 
 // GetPodLogs returns log output of the k8s container provided by pod and name
-func GetPodLogs(ctx context.Context, client *kubernetes.Clientset, pod corev1.Pod, container string) (string, error) {
+func GetPodLogs(ctx context.Context, client kubernetes.Interface, pod corev1.Pod, container string) (string, error) {
 	podLogOpts := corev1.PodLogOptions{
 		Container: container,
 	}

@@ -3,7 +3,6 @@ package params
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -13,7 +12,7 @@ import (
 // including configured dynamic client and global flags
 type Params struct {
 	client    dynamic.Interface
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 
 	configFlags *genericclioptions.ConfigFlags
 	namespace   string
@@ -51,7 +50,7 @@ func (p *Params) Client() (dynamic.Interface, error) {
 	return p.client, nil
 }
 
-func (p *Params) ClientSet() (*kubernetes.Clientset, error) {
+func (p *Params) ClientSet() (kubernetes.Interface, error) {
 	if p.clientset != nil {
 		return p.clientset, nil
 	}

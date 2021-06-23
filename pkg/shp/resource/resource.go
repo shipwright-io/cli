@@ -5,6 +5,7 @@ import (
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -47,6 +48,14 @@ func (r *Resource) Create(ctx context.Context, name string, obj interface{}) err
 	return util.CreateObject(ctx, ri, name, r.gv.WithKind(r.kind), obj)
 }
 
+func (r *Resource) Update(ctx context.Context, name string, obj interface{}) error {
+	ri, err := r.getResourceInterface()
+	if err != nil {
+		return err
+	}
+	return util.UpdateObject(ctx, ri, name, r.gv.WithKind(r.kind), obj)
+}
+
 // Delete deletes the object identified by name
 func (r *Resource) Delete(ctx context.Context, name string) error {
 	ri, err := r.getResourceInterface()
@@ -80,6 +89,14 @@ func (r *Resource) Get(ctx context.Context, name string, result interface{}) err
 	}
 
 	return util.GetObject(ctx, ri, name, result)
+}
+
+func (r *Resource) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	ri, err := r.getResourceInterface()
+	if err != nil {
+		return nil, err
+	}
+	return ri.Watch(ctx, opts)
 }
 
 func newResource(p *params.Params, gv schema.GroupVersion, kind, resource string) *Resource {
