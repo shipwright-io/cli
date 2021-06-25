@@ -10,10 +10,13 @@ import (
 
 // BuildRunSpecFromFlags creates a BuildRun spec from command-line flags.
 func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
+	empty := ""
 	spec := &buildv1alpha1.BuildRunSpec{
-		BuildRef:       &buildv1alpha1.BuildRef{},
-		ServiceAccount: &buildv1alpha1.ServiceAccount{},
-		Timeout:        &metav1.Duration{},
+		BuildRef: &buildv1alpha1.BuildRef{},
+		ServiceAccount: &buildv1alpha1.ServiceAccount{
+			Name: &empty,
+		},
+		Timeout: &metav1.Duration{},
 		Output: &buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{},
 		},

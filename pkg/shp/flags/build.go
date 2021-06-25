@@ -10,15 +10,18 @@ import (
 // BuildSpecFromFlags creates a BuildSpec instance based on command-line flags.
 func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	clusterBuildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
+	empty := ""
 	spec := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
 			Credentials: &corev1.LocalObjectReference{},
+			Revision:    &empty,
+			ContextDir:  &empty,
 		},
 		Strategy: &buildv1alpha1.Strategy{
 			Kind:       &clusterBuildStrategyKind,
 			APIVersion: buildv1alpha1.SchemeGroupVersion.Version,
 		},
-		Dockerfile: nil,
+		Dockerfile: &empty,
 		Builder: &buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{},
 		},
@@ -30,16 +33,9 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 
 	sourceFlags(flags, &spec.Source)
 	strategyFlags(flags, spec.Strategy)
-
-	flags.Var(
-		NewStringPointerValue(spec.Dockerfile),
-		"dockerfile",
-		"path to dockerfile relative to repository",
-	)
-
+	dockerfileFlags(flags, spec.Dockerfile)
 	imageFlags(flags, "builder", spec.Builder)
 	imageFlags(flags, "output", &spec.Output)
-
 	timeoutFlags(flags, spec.Timeout)
 
 	return spec

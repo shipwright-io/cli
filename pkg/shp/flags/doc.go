@@ -4,7 +4,7 @@
 // For instance:
 //
 // 	 cmd := &cobra.Command{}
-//   br := flags.BuildRunSpecFlags(cmd.Flags())
+//   br := flags.BuildRunSpecFromFlags(cmd.Flags())
 //   flags.SanitizeBuildRunSpec(&br.Spec)
 //
 // The snippet above shows how to decorate an existing cobra.Command instance with flags, and return
