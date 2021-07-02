@@ -1,12 +1,12 @@
 <p align="center">
-    <a alt="travis-ci.com build and tests status" href="https://travis-ci.com/github/otaviof/shp">
-        <img src="https://travis-ci.com/otaviof/shp.svg?branch=master">
+    <a alt="GitHub-Actions unit-tests" href="https://github.com/shipwright-io/cli/actions">
+        <img src="https://github.com/shipwright-io/cli/actions/workflows/unit.yaml/badge.svg">
     </a>
-    <a alt="go.pkg.dev project documentation" href="https://pkg.go.dev/mod/github.com/otaviof/shp">
+    <a alt="go.pkg.dev project documentation" href="https://pkg.go.dev/mod/github.com/shipwright-io/cli">
         <img src="https://img.shields.io/badge/go.pkg.dev-docs-007d9c?logo=go&logoColor=white">
     </a>
-    <a alt="goreportcard.com project report" href="https://goreportcard.com/report/github.com/otaviof/shp">
-        <img src="https://goreportcard.com/badge/github.com/otaviof/shp">
+    <a alt="goreportcard.com project report" href="https://goreportcard.com/report/github.com/shipwright-io/cli">
+        <img src="https://goreportcard.com/badge/github.com/shipwright-io/cli">
     </a>
 </p>
 
@@ -134,7 +134,7 @@ be rewritten during the migration process.
 
 [shipwrightbuild]: https://github.com/shipwright-io/build/
 [kubectlplugin]: https://krew.sigs.k8s.io/docs/developer-guide/
-[gopkgdev]: https://pkg.go.dev/mod/github.com/otaviof/shp/
+[gopkgdev]: https://pkg.go.dev/mod/github.com/shipwright-io/cli/
 [genericclioptions]: https://pkg.go.dev/k8s.io/cli-runtime@v0.17.6/pkg/genericclioptions?tab=overview
 [kubectlutil]: https://pkg.go.dev/k8s.io/kubectl@v0.17.6/pkg/cmd/util?tab=overview
 [kubectltmpl]: https://pkg.go.dev/k8s.io/kubectl@v0.17.6/pkg/util/templates?tab=overview
