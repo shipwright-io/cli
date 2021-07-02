@@ -21,13 +21,13 @@ func (s *StrategyKindValue) String() string {
 }
 
 // Set set the informed string as BuildStrategyKind by casting.
-func (s *StrategyKindValue) Set(str string) error {
-	var strInterface interface{} = str
-	var ok bool
-	s.kindPtr, ok = strInterface.(*buildv1alpha1.BuildStrategyKind)
-	if !ok {
-		return fmt.Errorf("unable to cast '%s' as BuildStrategyKind value", str)
+func (s *StrategyKindValue) Set(value string) error {
+	kind := buildv1alpha1.BuildStrategyKind(value)
+	if kind != buildv1alpha1.NamespacedBuildStrategyKind &&
+		kind != buildv1alpha1.ClusterBuildStrategyKind {
+		return fmt.Errorf("'%s' is an invalid BuildStrategyKind", value)
 	}
+	*s.kindPtr = kind
 	return nil
 }
 

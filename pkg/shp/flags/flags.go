@@ -10,9 +10,22 @@ import (
 )
 
 const (
-	BuildrefNameFlag = "buildref-name"
-	SourceURLFlag    = "source-url"
-	OutputImageFlag  = "output-image"
+	BuildrefNameFlag             = "buildref-name"
+	BuilderImageFlag             = "builder-image"
+	BuilderCredentialsSecretFlag = "builder-credentials-secret"
+	DockerfileFlag               = "dockerfile"
+	SourceURLFlag                = "source-url"
+	SourceRevisionFlag           = "source-revision"
+	SourceContextDirFlag         = "source-context-dir"
+	SourceCredentialsSecretFlag  = "source-credentials-secret"
+	StrategyAPIVersionFlag       = "strategy-apiversion"
+	StrategyKindFlag             = "strategy-kind"
+	StrategyNameFlag             = "strategy-name"
+	OutputImageFlag              = "output-image"
+	OutputCredentialsSecretFlag  = "output-credentials-secret"
+	ServiceAccountNameFlag       = "sa-name"
+	ServiceAccountGenerateFlag   = "sa-generate"
+	TimeoutFlag                  = "timeout"
 )
 
 // sourceFlags flags for ".spec.source"
@@ -23,19 +36,21 @@ func sourceFlags(flags *pflag.FlagSet, source *buildv1alpha1.Source) {
 		"",
 		"git repository source URL",
 	)
-	flags.Var(
-		NewStringPointerValue(source.Revision),
-		"source-revision",
+	flags.StringVar(
+		source.Revision,
+		SourceRevisionFlag,
+		"",
 		"git repository source revision",
 	)
-	flags.Var(
-		NewStringPointerValue(source.ContextDir),
-		"source-context-dir",
+	flags.StringVar(
+		source.ContextDir,
+		SourceContextDirFlag,
+		"",
 		"use a inner directory as context directory",
 	)
 	flags.StringVar(
 		&source.Credentials.Name,
-		"source-credentials-secret",
+		SourceCredentialsSecretFlag,
 		"",
 		"name of the secret with git repository credentials",
 	)
@@ -45,18 +60,18 @@ func sourceFlags(flags *pflag.FlagSet, source *buildv1alpha1.Source) {
 func strategyFlags(flags *pflag.FlagSet, strategy *buildv1alpha1.Strategy) {
 	flags.StringVar(
 		&strategy.APIVersion,
-		"strategy-apiversion",
+		StrategyAPIVersionFlag,
 		buildv1alpha1.SchemeGroupVersion.Version,
 		"kubernetes api-version of the build-strategy resource",
 	)
 	flags.Var(
 		NewStrategyKindValue(strategy.Kind),
-		"strategy-kind",
+		StrategyKindFlag,
 		"build-strategy kind",
 	)
 	flags.StringVar(
 		&strategy.Name,
-		"strategy-name",
+		StrategyNameFlag,
 		"buildpacks-v3",
 		"build-strategy name",
 	)
@@ -78,11 +93,20 @@ func imageFlags(flags *pflag.FlagSet, prefix string, image *buildv1alpha1.Image)
 	)
 }
 
+// dockerfileFlags register dockerfile flag as pointer to string.
+func dockerfileFlags(flags *pflag.FlagSet, dockerfile *string) {
+	flags.Var(
+		NewStringPointerValue(dockerfile),
+		DockerfileFlag,
+		"path to dockerfile relative to repository",
+	)
+}
+
 // timeoutFlags register a timeout flag as time.Duration instance.
 func timeoutFlags(flags *pflag.FlagSet, timeout *metav1.Duration) {
 	flags.DurationVar(
 		&timeout.Duration,
-		"timeout",
+		TimeoutFlag,
 		time.Duration(0),
 		"build process timeout",
 	)
@@ -106,15 +130,16 @@ func buildRefFlags(flags *pflag.FlagSet, buildRef *buildv1alpha1.BuildRef) {
 
 // serviceAccountFlags register flags for BuildRun's spec.serviceAccount attribute.
 func serviceAccountFlags(flags *pflag.FlagSet, sa *buildv1alpha1.ServiceAccount) {
-	flags.Var(
-		NewStringPointerValue(sa.Name),
-		"sa-name",
-		"service-account name",
+	flags.StringVar(
+		sa.Name,
+		ServiceAccountNameFlag,
+		"",
+		"Kubernetes service-account name",
 	)
 	flags.BoolVar(
 		&sa.Generate,
-		"sa-generate",
+		ServiceAccountGenerateFlag,
 		false,
-		"generate a service-account for the build",
+		"generate a Kubernetes service-account for the build",
 	)
 }
