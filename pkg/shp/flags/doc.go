@@ -3,7 +3,7 @@
 //
 // For instance:
 //
-// 	 cmd := &cobra.Command{}
+//   cmd := &cobra.Command{}
 //   br := flags.BuildRunSpecFromFlags(cmd.Flags())
 //   flags.SanitizeBuildRunSpec(&br.Spec)
 //

@@ -8,8 +8,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ShipwrightParams is a place for Shipwright CLI to store its runtime parameters
-// including configured dynamic client and global flags
+// Params is a place for Shipwright CLI to store its runtime parameters including configured dynamic
+// client and global flags.
 type Params struct {
 	client    dynamic.Interface
 	clientset kubernetes.Interface
@@ -50,6 +50,7 @@ func (p *Params) Client() (dynamic.Interface, error) {
 	return p.client, nil
 }
 
+// ClientSet returns a kubernetes clientset.
 func (p *Params) ClientSet() (kubernetes.Interface, error) {
 	if p.clientset != nil {
 		return p.clientset, nil

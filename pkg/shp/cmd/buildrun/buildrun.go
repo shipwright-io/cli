@@ -9,6 +9,7 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/params"
 )
 
+// Command represents "shp buildrun" sub-command.
 func Command(p *params.Params, ioStreams *genericclioptions.IOStreams) *cobra.Command {
 	command := &cobra.Command{
 		Use:     "buildrun",
