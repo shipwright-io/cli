@@ -14,6 +14,7 @@ require (
 	k8s.io/apimachinery v0.19.7
 	k8s.io/cli-runtime v0.19.7
 	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/utils v0.0.0-20210629042839-4a2b36d8d73f
 )
 
 replace k8s.io/client-go => k8s.io/client-go v0.19.7
