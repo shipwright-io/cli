@@ -95,9 +95,10 @@ func imageFlags(flags *pflag.FlagSet, prefix string, image *buildv1alpha1.Image)
 
 // dockerfileFlags register dockerfile flag as pointer to string.
 func dockerfileFlags(flags *pflag.FlagSet, dockerfile *string) {
-	flags.Var(
-		NewStringPointerValue(dockerfile),
+	flags.StringVar(
+		dockerfile,
 		DockerfileFlag,
+		"",
 		"path to dockerfile relative to repository",
 	)
 }

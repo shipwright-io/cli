@@ -5,23 +5,23 @@ import (
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 // BuildSpecFromFlags creates a BuildSpec instance based on command-line flags.
 func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	clusterBuildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
-	empty := ""
 	spec := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
 			Credentials: &corev1.LocalObjectReference{},
-			Revision:    &empty,
-			ContextDir:  &empty,
+			Revision:    pointer.String(""),
+			ContextDir:  pointer.String(""),
 		},
 		Strategy: &buildv1alpha1.Strategy{
 			Kind:       &clusterBuildStrategyKind,
 			APIVersion: buildv1alpha1.SchemeGroupVersion.Version,
 		},
-		Dockerfile: &empty,
+		Dockerfile: pointer.String(""),
 		Builder: &buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{},
 		},

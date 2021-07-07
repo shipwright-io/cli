@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 
 	o "github.com/onsi/gomega"
 )
@@ -16,29 +17,28 @@ import (
 func TestBuildSpecFromFlags(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 
-	str := "something-random"
 	credentials := corev1.LocalObjectReference{Name: "name"}
 	buildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
 	expected := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
 			Credentials: &credentials,
-			URL:         str,
-			Revision:    &str,
-			ContextDir:  &str,
+			URL:         "https://some.url",
+			Revision:    pointer.String("some-rev"),
+			ContextDir:  pointer.String("some-contextdir"),
 		},
 		Strategy: &buildv1alpha1.Strategy{
-			Name:       str,
+			Name:       "strategy-name",
 			Kind:       &buildStrategyKind,
 			APIVersion: buildv1alpha1.SchemeGroupVersion.Version,
 		},
-		Dockerfile: &str,
+		Dockerfile: pointer.String("some-dockerfile"),
 		Builder: &buildv1alpha1.Image{
 			Credentials: &credentials,
-			Image:       str,
+			Image:       "builder-image",
 		},
 		Output: buildv1alpha1.Image{
 			Credentials: &credentials,
-			Image:       str,
+			Image:       "output-image",
 		},
 		Timeout: &metav1.Duration{
 			Duration: 1 * time.Second,
@@ -54,6 +54,9 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(SourceRevisionFlag, *expected.Source.Revision)
+		g.Expect(err).To(o.BeNil())
+
+		err = flags.Set(SourceContextDirFlag, *expected.Source.ContextDir)
 		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(SourceCredentialsSecretFlag, expected.Source.Credentials.Name)
