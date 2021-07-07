@@ -54,6 +54,31 @@ func (p *PodWatcher) WithOnPodDeletedFn(fn OnPodEventFn) *PodWatcher {
 	return p
 }
 
+// handleEvent applies user informed functions against informed pod and event.
+func (p *PodWatcher) handleEvent(pod *corev1.Pod, event watch.Event) error {
+	switch event.Type {
+	case watch.Added:
+		if p.onPodAddedFn != nil {
+			if err := p.onPodAddedFn(pod); err != nil {
+				return err
+			}
+		}
+	case watch.Modified:
+		if p.onPodModifiedFn != nil {
+			if err := p.onPodModifiedFn(pod); err != nil {
+				return err
+			}
+		}
+	case watch.Deleted:
+		if p.onPodDeletedFn != nil {
+			if err := p.onPodDeletedFn(pod); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // Start runs the event loop based on a watch instantiated against informed pod. In case of errors
 // the loop is interrupted.
 func (p *PodWatcher) Start() (*corev1.Pod, error) {
@@ -73,26 +98,8 @@ func (p *PodWatcher) Start() (*corev1.Pod, error) {
 			if p.skipPodFn != nil && p.skipPodFn(pod) {
 				continue
 			}
-
-			switch event.Type {
-			case watch.Added:
-				if p.onPodAddedFn != nil {
-					if err := p.onPodAddedFn(pod); err != nil {
-						return pod, err
-					}
-				}
-			case watch.Modified:
-				if p.onPodModifiedFn != nil {
-					if err := p.onPodModifiedFn(pod); err != nil {
-						return pod, err
-					}
-				}
-			case watch.Deleted:
-				if p.onPodDeletedFn != nil {
-					if err := p.onPodDeletedFn(pod); err != nil {
-						return pod, err
-					}
-				}
+			if err := p.handleEvent(pod, event); err != nil {
+				return pod, err
 			}
 		// watching over global context, when done is informed on the context it needs to reflect on
 		// the event loop as well.

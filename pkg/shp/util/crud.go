@@ -40,6 +40,7 @@ func CreateObject(ctx context.Context, resource dynamic.ResourceInterface, name 
 	return fromUnstructured(result.Object, obj)
 }
 
+// UpdateObject updates informed object reference.
 func UpdateObject(ctx context.Context, resource dynamic.ResourceInterface, name string, gvk schema.GroupVersionKind, obj interface{}) error {
 	u, err := toUnstructured(name, gvk, obj)
 	if err != nil {

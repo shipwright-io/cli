@@ -48,6 +48,7 @@ func (r *Resource) Create(ctx context.Context, name string, obj interface{}) err
 	return util.CreateObject(ctx, ri, name, r.gv.WithKind(r.kind), obj)
 }
 
+// Update execute update against informed object.
 func (r *Resource) Update(ctx context.Context, name string, obj interface{}) error {
 	ri, err := r.getResourceInterface()
 	if err != nil {
@@ -91,6 +92,7 @@ func (r *Resource) Get(ctx context.Context, name string, result interface{}) err
 	return util.GetObject(ctx, ri, name, result)
 }
 
+// Watch returns a watch for informed list options.
 func (r *Resource) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	ri, err := r.getResourceInterface()
 	if err != nil {

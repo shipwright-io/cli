@@ -10,22 +10,38 @@ import (
 )
 
 const (
-	BuildrefNameFlag             = "buildref-name"
-	BuilderImageFlag             = "builder-image"
+	// BuildrefNameFlag command-line flag.
+	BuildrefNameFlag = "buildref-name"
+	// BuilderImageFlag command-line flag.
+	BuilderImageFlag = "builder-image"
+	// BuilderCredentialsSecretFlag command-line flag.
 	BuilderCredentialsSecretFlag = "builder-credentials-secret"
-	DockerfileFlag               = "dockerfile"
-	SourceURLFlag                = "source-url"
-	SourceRevisionFlag           = "source-revision"
-	SourceContextDirFlag         = "source-context-dir"
-	SourceCredentialsSecretFlag  = "source-credentials-secret"
-	StrategyAPIVersionFlag       = "strategy-apiversion"
-	StrategyKindFlag             = "strategy-kind"
-	StrategyNameFlag             = "strategy-name"
-	OutputImageFlag              = "output-image"
-	OutputCredentialsSecretFlag  = "output-credentials-secret"
-	ServiceAccountNameFlag       = "sa-name"
-	ServiceAccountGenerateFlag   = "sa-generate"
-	TimeoutFlag                  = "timeout"
+	// DockerfileFlag command-line flag.
+	DockerfileFlag = "dockerfile"
+	// SourceURLFlag command-line flag.
+	SourceURLFlag = "source-url"
+	// SourceRevisionFlag command-line flag.
+	SourceRevisionFlag = "source-revision"
+	// SourceContextDirFlag command-line flag.
+	SourceContextDirFlag = "source-context-dir"
+	// SourceCredentialsSecretFlag command-line flag.
+	SourceCredentialsSecretFlag = "source-credentials-secret"
+	// StrategyAPIVersionFlag command-line flag.
+	StrategyAPIVersionFlag = "strategy-apiversion"
+	// StrategyKindFlag command-line flag.
+	StrategyKindFlag = "strategy-kind"
+	// StrategyNameFlag command-line flag.
+	StrategyNameFlag = "strategy-name"
+	// OutputImageFlag command-line flag.
+	OutputImageFlag = "output-image"
+	// OutputCredentialsSecretFlag command-line flag.
+	OutputCredentialsSecretFlag = "output-credentials-secret"
+	// ServiceAccountNameFlag command-line flag.
+	ServiceAccountNameFlag = "sa-name"
+	// ServiceAccountGenerateFlag command-line flag.
+	ServiceAccountGenerateFlag = "sa-generate"
+	// TimeoutFlag command-line flag.
+	TimeoutFlag = "timeout"
 )
 
 // sourceFlags flags for ".spec.source"
