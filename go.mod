@@ -13,11 +13,8 @@ require (
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2
 	k8s.io/cli-runtime v0.20.2
-	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/client-go v0.20.2
 	k8s.io/utils v0.0.0-20210629042839-4a2b36d8d73f
 )
 
-replace (
-	github.com/go-openapi/spec => github.com/go-openapi/spec v0.19.3 // Needed, otherwise we will hit this https://github.com/knative/client/pull/1207#issuecomment-770845105
-	k8s.io/client-go => k8s.io/client-go v0.20.2
-)
+replace github.com/go-openapi/spec => github.com/go-openapi/spec v0.19.3 // Needed, otherwise we will hit this https://github.com/knative/client/pull/1207#issuecomment-770845105
