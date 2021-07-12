@@ -6,6 +6,7 @@ import (
 	"time"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -28,9 +29,11 @@ type RunCommand struct {
 	logTail         *tail.Tail                   // follow container logs
 	tailLogsStarted map[string]bool              // controls tail instance per container
 
-	buildName    string                      // build name
+	buildName    string // build name
+	buildRunName string
 	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
-	Follow       bool                        // flag to tail pod logs
+	shpClientset buildclientset.Interface
+	follow       bool // flag to tail pod logs
 }
 
 const buildRunLongDesc = `
@@ -94,9 +97,23 @@ func (r *RunCommand) onEvent(pod *corev1.Pod) error {
 		// start tailing container logs
 		r.tailLogs(pod)
 	case corev1.PodFailed:
-		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' has failed!\n", pod.GetName())
+		msg := ""
+		br, err := r.shpClientset.ShipwrightV1alpha1().BuildRuns(pod.Namespace).Get(r.cmd.Context(), r.buildRunName, metav1.GetOptions{})
+		switch {
+		case err == nil && br.IsCanceled():
+			msg = fmt.Sprintf("BuildRun '%s' has been canceled.\n", br.Name)
+		case err == nil && br.DeletionTimestamp != nil:
+			msg = fmt.Sprintf("BuildRun '%s' has been deleted.\n", br.Name)
+		case pod.DeletionTimestamp != nil:
+			msg = fmt.Sprintf("Pod '%s' has been deleted.\n", pod.GetName())
+		default:
+			msg = fmt.Sprintf("Pod '%s' has failed!\n", pod.GetName())
+			err = fmt.Errorf("build pod '%s' has failed", pod.GetName())
+		}
+		// see if because of deletion or cancelation
+		fmt.Fprintf(r.ioStreams.Out, msg)
 		r.stop()
-		return fmt.Errorf("build pod '%s' has failed", pod.GetName())
+		return err
 	case corev1.PodSucceeded:
 		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' has succeeded!\n", pod.GetName())
 		r.stop()
@@ -137,9 +154,15 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		return err
 	}
 
-	if !r.Follow {
+	if !r.follow {
 		fmt.Fprintf(ioStreams.Out, "BuildRun created %q for build %q\n", br.GetName(), r.buildName)
 		return nil
+	}
+
+	r.buildRunName = br.Name
+	r.shpClientset, err = params.ShipwrightClientSet()
+	if err != nil {
+		return err
 	}
 
 	clientset, err := params.ClientSet()
@@ -178,6 +201,6 @@ func runCmd() runner.SubCommand {
 		buildRunSpec:    flags.BuildRunSpecFromFlags(cmd.Flags()),
 		tailLogsStarted: make(map[string]bool),
 	}
-	cmd.Flags().BoolVarP(&runCommand.Follow, "follow", "F", runCommand.Follow, "Start a build and watch its log until it completes or fails.")
+	cmd.Flags().BoolVarP(&runCommand.follow, "follow", "F", runCommand.follow, "Start a build and watch its log until it completes or fails.")
 	return runCommand
 }

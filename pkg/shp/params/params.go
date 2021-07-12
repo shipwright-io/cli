@@ -3,6 +3,9 @@ package params
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+
+	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -13,6 +16,7 @@ import (
 type Params struct {
 	client    dynamic.Interface
 	clientset kubernetes.Interface
+	shpClientset buildclientset.Interface
 
 	configFlags *genericclioptions.ConfigFlags
 	namespace   string
@@ -68,6 +72,23 @@ func (p *Params) ClientSet() (kubernetes.Interface, error) {
 	}
 
 	return p.clientset, nil
+}
+
+// ShipwrightClientSet returns a Shipwright Clientset
+func (p *Params) ShipwrightClientSet() (buildclientset.Interface, error) {
+	if p.shpClientset != nil {
+		return p.shpClientset, nil
+	}
+	clientConfig := p.configFlags.ToRawKubeConfigLoader()
+	config, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	p.shpClientset, err = buildclientset.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return p.shpClientset, nil
 }
 
 // Namespace returns kubernetes namespace with alle the overrides
