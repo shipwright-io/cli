@@ -1,11 +1,13 @@
 package flags
 
 import (
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+
+	"github.com/spf13/pflag"
+
+	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 )
 
 // BuildSpecFromFlags creates a BuildSpec instance based on command-line flags.
@@ -13,9 +15,10 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	clusterBuildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
 	spec := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
-			Credentials: &corev1.LocalObjectReference{},
-			Revision:    pointer.String(""),
-			ContextDir:  pointer.String(""),
+			Credentials:     &corev1.LocalObjectReference{},
+			Revision:        pointer.String(""),
+			ContextDir:      pointer.String(""),
+			BundleContainer: &buildv1alpha1.BundleContainer{},
 		},
 		Strategy: &buildv1alpha1.Strategy{
 			Kind:       &clusterBuildStrategyKind,
@@ -49,6 +52,11 @@ func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
 	if b.Source.Credentials != nil && b.Source.Credentials.Name == "" {
 		b.Source.Credentials = nil
 	}
+
+	if b.Source.BundleContainer != nil && b.Source.BundleContainer.Image == "" {
+		b.Source.BundleContainer = nil
+	}
+
 	if b.Builder != nil {
 		if b.Builder.Credentials != nil && b.Builder.Credentials.Name == "" {
 			b.Builder.Credentials = nil

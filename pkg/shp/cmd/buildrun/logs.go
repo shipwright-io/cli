@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
+	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/util"

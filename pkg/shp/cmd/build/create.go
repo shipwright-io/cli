@@ -3,14 +3,15 @@ package build
 import (
 	"fmt"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
-	"github.com/shipwright-io/cli/pkg/shp/flags"
-	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
+	"github.com/shipwright-io/cli/pkg/shp/flags"
+	"github.com/shipwright-io/cli/pkg/shp/params"
 )
 
 // CreateCommand contains data input from user
@@ -48,6 +49,19 @@ func (c *CreateCommand) Validate() error {
 	if c.name == "" {
 		return fmt.Errorf("name must be provided")
 	}
+
+	if c.buildSpec.Source.URL != "" &&
+		c.buildSpec.Source.BundleContainer != nil &&
+		c.buildSpec.Source.BundleContainer.Image != "" {
+		return fmt.Errorf("both source URL and container image are specified, only one can be used at the same time")
+	}
+
+	if c.buildSpec.Source.URL == "" &&
+		c.buildSpec.Source.BundleContainer != nil &&
+		c.buildSpec.Source.BundleContainer.Image == "" {
+		return fmt.Errorf("no input source was specified, either source URL or container image needs to be provided")
+	}
+
 	return nil
 }
 
@@ -55,6 +69,8 @@ func (c *CreateCommand) Validate() error {
 func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
 	b := &buildv1alpha1.Build{Spec: *c.buildSpec}
 	flags.SanitizeBuildSpec(&b.Spec)
+
+	b.Name = c.name
 
 	clientset, err := params.ShipwrightClientSet()
 	if err != nil {
@@ -78,9 +94,6 @@ func createCmd() runner.SubCommand {
 	// instantiating command-line flags and the build-spec structure which receives the informed flag
 	// values, also marking certain flags as mandatory
 	buildSpecFlags := flags.BuildSpecFromFlags(cmd.Flags())
-	if err := cmd.MarkFlagRequired(flags.SourceURLFlag); err != nil {
-		panic(err)
-	}
 	if err := cmd.MarkFlagRequired(flags.OutputImageFlag); err != nil {
 		panic(err)
 	}

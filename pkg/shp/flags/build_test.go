@@ -17,14 +17,14 @@ import (
 func TestBuildSpecFromFlags(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 
-	credentials := corev1.LocalObjectReference{Name: "name"}
 	buildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
 	expected := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
-			Credentials: &credentials,
-			URL:         "https://some.url",
-			Revision:    pointer.String("some-rev"),
-			ContextDir:  pointer.String("some-contextdir"),
+			Credentials:     &corev1.LocalObjectReference{Name: "source-credentials"},
+			URL:             "https://some.url",
+			Revision:        pointer.String("some-rev"),
+			ContextDir:      pointer.String("some-contextdir"),
+			BundleContainer: &buildv1alpha1.BundleContainer{},
 		},
 		Strategy: &buildv1alpha1.Strategy{
 			Name:       "strategy-name",
@@ -33,11 +33,11 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		},
 		Dockerfile: pointer.String("some-dockerfile"),
 		Builder: &buildv1alpha1.Image{
-			Credentials: &credentials,
+			Credentials: &corev1.LocalObjectReference{Name: "builder-credentials"},
 			Image:       "builder-image",
 		},
 		Output: buildv1alpha1.Image{
-			Credentials: &credentials,
+			Credentials: &corev1.LocalObjectReference{Name: "output-credentials"},
 			Image:       "output-image",
 		},
 		Timeout: &metav1.Duration{

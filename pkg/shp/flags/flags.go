@@ -22,6 +22,8 @@ const (
 	SourceURLFlag = "source-url"
 	// SourceRevisionFlag command-line flag.
 	SourceRevisionFlag = "source-revision"
+	// SourceContainerImageFlag command-line flag.
+	SourceContainerImageFlag = "source-bundle-image"
 	// SourceContextDirFlag command-line flag.
 	SourceContextDirFlag = "source-context-dir"
 	// SourceCredentialsSecretFlag command-line flag.
@@ -59,6 +61,12 @@ func sourceFlags(flags *pflag.FlagSet, source *buildv1alpha1.Source) {
 		"git repository source revision",
 	)
 	flags.StringVar(
+		&source.BundleContainer.Image,
+		SourceContainerImageFlag,
+		"",
+		"source code bundle image",
+	)
+	flags.StringVar(
 		source.ContextDir,
 		SourceContextDirFlag,
 		"",
@@ -68,7 +76,7 @@ func sourceFlags(flags *pflag.FlagSet, source *buildv1alpha1.Source) {
 		&source.Credentials.Name,
 		SourceCredentialsSecretFlag,
 		"",
-		"name of the secret with git repository credentials",
+		"name of the secret with credentials for Git repository/container registry",
 	)
 }
 

@@ -1,11 +1,13 @@
 package flags
 
 import (
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	"github.com/spf13/pflag"
+	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	"github.com/spf13/pflag"
 )
 
 // BuildRunSpecFromFlags creates a BuildRun spec from command-line flags.
@@ -49,4 +51,29 @@ func SanitizeBuildRunSpec(br *buildv1alpha1.BuildRunSpec) {
 			br.Output = nil
 		}
 	}
+}
+
+// BuildRunOpts contain the end-user settings for creating buildruns
+type BuildRunOpts struct {
+	LocalSourceDir string
+	PruneBundle    bool
+	Wait           bool
+	Follow         bool
+}
+
+// BuildRunOptsFromFlags sets a BuildRunOpts based on the command-line flags
+func BuildRunOptsFromFlags(flags *pflag.FlagSet) *BuildRunOpts {
+	opts := &BuildRunOpts{}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = "."
+	}
+
+	flags.BoolVar(&opts.Wait, "wait", false, "wait until BuildRun runs to completion")
+	flags.BoolVarP(&opts.Follow, "follow", "F", false, "creates buildrun and watch its log until it completes or fails (this implies wait)")
+	flags.BoolVar(&opts.PruneBundle, "prune-bundle", false, "prune source code bundle after use (this implies wait)")
+	flags.StringVar(&opts.LocalSourceDir, "source-directory", cwd, "directory to be used for local source code")
+
+	return opts
 }
