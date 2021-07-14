@@ -2,15 +2,17 @@ package buildrun
 
 import (
 	"fmt"
+	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/spf13/cobra"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // CreateCommand reprents the build's create subcommand.
@@ -36,11 +38,26 @@ func (c *CreateCommand) Cmd() *cobra.Command {
 // Complete checks if the arguments is informing the BuildRun name.
 func (c *CreateCommand) Complete(params *params.Params, args []string) error {
 	switch len(args) {
+	case 0:
+		var randomName = func(name, suffix string) string {
+			return fmt.Sprintf("%s%s-%s", name, suffix, rand.String(5))
+		}
+
+		switch {
+		case strings.HasSuffix(c.buildRunSpec.BuildRef.Name, "build"):
+			c.name = randomName(c.buildRunSpec.BuildRef.Name, "run")
+
+		default:
+			c.name = randomName(c.buildRunSpec.BuildRef.Name, "-buildrun")
+		}
+
 	case 1:
 		c.name = args[0]
+
 	default:
-		return fmt.Errorf("wrong amount of arguments, expected only one")
+		return fmt.Errorf("wrong amount of arguments, expected only one (specific name) or none (random name)")
 	}
+
 	return nil
 }
 
