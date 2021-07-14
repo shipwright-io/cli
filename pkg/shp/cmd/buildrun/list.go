@@ -5,10 +5,12 @@ import (
 	"os"
 	"text/tabwriter"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -72,7 +74,13 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 
 	for _, br := range brs.Items {
 		name := br.Name
-		status := br.Status.Reason
+		status := string(metav1.ConditionUnknown)
+		for _, condition := range br.Status.Conditions {
+			if condition.Type == buildv1alpha1.Succeeded {
+				status = condition.Reason
+				break
+			}
+		}
 
 		fmt.Fprintf(writer, columnTemplate, name, status)
 	}

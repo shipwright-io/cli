@@ -67,6 +67,12 @@ type BuildSpec struct {
 	// source code to be built.
 	Source Source `json:"source"`
 
+	// Sources slice of BuildSource, defining external build artifacts complementary to VCS
+	// (`.spec.source`) data.
+	//
+	// +optional
+	Sources *[]BuildSource `json:"sources,omitempty"`
+
 	// Strategy references the BuildStrategy to use to build the container
 	// image.
 	Strategy *Strategy `json:"strategy"`
@@ -92,6 +98,11 @@ type BuildSpec struct {
 
 	// Runtime represents the runtime-image.
 	//
+	// Deprecated: This feature is deprecated and will be removed in a
+	// future release.  See
+	// https://github.com/shipwright-io/community/blob/main/ships/deprecate-runtime.md
+	// for more information.
+	//
 	// +optional
 	Runtime *Runtime `json:"runtime,omitempty"`
 
@@ -108,6 +119,10 @@ type BuildSpec struct {
 // StrategyName returns the name of the configured strategy, or 'undefined' in
 // case the strategy is nil (not set)
 func (buildSpec *BuildSpec) StrategyName() string {
+	if buildSpec == nil {
+		return "undefined (nil buildSpec)"
+	}
+
 	if buildSpec.Strategy == nil {
 		return "undefined (nil strategy)"
 	}
