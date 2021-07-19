@@ -53,14 +53,13 @@ func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.
 	brr := resource.GetBuildRunResource(params)
 
 	br := &buildv1alpha1.BuildRun{}
-	err := brr.Get(c.cmd.Context(), c.name, br)
-	if err != nil {
+	if err := brr.Get(c.cmd.Context(), c.name, br); err != nil {
 		return fmt.Errorf("failed to retrieve BuildRun %s: %s", c.name, err.Error())
 	}
 	//TODO replace with br.IsDone() when that is available and vendored in
 	cond := br.Status.GetCondition(buildv1alpha1.Succeeded)
 	if cond != nil && cond.GetStatus() != corev1.ConditionUnknown {
-		return fmt.Errorf("failed to cancel BuildRun %s: BuildRun has already finished execution", c.name)
+		return fmt.Errorf("failed to cancel BuildRun %s: execution has already finished", c.name)
 	}
 
 	//TODO use constant when vendor in api changes
@@ -68,7 +67,7 @@ func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.
 		return err
 	}
 
-	fmt.Fprintf(ioStreams.Out, "BuildRun cancelled '%v'\n", c.name)
+	fmt.Fprintf(ioStreams.Out, "BuildRun successfully canceled '%v'\n", c.name)
 
 	return nil
 }

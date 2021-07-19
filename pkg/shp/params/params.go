@@ -14,8 +14,8 @@ import (
 // Params is a place for Shipwright CLI to store its runtime parameters including configured dynamic
 // client and global flags.
 type Params struct {
-	client    dynamic.Interface
-	clientset kubernetes.Interface
+	client       dynamic.Interface
+	clientset    kubernetes.Interface
 	shpClientset buildclientset.Interface
 
 	configFlags *genericclioptions.ConfigFlags

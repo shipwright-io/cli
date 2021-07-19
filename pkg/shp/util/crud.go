@@ -98,7 +98,11 @@ func PatchObject(ctx context.Context, resource dynamic.ResourceInterface, name, 
 		Path:  path,
 		Value: value,
 	}}
-	data, _ := json.Marshal(payload)
-	_, err := resource.Patch(ctx, name, types.JSONPatchType, data, v1.PatchOptions{})
+	var data []byte
+	var err error
+	if data, err = json.Marshal(payload); err != nil {
+		return err
+	}
+	_, err = resource.Patch(ctx, name, types.JSONPatchType, data, v1.PatchOptions{})
 	return err
 }

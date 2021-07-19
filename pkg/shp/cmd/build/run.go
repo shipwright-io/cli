@@ -7,13 +7,16 @@ import (
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
+
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/shipwright-io/cli/pkg/shp/resource"
 	"github.com/shipwright-io/cli/pkg/shp/tail"
+
 	"github.com/spf13/cobra"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -160,8 +163,7 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	}
 
 	r.buildRunName = br.Name
-	r.shpClientset, err = params.ShipwrightClientSet()
-	if err != nil {
+	if r.shpClientset, err = params.ShipwrightClientSet(); err != nil {
 		return err
 	}
 
