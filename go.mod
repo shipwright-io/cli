@@ -1,18 +1,20 @@
 module github.com/shipwright-io/cli
 
-go 1.15
+go 1.16
 
 require (
+	github.com/google/go-containerregistry v0.6.0
 	github.com/mailru/easyjson v0.7.1 // indirect
-	github.com/onsi/gomega v1.10.3
-	github.com/shipwright-io/build v0.5.2-0.20210715083206-5d8fb411a1eb
-	github.com/spf13/cobra v1.1.3
+	github.com/onsi/gomega v1.16.0
+	github.com/schollz/progressbar/v3 v3.8.2
+	github.com/shipwright-io/build v0.5.2-0.20210830191632-04ff81c93dd5
+	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
-	k8s.io/api v0.20.2
-	k8s.io/apimachinery v0.20.2
+	k8s.io/api v0.20.6
+	k8s.io/apimachinery v0.20.6
 	k8s.io/cli-runtime v0.20.2
-	k8s.io/client-go v0.20.2
+	k8s.io/client-go v0.20.6
 	k8s.io/utils v0.0.0-20210629042839-4a2b36d8d73f
 )
 
