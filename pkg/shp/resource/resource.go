@@ -57,6 +57,15 @@ func (r *Resource) Update(ctx context.Context, name string, obj interface{}) err
 	return util.UpdateObject(ctx, ri, name, r.gv.WithKind(r.kind), obj)
 }
 
+func (r *Resource) Patch(ctx context.Context, name, op, path, value string) error {
+	ri, err := r.getResourceInterface()
+	if err != nil {
+		return err
+	}
+
+	return util.PatchObject(ctx, ri, name, op, path, value)
+}
+
 // Delete deletes the object identified by name
 func (r *Resource) Delete(ctx context.Context, name string) error {
 	ri, err := r.getResourceInterface()

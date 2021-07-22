@@ -2,6 +2,7 @@ package reactor
 
 import (
 	"context"
+	"sync"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,9 +14,11 @@ import (
 // state modifications, should work as a helper to build business logic based on the build POD
 // changes.
 type PodWatcher struct {
-	ctx     context.Context
-	stopCh  chan bool       // stops the event loop execution
-	watcher watch.Interface // client watch instance
+	ctx      context.Context
+	stopCh   chan bool // stops the event loop execution
+	stopLock sync.Mutex
+	stopped  bool
+	watcher  watch.Interface // client watch instance
 
 	skipPodFn       SkipPodFn
 	onPodAddedFn    OnPodEventFn
@@ -116,7 +119,14 @@ func (p *PodWatcher) Start() (*corev1.Pod, error) {
 
 // Stop closes the stop channel, and stops the execution loop.
 func (p *PodWatcher) Stop() {
-	close(p.stopCh)
+	// employ sync because of observed 'panic: close of closed channel' when running build run log following
+	// along with canceling of builds
+	p.stopLock.Lock()
+	defer p.stopLock.Unlock()
+	if !p.stopped {
+		close(p.stopCh)
+		p.stopped = true
+	}
 }
 
 // NewPodWatcher instantiate PodWatcher event-loop.
@@ -130,5 +140,5 @@ func NewPodWatcher(
 	if err != nil {
 		return nil, err
 	}
-	return &PodWatcher{ctx: ctx, watcher: w, stopCh: make(chan bool)}, nil
+	return &PodWatcher{ctx: ctx, watcher: w, stopCh: make(chan bool), stopLock: sync.Mutex{}}, nil
 }
