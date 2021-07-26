@@ -82,8 +82,10 @@ github.com/pkg/errors
 ## explicit
 github.com/shipwright-io/build/pkg/apis/build/v1alpha1
 github.com/shipwright-io/build/pkg/client/clientset/versioned
+github.com/shipwright-io/build/pkg/client/clientset/versioned/fake
 github.com/shipwright-io/build/pkg/client/clientset/versioned/scheme
 github.com/shipwright-io/build/pkg/client/clientset/versioned/typed/build/v1alpha1
+github.com/shipwright-io/build/pkg/client/clientset/versioned/typed/build/v1alpha1/fake
 # github.com/spf13/cobra v1.1.3
 ## explicit
 github.com/spf13/cobra
