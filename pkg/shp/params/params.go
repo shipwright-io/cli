@@ -82,3 +82,15 @@ func NewParams() *Params {
 
 	return p
 }
+
+func NewParamsForTest(clientset kubernetes.Interface,
+	shpClientset buildclientset.Interface,
+	configFlags *genericclioptions.ConfigFlags,
+	namespace string) *Params {
+	return &Params{
+		clientset:    clientset,
+		shpClientset: shpClientset,
+		configFlags:  configFlags,
+		namespace:    namespace,
+	}
+}

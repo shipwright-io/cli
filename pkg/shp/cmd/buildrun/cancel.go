@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -61,13 +60,10 @@ func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.
 	if br, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Get(c.cmd.Context(), c.name, metav1.GetOptions{}); err != nil {
 		return fmt.Errorf("failed to retrieve BuildRun %s: %s", c.name, err.Error())
 	}
-	//TODO replace with br.IsDone() when that is available and vendored in
-	cond := br.Status.GetCondition(buildv1alpha1.Succeeded)
-	if cond != nil && cond.GetStatus() != corev1.ConditionUnknown {
+	if br.IsDone() {
 		return fmt.Errorf("failed to cancel BuildRun %s: execution has already finished", c.name)
 	}
 
-	//TODO use constant when vendor in api changes
 	type patchStringValue struct {
 		Op    string `json:"op"`
 		Path  string `json:"path"`
