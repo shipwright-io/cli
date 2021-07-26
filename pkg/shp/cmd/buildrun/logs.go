@@ -13,7 +13,6 @@ import (
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
-	"github.com/shipwright-io/cli/pkg/shp/resource"
 	"github.com/shipwright-io/cli/pkg/shp/util"
 )
 
@@ -53,8 +52,6 @@ func (c *LogsCommand) Validate() error {
 
 // Run executes logs sub-command logic
 func (c *LogsCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	podResource := resource.GetPodResource(params)
-
 	clientset, err := params.ClientSet()
 	if err != nil {
 		return err
@@ -64,11 +61,10 @@ func (c *LogsCommand) Run(params *params.Params, ioStreams *genericclioptions.IO
 		LabelSelector: fmt.Sprintf("%v=%v", buildv1alpha1.LabelBuildRun, c.name),
 	}
 
-	var pods corev1.PodList
-	if err := podResource.ListWithOptions(c.cmd.Context(), &pods, lo); err != nil {
+	var pods *corev1.PodList
+	if pods, err = clientset.CoreV1().Pods(params.Namespace()).List(c.cmd.Context(), lo); err != nil {
 		return err
 	}
-
 	if len(pods.Items) == 0 {
 		return fmt.Errorf("no builder pod found for BuildRun %q", c.name)
 	}

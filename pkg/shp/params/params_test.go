@@ -18,7 +18,7 @@ func TestParamsCreation(t *testing.T) {
 	testNs := "test"
 	shpParams.configFlags.Namespace = &testNs
 
-	client, err := shpParams.Client()
+	client, err := shpParams.ClientSet()
 	g.Expect(err).To(gomega.BeNil(), "Must not be an error during client creation")
 	g.Expect(client).ToNot(gomega.BeNil(), "Client must not be nil")
 

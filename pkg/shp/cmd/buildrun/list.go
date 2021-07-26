@@ -14,7 +14,6 @@ import (
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
-	"github.com/shipwright-io/cli/pkg/shp/resource"
 )
 
 // ListCommand contains data input from user for list sub-command
@@ -61,10 +60,13 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	columnNames := "NAME\tSTATUS"
 	columnTemplate := "%s\t%s\n"
 
-	brr := resource.GetBuildRunResource(params)
+	clientset, err := params.ShipwrightClientSet()
+	if err != nil {
+		return err
+	}
 
-	var brs buildv1alpha1.BuildRunList
-	if err := brr.List(c.cmd.Context(), &brs); err != nil {
+	var brs *buildv1alpha1.BuildRunList
+	if brs, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
 		return err
 	}
 

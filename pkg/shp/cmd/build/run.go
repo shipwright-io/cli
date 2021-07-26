@@ -12,7 +12,6 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
-	"github.com/shipwright-io/cli/pkg/shp/resource"
 	"github.com/shipwright-io/cli/pkg/shp/tail"
 
 	"github.com/spf13/cobra"
@@ -151,8 +150,11 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	}
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
-	buildRunResource := resource.GetBuildRunResource(params)
-	err := buildRunResource.Create(r.cmd.Context(), "", br)
+	clientset, err := params.ShipwrightClientSet()
+	if err != nil {
+		return err
+	}
+	br, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Create(r.cmd.Context(), br, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -167,7 +169,7 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		return err
 	}
 
-	clientset, err := params.ClientSet()
+	kclientset, err := params.ClientSet()
 	if err != nil {
 		return err
 	}
@@ -180,7 +182,7 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		r.buildName,
 		br.GetName(),
 	)}
-	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), clientset, listOpts, params.Namespace())
+	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), kclientset, listOpts, params.Namespace())
 	if err != nil {
 		return err
 	}

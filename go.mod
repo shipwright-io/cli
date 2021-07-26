@@ -5,7 +5,6 @@ go 1.15
 require (
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/onsi/gomega v1.10.3
-	github.com/pkg/errors v0.9.1
 	github.com/shipwright-io/build v0.5.2-0.20210715083206-5d8fb411a1eb
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5

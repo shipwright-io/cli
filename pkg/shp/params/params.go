@@ -1,20 +1,16 @@
 package params
 
 import (
-	"github.com/pkg/errors"
+	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
 	"github.com/spf13/pflag"
 
-	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
-
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
 // Params is a place for Shipwright CLI to store its runtime parameters including configured dynamic
 // client and global flags.
 type Params struct {
-	client       dynamic.Interface
 	clientset    kubernetes.Interface
 	shpClientset buildclientset.Interface
 
@@ -27,33 +23,6 @@ func (p *Params) AddFlags(flags *pflag.FlagSet) {
 	p.configFlags.AddFlags(flags)
 }
 
-// Client returns preconfigured dynamic client with overrides
-// from global flags and kubernetes configuration set by user
-func (p *Params) Client() (dynamic.Interface, error) {
-	if p.client != nil {
-		return p.client, nil
-	}
-
-	clientConfig := p.configFlags.ToRawKubeConfigLoader()
-
-	config, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	p.namespace, _, err = clientConfig.Namespace()
-	if err != nil {
-		return nil, err
-	}
-
-	p.client, err = dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not create Dynamic client")
-	}
-
-	return p.client, nil
-}
-
 // ClientSet returns a kubernetes clientset.
 func (p *Params) ClientSet() (kubernetes.Interface, error) {
 	if p.clientset != nil {
@@ -62,6 +31,10 @@ func (p *Params) ClientSet() (kubernetes.Interface, error) {
 
 	clientConfig := p.configFlags.ToRawKubeConfigLoader()
 	config, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	p.namespace, _, err = clientConfig.Namespace()
 	if err != nil {
 		return nil, err
 	}
@@ -81,6 +54,10 @@ func (p *Params) ShipwrightClientSet() (buildclientset.Interface, error) {
 	}
 	clientConfig := p.configFlags.ToRawKubeConfigLoader()
 	config, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	p.namespace, _, err = clientConfig.Namespace()
 	if err != nil {
 		return nil, err
 	}
