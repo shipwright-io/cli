@@ -5,11 +5,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
-	"github.com/shipwright-io/cli/pkg/shp/resource"
 )
 
 // DeleteCommand contains data input from user for delete sub-command
@@ -48,9 +48,12 @@ func (c *DeleteCommand) Validate() error {
 
 // Run executes delete sub-command logic
 func (c *DeleteCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	brr := resource.GetBuildRunResource(params)
+	clientset, err := params.ShipwrightClientSet()
+	if err != nil {
+		return err
+	}
 
-	if err := brr.Delete(c.cmd.Context(), c.name); err != nil {
+	if err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Delete(c.cmd.Context(), c.name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 

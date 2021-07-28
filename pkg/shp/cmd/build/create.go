@@ -7,8 +7,9 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
-	"github.com/shipwright-io/cli/pkg/shp/resource"
 	"github.com/spf13/cobra"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -55,8 +56,11 @@ func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 	b := &buildv1alpha1.Build{Spec: *c.buildSpec}
 	flags.SanitizeBuildSpec(&b.Spec)
 
-	buildResource := resource.GetBuildResource(params)
-	if err := buildResource.Create(c.cmd.Context(), c.name, b); err != nil {
+	clientset, err := params.ShipwrightClientSet()
+	if err != nil {
+		return err
+	}
+	if _, err := clientset.ShipwrightV1alpha1().Builds(params.Namespace()).Create(c.cmd.Context(), b, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	fmt.Fprintf(io.Out, "Created build %q\n", c.name)

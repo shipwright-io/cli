@@ -11,7 +11,6 @@ import (
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
-	"github.com/shipwright-io/cli/pkg/shp/resource"
 )
 
 // DeleteCommand contains data provided by user to the delete subcommand
@@ -55,24 +54,24 @@ func (c *DeleteCommand) Validate() error {
 
 // Run contains main logic of delete subcommand
 func (c *DeleteCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
-	br := resource.GetBuildResource(params)
-
-	if err := br.Delete(c.cmd.Context(), c.name); err != nil {
+	clientset, err := params.ShipwrightClientSet()
+	if err != nil {
+		return err
+	}
+	if err := clientset.ShipwrightV1alpha1().Builds(params.Namespace()).Delete(c.Cmd().Context(), c.name, v1.DeleteOptions{}); err != nil {
 		return err
 	}
 
 	if c.deleteRuns {
-		brr := resource.GetBuildRunResource(params)
-
-		var brList buildv1alpha1.BuildRunList
-		if err := brr.ListWithOptions(c.cmd.Context(), &brList, v1.ListOptions{
+		var brList *buildv1alpha1.BuildRunList
+		if brList, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).List(c.cmd.Context(), v1.ListOptions{
 			LabelSelector: fmt.Sprintf("%v/name=%v", buildv1alpha1.BuildDomain, c.name),
 		}); err != nil {
 			return err
 		}
 
 		for _, buildrun := range brList.Items {
-			if err := brr.Delete(c.cmd.Context(), buildrun.Name); err != nil {
+			if err := clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Delete(c.cmd.Context(), buildrun.Name, v1.DeleteOptions{}); err != nil {
 				fmt.Fprintf(io.ErrOut, "Error deleting BuildRun %q: %v\n", buildrun.Name, err)
 			}
 		}
