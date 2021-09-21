@@ -12,6 +12,12 @@ GO_TEST_FLAGS ?= -race -cover
 
 ARGS ?=
 
+# Tekton and Shipwright Build Controller versions for CI
+TEKTON_VERSION ?= v0.25.0
+SHIPWRIGHT_VERSION ?= v0.5.1
+
+.EXPORT_ALL_VARIABLES:
+
 .PHONY: $(BIN)
 $(BIN):
 	go build $(GO_FLAGS) -o $(BIN) $(CMD)
@@ -36,12 +42,22 @@ clean:
 run:
 	go run $(GO_FLAGS) $(CMD) $(ARGS)
 
-test: test-unit
+# runs all tests, unit and end-to-end.
+test: test-unit test-e2e
 
 .PHONY: test-unit
 test-unit:
 	go test $(GO_FLAGS) $(GO_TEST_FLAGS) $(CMD) $(PKG) $(ARGS)
 
-travis:
-	./hack/install-kubectl.sh
-	./hack/install-kind.sh
+# runs all end-to-end tests using bats, it assumes bats is installed
+test-e2e:
+	./test/e2e/e2e.bats
+
+# wait for KinD cluster to be on ready state, so tests can be performed
+verify-kind:
+	./hack/verify-kind.sh
+
+# deploys Tekton and Shipwright Build Controller following the versions exported
+install-shipwright:
+	./hack/install-tekton.sh
+	./hack/install-shipwright.sh
