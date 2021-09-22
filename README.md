@@ -59,11 +59,7 @@ make run ARGS='run build --help'
 
 ### Testing
 
-To execute all tests available in the project, run:
-
-```sh
-make test
-```
+Please consider specific testing [documentation here](docs/testing.md).
 
 ## Usage
 

@@ -1,0 +1,59 @@
+---
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+name: End-to-End (E2E) Tests
+jobs:
+  e2e:
+    strategy:
+      fail-fast: true
+      matrix:
+        kubernetes:
+          - v1.20.7
+      max-parallel: 1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Install Tools
+        run: sudo apt-get update && sudo apt-get install -y make gcc
+
+      - name: Setup BATS
+        uses: mig4/setup-bats@v1
+        with:
+          bats-version: 1.2.1
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v1
+        with:
+          version: ${{ matrix.kubernetes }}
+
+      - name: Create KinD cluster
+        uses: helm/kind-action@v1.2.0
+        with:
+          version: v0.11.1
+          node_image: kindest/node:${{ matrix.kubernetes }}
+          cluster_name: kind
+          wait: 120s
+
+      - name: Verify KinD cluster
+        run: make verify-kind
+
+      - name: Installing Shipwright Build Controller
+        run: make install-shipwright
+
+      - name: Build Application (shp)
+        run: make build
+
+      - name: End-to-End Tests
+        run: make test-e2e
