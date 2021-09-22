@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	shpfake "github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
@@ -14,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes/fake"
 	fakekubetesting "k8s.io/client-go/testing"
@@ -153,6 +155,23 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		// yield the processor, so the initialization in Run can occur; afterward, the watchLock should allow
 		// coordination between Run and onEvent
 		runtime.Gosched()
+
+		// even with our release of the context above with Gosched(), repeated runs in CI have surfaced occasional timing issues between
+		// cmd.Run() finishing initialization and cmd.onEvent trying to used struct variables, resulting in panics; so we employ the lock here
+		// to insure the required initializations have run; this is still better than a generic "sleep log enough for
+		// the init to occur.
+		cmd.watchLock.Lock()
+		err := wait.PollImmediate(1*time.Second, 3*time.Second, func() (done bool, err error) {
+			if cmd.pw != nil {
+				cmd.watchLock.Unlock()
+				return true, nil
+			}
+			return false, nil
+		})
+		if err != nil {
+			cmd.watchLock.Unlock()
+			t.Errorf("Run initialization did not complete in time")
+		}
 
 		// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
 		pod.Status.Phase = test.phase
