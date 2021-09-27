@@ -60,16 +60,17 @@ alleviating the need to install BATS yourself.
 To run BATS based tests, make sure that you have cloned the project (including all submodules):
 
 ```sh
-	Option 1.)
-	$ git clone --recurse-submodules --depth 1 https://github.com/shipwright-io/cli.git
+# Option 1: Clone the repository and populate submodules right away
+git clone --recurse-submodules --depth 1 https://github.com/shipwright-io/cli.git
 
-	Option 2.) (if you did not clone using the above command)
-	$ cd /your/project/directory/cli
-	$ git submodule init
-	$ git submodule update
+# Option 2: Populate submodules after cloning
+cd /your/project/directory/cli
+git submodule init
+git submodule update
 ```
 
 then run:
+
 ```sh
 make test-e2e
 ```

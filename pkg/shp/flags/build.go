@@ -3,6 +3,7 @@ package flags
 import (
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/pflag"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -37,6 +38,7 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	imageFlags(flags, "builder", spec.Builder)
 	imageFlags(flags, "output", &spec.Output)
 	timeoutFlags(flags, spec.Timeout)
+	envFlags(flags, spec.Env)
 
 	return spec
 }
@@ -55,6 +57,9 @@ func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
 		}
 		if b.Builder.Image == "" && b.Builder.Credentials == nil {
 			b.Builder = nil
+		}
+		if len(b.Env) == 0 {
+			b.Env = nil
 		}
 	}
 	if b.Timeout != nil && b.Timeout.Duration == 0 {

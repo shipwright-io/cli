@@ -4,13 +4,15 @@ import (
 	"fmt"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
-	"github.com/shipwright-io/cli/pkg/shp/flags"
-	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
+	"github.com/shipwright-io/cli/pkg/shp/flags"
+	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/util"
 )
 
 // CreateCommand reprents the build's create subcommand.
@@ -60,6 +62,13 @@ func (c *CreateCommand) Run(params *params.Params, ioStreams *genericclioptions.
 		},
 		Spec: *c.buildRunSpec,
 	}
+
+	envs, err := c.cmd.Flags().GetStringArray("env")
+	if err != nil {
+		return err
+	}
+	br.Spec.Env = append(br.Spec.Env, util.StringSliceToEnvVarSlice(envs)...)
+
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
 	clientset, err := params.ShipwrightClientSet()

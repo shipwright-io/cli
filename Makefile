@@ -51,7 +51,7 @@ test-unit:
 
 # looks for *.bats files in the test/e2e directory and runs them
 test-e2e:
-	./hack/run-e2e.sh
+	./test/e2e/bats/core/bin/bats --recursive test/e2e/*.bats
 
 # wait for KinD cluster to be on ready state, so tests can be performed
 verify-kind:

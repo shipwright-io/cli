@@ -4,13 +4,15 @@ import (
 	"fmt"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
-	"github.com/shipwright-io/cli/pkg/shp/flags"
-	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
+	"github.com/shipwright-io/cli/pkg/shp/flags"
+	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/util"
 )
 
 // CreateCommand contains data input from user
@@ -59,6 +61,13 @@ func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 		},
 		Spec: *c.buildSpec,
 	}
+
+	envs, err := c.cmd.Flags().GetStringArray("env")
+	if err != nil {
+		return err
+	}
+	b.Spec.Env = append(b.Spec.Env, util.StringSliceToEnvVarSlice(envs)...)
+
 	flags.SanitizeBuildSpec(&b.Spec)
 
 	clientset, err := params.ShipwrightClientSet()
