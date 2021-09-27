@@ -17,6 +17,7 @@ function shp () {
 	${BIN} ${*}
 }
 
+# generate a random string of no more than 16 characters
 function random_name () {
-	LC_ALL=C tr -dc a-z </dev/urandom | head -c64
+	LC_ALL=C tr -dc a-z </dev/urandom | head -c16
 }

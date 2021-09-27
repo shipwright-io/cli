@@ -49,9 +49,9 @@ test: test-unit test-e2e
 test-unit:
 	go test $(GO_FLAGS) $(GO_TEST_FLAGS) $(CMD) $(PKG) $(ARGS)
 
-# runs all end-to-end tests using bats, it assumes bats is installed
+# looks for *.bats files in the test/e2e directory and runs them
 test-e2e:
-	./test/e2e/e2e.bats
+	./hack/run-e2e.sh
 
 # wait for KinD cluster to be on ready state, so tests can be performed
 verify-kind:
