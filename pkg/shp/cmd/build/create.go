@@ -53,7 +53,12 @@ func (c *CreateCommand) Validate() error {
 
 // Run executes the creation of a new Build instance using flags to fill up the details.
 func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
-	b := &buildv1alpha1.Build{Spec: *c.buildSpec}
+	b := &buildv1alpha1.Build{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: c.name,
+		},
+		Spec: *c.buildSpec,
+	}
 	flags.SanitizeBuildSpec(&b.Spec)
 
 	clientset, err := params.ShipwrightClientSet()
