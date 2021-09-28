@@ -1,0 +1,60 @@
+before:
+  hooks:
+  - go mod tidy
+  - go generate ./...
+builds:
+- env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  - darwin
+  goarch:
+  - amd64
+  - arm64
+  main: ./cmd/shp/main.go
+archives:
+- replacements:
+    darwin: Darwin
+    linux: Linux
+    amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+brews:
+- tap:
+    name: shipwright-tap
+    owner: shipwright
+    token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+  url_template: "https://github.com/shipwright-io/cli/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+  download_strategy: CurlDownloadStrategy
+  commit_author:
+    name: GoReleaser Bot
+    email: goreleaser@carlosbecker.com
+  folder: HomebrewFormula
+  homepage: "https://github.com/shipwright-io/cli"
+  description: "shp is the command line for shipwright"
+  license: "MIT"
+  skip_upload: false
+  test: |
+     system "#{bin}/shipwright-cli help"
+
+snapcrafts:
+- id: shipwright-cli
+  publish: true
+  summary: "shp is the command line for shipwright"
+  description: "shp is the command line for shipwright"
+  grade: stable
+  confinement: strict
+  license: MIT
+  base: bare
+  apps:
+    shipwright-cli:
+      plugs: ["ci", "build"]
+
