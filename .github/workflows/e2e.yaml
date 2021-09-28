@@ -49,6 +49,11 @@ jobs:
       - name: Verify KinD cluster
         run: make verify-kind
 
+      - name: Install Registry
+        run: |
+          kubectl apply -f test/data/registry.yaml
+          kubectl -n registry rollout status deployment registry --timeout=1m
+
       - name: Installing Shipwright Build Controller
         run: make install-shipwright
 
