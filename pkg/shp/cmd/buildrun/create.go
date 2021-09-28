@@ -54,7 +54,12 @@ func (c *CreateCommand) Validate() error {
 
 // Run executes the creation of BuildRun object.
 func (c *CreateCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	br := &buildv1alpha1.BuildRun{Spec: *c.buildRunSpec}
+	br := &buildv1alpha1.BuildRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: c.name,
+		},
+		Spec: *c.buildRunSpec,
+	}
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
 	clientset, err := params.ShipwrightClientSet()

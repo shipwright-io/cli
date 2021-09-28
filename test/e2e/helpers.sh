@@ -16,3 +16,8 @@ function shp () {
 
 	${BIN} ${*}
 }
+
+function random_name () {
+	tr -dc a-z </dev/urandom | head -c64
+}
+
