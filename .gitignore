@@ -2,3 +2,4 @@ _output/
 /shp
 /shp-*
 /bin/*
+dist/
