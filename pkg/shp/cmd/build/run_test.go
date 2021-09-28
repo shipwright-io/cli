@@ -162,7 +162,9 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		// the init to occur.
 		cmd.watchLock.Lock()
 		err := wait.PollImmediate(1*time.Second, 3*time.Second, func() (done bool, err error) {
-			if cmd.pw != nil {
+			// check any of the vars on RunCommand that are used in onEvent and make sure they are set;
+			// we are verifying the initialization done in Run() on RunCommand is complete
+			if cmd.pw != nil && cmd.ioStreams != nil && cmd.shpClientset != nil {
 				cmd.watchLock.Unlock()
 				return true, nil
 			}
