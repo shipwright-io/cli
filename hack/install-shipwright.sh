@@ -7,7 +7,7 @@ set -eu
 
 SHIPWRIGHT_HOST="github.com"
 SHIPWRIGHT_HOST_PATH="shipwright-io/build/releases/download"
-SHIPWRIGHT_VERSION="${SHIPWRIGHT_VERSION:-v0.5.1}"
+SHIPWRIGHT_VERSION="${SHIPWRIGHT_VERSION:-v0.6.0}"
 
 echo "# Deploying Shipwright Controller '${SHIPWRIGHT_VERSION}'"
 
