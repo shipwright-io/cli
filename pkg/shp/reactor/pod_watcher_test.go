@@ -2,7 +2,9 @@ package reactor
 
 import (
 	"context"
+	"math"
 	"testing"
+	"time"
 
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -12,13 +14,50 @@ import (
 	o "github.com/onsi/gomega"
 )
 
+func Test_PodWatcher_RequestTimeout(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	ctx := context.TODO()
+
+	clientset := fake.NewSimpleClientset()
+
+	pw, err := NewPodWatcher(ctx, time.Second, clientset, metav1.ListOptions{}, metav1.NamespaceDefault)
+	g.Expect(err).To(o.BeNil())
+	called := false
+
+	pw.WithTimeoutPodFn(func(msg string) {
+		called = true
+	})
+
+	pw.Start()
+	g.Expect(called).To(o.BeTrue())
+}
+
+func Test_PodWatcher_ContextTimeout(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	ctx := context.TODO()
+	ctxWithDeadline, _ := context.WithDeadline(ctx, time.Now().Add(time.Second))
+
+	clientset := fake.NewSimpleClientset()
+
+	pw, err := NewPodWatcher(ctxWithDeadline, math.MaxInt64, clientset, metav1.ListOptions{}, metav1.NamespaceDefault)
+	g.Expect(err).To(o.BeNil())
+	called := false
+
+	pw.WithTimeoutPodFn(func(msg string) {
+		called = true
+	})
+
+	pw.Start()
+	g.Expect(called).To(o.BeTrue())
+}
+
 func Test_PodWatcherEvents(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 	ctx := context.TODO()
 
 	clientset := fake.NewSimpleClientset()
 
-	pw, err := NewPodWatcher(ctx, clientset, metav1.ListOptions{}, metav1.NamespaceDefault)
+	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.ListOptions{}, metav1.NamespaceDefault)
 	g.Expect(err).To(o.BeNil())
 
 	eventsCh := make(chan string, 5)

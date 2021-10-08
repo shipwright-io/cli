@@ -3,6 +3,7 @@ package reactor
 import (
 	"context"
 	"sync"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,16 +11,23 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const (
+	ContextTimeoutMessage = "context deadline has been exceeded"
+	RequestTimeoutMessage = "request timeout has expired"
+)
+
 // PodWatcher a simple function orchestrator based on watching a given pod and reacting upon the
 // state modifications, should work as a helper to build business logic based on the build POD
 // changes.
 type PodWatcher struct {
 	ctx      context.Context
+	to       time.Duration
 	stopCh   chan bool // stops the event loop execution
 	stopLock sync.Mutex
 	stopped  bool
 	watcher  watch.Interface // client watch instance
 
+	toPodFn         TimeoutPodFn
 	skipPodFn       SkipPodFn
 	onPodAddedFn    OnPodEventFn
 	onPodModifiedFn OnPodEventFn
@@ -33,6 +41,9 @@ type SkipPodFn func(pod *corev1.Pod) bool
 // OnPodEventFn when a pod is modified this method handles the event.
 type OnPodEventFn func(pod *corev1.Pod) error
 
+// TimeoutPodFn when either the context or request timeout expires before the Pod finishes
+type TimeoutPodFn func(msg string)
+
 // WithSkipPodFn sets the skip function instance.
 func (p *PodWatcher) WithSkipPodFn(fn SkipPodFn) *PodWatcher {
 	p.skipPodFn = fn
@@ -45,15 +56,21 @@ func (p *PodWatcher) WithOnPodAddedFn(fn OnPodEventFn) *PodWatcher {
 	return p
 }
 
-// WithOnPodModifiedFn sets the funcion executed when a pod is modified.
+// WithOnPodModifiedFn sets the function executed when a pod is modified.
 func (p *PodWatcher) WithOnPodModifiedFn(fn OnPodEventFn) *PodWatcher {
 	p.onPodModifiedFn = fn
 	return p
 }
 
-// WithOnPodDeletedFn sets the funcion executed when a pod is modified.
+// WithOnPodDeletedFn sets the function executed when a pod is modified.
 func (p *PodWatcher) WithOnPodDeletedFn(fn OnPodEventFn) *PodWatcher {
 	p.onPodDeletedFn = fn
+	return p
+}
+
+// WithTimeoutPodFn sets the function executed when the context or request timeout fires
+func (p *PodWatcher) WithTimeoutPodFn(fn TimeoutPodFn) *PodWatcher {
+	p.toPodFn = fn
 	return p
 }
 
@@ -108,7 +125,20 @@ func (p *PodWatcher) Start() (*corev1.Pod, error) {
 		// the event loop as well.
 		case <-p.ctx.Done():
 			p.watcher.Stop()
+			if p.toPodFn != nil {
+				p.toPodFn(ContextTimeoutMessage)
+			}
 			return nil, nil
+
+		// handle k8s --request-timeout setting, converted to time.Duration, that is passed down to PodWatcher;
+		// if we have exceeded it, we exit
+		case <-time.After(p.to):
+			p.watcher.Stop()
+			if p.toPodFn != nil {
+				p.toPodFn(RequestTimeoutMessage)
+			}
+			return nil, nil
+
 		// watching over stop channel to stop the event loop on demand.
 		case <-p.stopCh:
 			p.watcher.Stop()
@@ -132,6 +162,7 @@ func (p *PodWatcher) Stop() {
 // NewPodWatcher instantiate PodWatcher event-loop.
 func NewPodWatcher(
 	ctx context.Context,
+	timeout time.Duration,
 	clientset kubernetes.Interface,
 	listOpts metav1.ListOptions,
 	ns string,
@@ -140,5 +171,5 @@ func NewPodWatcher(
 	if err != nil {
 		return nil, err
 	}
-	return &PodWatcher{ctx: ctx, watcher: w, stopCh: make(chan bool), stopLock: sync.Mutex{}}, nil
+	return &PodWatcher{ctx: ctx, to: timeout, watcher: w, stopCh: make(chan bool), stopLock: sync.Mutex{}}, nil
 }

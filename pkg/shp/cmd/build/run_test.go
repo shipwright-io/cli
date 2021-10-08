@@ -11,6 +11,7 @@ import (
 	shpfake "github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +27,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		name       string
 		phase      corev1.PodPhase
 		logText    string
+		to         string
 		cancelled  bool
 		brDeleted  bool
 		podDeleted bool
@@ -75,6 +77,11 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			// what we do in this repo's tail logic is unreliable, and we've received guidance from some upstream
 			// k8s folks to "be careful" with it; fortunately, what we do for tail and pod_watcher so far is within
 			// the realm of reliable.
+		},
+		{
+			name:    "timeout",
+			to:      "1s",
+			logText: reactor.RequestTimeoutMessage,
 		},
 	}
 
@@ -130,7 +137,11 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 
 		// set up context
 		cmd.Cmd().ExecuteC()
-		param := params.NewParamsForTest(kclientset, shpclientset, nil, metav1.NamespaceDefault)
+		pm := genericclioptions.NewConfigFlags(true)
+		if len(test.to) > 0 {
+			pm.Timeout = &test.to
+		}
+		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault)
 
 		ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
 
@@ -144,6 +155,13 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		}
 
 		cmd.Complete(param, []string{name})
+		if len(test.to) > 0 {
+			cmd.Run(param, &ioStreams)
+			if !strings.Contains(out.String(), test.logText) {
+				t.Errorf("test %s: unexpected output: %s", test.name, out.String())
+			}
+			continue
+		}
 		go func() {
 			err := cmd.Run(param, &ioStreams)
 			if err != nil {
@@ -161,7 +179,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		// to insure the required initializations have run; this is still better than a generic "sleep log enough for
 		// the init to occur.
 		cmd.watchLock.Lock()
-		err := wait.PollImmediate(1*time.Second, 3*time.Second, func() (done bool, err error) {
+		err := wait.PollImmediate(1*time.Second, 10*time.Second, func() (done bool, err error) {
 			// check any of the vars on RunCommand that are used in onEvent and make sure they are set;
 			// we are verifying the initialization done in Run() on RunCommand is complete
 			if cmd.pw != nil && cmd.ioStreams != nil && cmd.shpClientset != nil {
@@ -172,7 +190,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		})
 		if err != nil {
 			cmd.watchLock.Unlock()
-			t.Errorf("Run initialization did not complete in time")
+			t.Errorf("test %s: Run initialization did not complete in time: pw %#v ioStreams %#v shpClientset %#v", test.name, cmd.pw, cmd.ioStreams, cmd.shpClientset)
 		}
 
 		// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;

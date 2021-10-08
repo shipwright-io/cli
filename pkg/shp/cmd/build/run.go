@@ -92,6 +92,14 @@ func (r *RunCommand) tailLogs(pod *corev1.Pod) {
 	}
 }
 
+// onTimeout reacts to either the context or request timeout causing the pod watcher to exit
+func (r *RunCommand) onTimeout(msg string) {
+	// found more data races during unit testing with concurrent events coming in
+	r.watchLock.Lock()
+	defer r.watchLock.Unlock()
+	fmt.Fprintf(r.ioStreams.Out, "BuildRun %q log following has stopped because: %q\n", r.buildRunName, msg)
+}
+
 // onEvent reacts on pod state changes, to start and stop tailing container logs.
 func (r *RunCommand) onEvent(pod *corev1.Pod) error {
 	// found more data races during unit testing with concurrent events coming in
@@ -177,6 +185,10 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	if err != nil {
 		return err
 	}
+	to, err := params.RequestTimeout()
+	if err != nil {
+		return err
+	}
 	r.buildRunName = br.Name
 	if r.shpClientset, err = params.ShipwrightClientSet(); err != nil {
 		return err
@@ -190,12 +202,13 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		r.buildName,
 		br.GetName(),
 	)}
-	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), kclientset, listOpts, params.Namespace())
+	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), to, kclientset, listOpts, params.Namespace())
 	if err != nil {
 		return err
 	}
 
 	r.pw.WithOnPodModifiedFn(r.onEvent)
+	r.pw.WithTimeoutPodFn(r.onTimeout)
 	// cannot defer with unlock up top because r.pw.Start() blocks;  but the erroring out above kills the
 	// cli invocation, so it does not matter
 	r.watchLock.Unlock()
