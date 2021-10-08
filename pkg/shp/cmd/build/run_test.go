@@ -189,8 +189,8 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			return false, nil
 		})
 		if err != nil {
-			cmd.watchLock.Unlock()
 			t.Errorf("test %s: Run initialization did not complete in time: pw %#v ioStreams %#v shpClientset %#v", test.name, cmd.pw, cmd.ioStreams, cmd.shpClientset)
+			cmd.watchLock.Unlock()
 		}
 
 		// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;

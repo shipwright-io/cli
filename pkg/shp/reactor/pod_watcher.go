@@ -20,18 +20,20 @@ const (
 // state modifications, should work as a helper to build business logic based on the build POD
 // changes.
 type PodWatcher struct {
-	ctx      context.Context
-	to       time.Duration
-	stopCh   chan bool // stops the event loop execution
-	stopLock sync.Mutex
-	stopped  bool
-	watcher  watch.Interface // client watch instance
+	ctx         context.Context
+	to          time.Duration
+	stopCh      chan bool // stops the event loop execution
+	stopLock    sync.Mutex
+	stopped     bool
+	eventTicker *time.Ticker
+	watcher     watch.Interface // client watch instance
 
-	toPodFn         TimeoutPodFn
-	skipPodFn       SkipPodFn
-	onPodAddedFn    OnPodEventFn
-	onPodModifiedFn OnPodEventFn
-	onPodDeletedFn  OnPodEventFn
+	noPodEventsYetFn NoPodEventsYetFn
+	toPodFn          TimeoutPodFn
+	skipPodFn        SkipPodFn
+	onPodAddedFn     OnPodEventFn
+	onPodModifiedFn  OnPodEventFn
+	onPodDeletedFn   OnPodEventFn
 }
 
 // SkipPodFn a given pod instance is informed and expects a boolean as return. When true is returned
@@ -43,6 +45,9 @@ type OnPodEventFn func(pod *corev1.Pod) error
 
 // TimeoutPodFn when either the context or request timeout expires before the Pod finishes
 type TimeoutPodFn func(msg string)
+
+// NoPodEventsYetFn when the watch has not received the create event within a reasonable time
+type NoPodEventsYetFn func()
 
 // WithSkipPodFn sets the skip function instance.
 func (p *PodWatcher) WithSkipPodFn(fn SkipPodFn) *PodWatcher {
@@ -74,8 +79,17 @@ func (p *PodWatcher) WithTimeoutPodFn(fn TimeoutPodFn) *PodWatcher {
 	return p
 }
 
+// WithNoPodEventsYetFn sets the function executed when the watcher decides it has waited long enough for the first event
+func (p *PodWatcher) WithNoPodEventsYetFn(fn NoPodEventsYetFn) *PodWatcher {
+	p.noPodEventsYetFn = fn
+	return p
+}
+
 // handleEvent applies user informed functions against informed pod and event.
 func (p *PodWatcher) handleEvent(pod *corev1.Pod, event watch.Event) error {
+	p.stopLock.Lock()
+	defer p.stopLock.Unlock()
+	p.eventTicker.Stop()
 	switch event.Type {
 	case watch.Added:
 		if p.onPodAddedFn != nil {
@@ -139,6 +153,16 @@ func (p *PodWatcher) Start() (*corev1.Pod, error) {
 			}
 			return nil, nil
 
+		// deal with case where a lack of any pod event means there is some sort of issue;
+		// we let the called function decide whether to stop the watch
+		// NOTE: a k8s event watch coupled with our pod watch proved problematic with unit tests; also, with
+		// a lot of the relevant constants in github.com/k8s/k8s, which is a hassle to vendor in, prototypes
+		// felt fragile
+		case <-p.eventTicker.C:
+			if p.noPodEventsYetFn != nil {
+				p.noPodEventsYetFn()
+			}
+
 		// watching over stop channel to stop the event loop on demand.
 		case <-p.stopCh:
 			p.watcher.Stop()
@@ -155,6 +179,7 @@ func (p *PodWatcher) Stop() {
 	defer p.stopLock.Unlock()
 	if !p.stopped {
 		close(p.stopCh)
+		p.eventTicker.Stop()
 		p.stopped = true
 	}
 }
@@ -171,5 +196,6 @@ func NewPodWatcher(
 	if err != nil {
 		return nil, err
 	}
-	return &PodWatcher{ctx: ctx, to: timeout, watcher: w, stopCh: make(chan bool), stopLock: sync.Mutex{}}, nil
+	//TODO don't think the have not received events yet ticker needs to be tunable, but leaving a TODO for now while we get feedback
+	return &PodWatcher{ctx: ctx, to: timeout, watcher: w, eventTicker: time.NewTicker(1 * time.Second), stopCh: make(chan bool), stopLock: sync.Mutex{}}, nil
 }
