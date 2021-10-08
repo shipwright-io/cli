@@ -1,24 +1,20 @@
-package buildrun
+package build
 
 import (
 	"context"
 	"encoding/json"
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/tidwall/gjson"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/types"
 	testflags "github.com/shipwright-io/cli/test/flags"
 )
 
-func Test_BuildRunLogsRequiredFlags(t *testing.T) {
+func Test_BuildDeleteRequiredFlags(t *testing.T) {
 
 	tests := []struct {
 		name        string
@@ -34,10 +30,10 @@ func Test_BuildRunLogsRequiredFlags(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		o := &BuildRunLogsOptions{}
+		o := &BuildDeleteOptions{}
 		t.Run(tt.name, func(t *testing.T) {
 			var err error
-			cmd := newBuildRunLogsCmd(context.Background(), &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}, &types.ClientSets{}, o)
+			cmd := newBuildDeleteCmd(context.Background(), &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}, &types.ClientSets{}, o)
 
 			if err := cmd.ParseFlags(tt.args); err != nil {
 				t.Errorf("unexpected error occurred parsing flags: %#v", err)
@@ -53,11 +49,12 @@ func Test_BuildRunLogsRequiredFlags(t *testing.T) {
 			if result := testflags.CheckError(err, "Execute", tt.executeErr); len(result) != 0 {
 				t.Error(result)
 			}
+
 		})
 	}
 }
 
-func Test_BuildRunLogsComplete(t *testing.T) {
+func Test_BuildDeleteComplete(t *testing.T) {
 
 	tests := []struct {
 		name string
@@ -65,18 +62,26 @@ func Test_BuildRunLogsComplete(t *testing.T) {
 		want map[string]string
 	}{
 		{
-			name: "buildrun name",
-			args: []string{"my-buildrun"},
+			name: "build name",
+			args: []string{"my-build"},
 			want: map[string]string{
-				"BuildRunName": "my-buildrun",
+				"BuildName": "my-build",
+			},
+		},
+		{
+			name: "delete runs",
+			args: []string{"my-build", "--delete-runs"},
+			want: map[string]string{
+				"BuildName":  "my-build",
+				"DeleteRuns": "true",
 			},
 		},
 	}
 	for _, tt := range tests {
-		o := &BuildRunLogsOptions{}
+		o := &BuildDeleteOptions{}
 		t.Run(tt.name, func(t *testing.T) {
 			var err error
-			cmd := newBuildRunLogsCmd(context.Background(), &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}, &types.ClientSets{}, o)
+			cmd := newBuildDeleteCmd(context.Background(), &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}, &types.ClientSets{}, o)
 
 			if err := cmd.ParseFlags(tt.args); err != nil {
 				t.Errorf("unexpected error occurred parsing flags: %#v", err)
@@ -88,48 +93,17 @@ func Test_BuildRunLogsComplete(t *testing.T) {
 
 			var j []byte
 			if j, err = json.Marshal(o); err != nil {
-				t.Fatalf("error occurred marshalling BuildRun object into json byte array: %#v", err)
+				t.Fatalf("error occurred marshalling Build object into json byte array: %#v", err)
 			}
 
 			for k, v := range tt.want {
 				val := gjson.Get(string(j), k)
 				if v != val.String() {
-					t.Errorf("expected value %q at path %q in BuildRun object, but found %q instead", v, k, val.String())
+					t.Errorf("expected value %q at path %q in Build object, but found %q instead", v, k, val.String())
 				}
 
 			}
 
 		})
 	}
-}
-
-func TestStreamBuildLogs(t *testing.T) {
-	name := "test-obj"
-	pod := &corev1.Pod{}
-	pod.Name = name
-	pod.Namespace = metav1.NamespaceDefault
-	pod.Labels = map[string]string{
-		v1alpha1.LabelBuildRun: name,
-	}
-	pod.Spec.Containers = []corev1.Container{
-		{
-			Name: name,
-		},
-	}
-
-	ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
-
-	cmd := NewBuildRunLogsCmd(context.Background(), &ioStreams, &types.ClientSets{})
-
-	cmd.SetArgs([]string{name})
-	_, err := cmd.ExecuteC()
-	if err != nil {
-		t.Fatalf("%s", err.Error())
-	}
-	if !strings.Contains(out.String(), "fake logs") {
-		t.Fatalf("unexpected output: %s", out.String())
-	}
-
-	t.Logf("%s", out.String())
-
 }

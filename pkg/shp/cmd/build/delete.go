@@ -1,6 +1,8 @@
 package build
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
@@ -8,76 +10,101 @@ import (
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/kubectl/pkg/util/templates"
 
-	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
-	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/types"
 )
 
-// DeleteCommand contains data provided by user to the delete subcommand
-type DeleteCommand struct {
-	name string
+var (
+	// Long description for the "build delete" command
+	buildeDeleteLongDescription = templates.LongDesc(`
+		Deletes an existing Build
+	`)
 
-	cmd        *cobra.Command
-	deleteRuns bool
+	// Examples for using the "build delete" command
+	buildDeleteExamples = templates.Examples(`
+		$ shp build delete my-build
+	`)
+)
+
+// BuildDeleteOptions stores data passed to the command via command line flags
+type BuildDeleteOptions struct {
+	types.SharedOptions
+
+	BuildName string
+
+	DeleteRuns bool
 }
 
-func deleteCmd() runner.SubCommand {
-	deleteCommand := &DeleteCommand{
-		cmd: &cobra.Command{
-			Use:   "delete <name> [flags]",
-			Short: "Delete Build",
-			Args:  cobra.ExactArgs(1),
+// newBuildDeleteCmd creates the "build delete" command
+func newBuildDeleteCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets, o *BuildDeleteOptions) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "delete <name> [flags]",
+		Short:   "Delete an existing Build",
+		Long:    buildeDeleteLongDescription,
+		Example: buildDeleteExamples,
+		Args:    cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			cmdutil.CheckErr(o.Complete(args))
+			cmdutil.CheckErr(o.Run())
 		},
 	}
 
-	deleteCommand.cmd.Flags().BoolVarP(&deleteCommand.deleteRuns, "delete-runs", "r", false, "Also delete all of the buildruns")
+	cmd.Flags().BoolVarP(&o.DeleteRuns, "delete-runs", "r", false, "Delete all BuildRuns associated with this Build. Defaults to false.")
 
-	return deleteCommand
+	return cmd
 }
 
-// Cmd returns cobra command object of the delete subcommand
-func (c *DeleteCommand) Cmd() *cobra.Command {
-	return c.cmd
+// NewBuildDeleteCmd is a wrapper for newBuildDeleteCmd
+func NewBuildDeleteCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets) *cobra.Command {
+	o := &BuildDeleteOptions{
+		SharedOptions: types.SharedOptions{
+			Clients: clients,
+			Context: ctx,
+			Streams: ioStreams,
+		},
+	}
+
+	return newBuildDeleteCmd(ctx, ioStreams, clients, o)
 }
 
-// Complete fills DeleteSubCommand structure with data obtained from cobra command
-func (c *DeleteCommand) Complete(params *params.Params, args []string) error {
-	c.name = args[0]
+// Complete processes any data that is needed before Run executes
+func (o *BuildDeleteOptions) Complete(args []string) error {
+	// Guard against index out of bound errors
+	if len(args) == 0 {
+		return errors.New("argument list is empty")
+	}
+
+	o.BuildName = args[0]
 
 	return nil
 }
 
-// Validate is used for validation of user input data
-func (c *DeleteCommand) Validate() error {
-	return nil
-}
-
-// Run contains main logic of delete subcommand
-func (c *DeleteCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
-	clientset, err := params.ShipwrightClientSet()
-	if err != nil {
-		return err
-	}
-	if err := clientset.ShipwrightV1alpha1().Builds(params.Namespace()).Delete(c.Cmd().Context(), c.name, v1.DeleteOptions{}); err != nil {
-		return err
+// Run executes the command logic
+func (o *BuildDeleteOptions) Run() error {
+	if err := o.Clients.ShipwrightClientSet.ShipwrightV1alpha1().Builds(o.Clients.Namespace).Delete(o.Context, o.BuildName, v1.DeleteOptions{}); err != nil {
+		return fmt.Errorf("error occurred while attempting to delete Build %q: %v", o.BuildName, err)
+	} else {
+		fmt.Fprintf(o.Streams.Out, "Successfully deleted Build %q\n", o.BuildName)
 	}
 
-	if c.deleteRuns {
-		var brList *buildv1alpha1.BuildRunList
-		if brList, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).List(c.cmd.Context(), v1.ListOptions{
-			LabelSelector: fmt.Sprintf("%v/name=%v", buildv1alpha1.BuildDomain, c.name),
-		}); err != nil {
+	if o.DeleteRuns {
+		brList, err := o.Clients.ShipwrightClientSet.ShipwrightV1alpha1().BuildRuns(o.Clients.Namespace).List(o.Context, v1.ListOptions{
+			LabelSelector: fmt.Sprintf("%v/name=%v", buildv1alpha1.BuildDomain, o.BuildName),
+		})
+		if err != nil {
 			return err
 		}
 
 		for _, buildrun := range brList.Items {
-			if err := clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Delete(c.cmd.Context(), buildrun.Name, v1.DeleteOptions{}); err != nil {
-				fmt.Fprintf(io.ErrOut, "Error deleting BuildRun %q: %v\n", buildrun.Name, err)
+			if err := o.Clients.ShipwrightClientSet.ShipwrightV1alpha1().BuildRuns(o.Clients.Namespace).Delete(o.Context, buildrun.Name, v1.DeleteOptions{}); err != nil {
+				fmt.Fprintf(o.Streams.ErrOut, "error occurred while attempting to delete BuildRun %q: %v\n", buildrun.Name, err)
+			} else {
+				fmt.Fprintf(o.Streams.Out, "Successfully deleted BuildRun %q\n", buildrun.Name)
 			}
 		}
 	}
-
-	fmt.Fprintf(io.Out, "Build deleted %q\n", c.name)
 
 	return nil
 }

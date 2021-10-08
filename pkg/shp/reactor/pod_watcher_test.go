@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
+	o "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-
-	o "github.com/onsi/gomega"
 )
 
 func Test_PodWatcherEvents(t *testing.T) {

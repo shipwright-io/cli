@@ -4,21 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/tidwall/gjson"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/types"
 	testflags "github.com/shipwright-io/cli/test/flags"
 )
 
-func Test_BuildRunLogsRequiredFlags(t *testing.T) {
+func Test_BuildRunDeleteRequiredFlags(t *testing.T) {
 
 	tests := []struct {
 		name        string
@@ -34,10 +30,10 @@ func Test_BuildRunLogsRequiredFlags(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		o := &BuildRunLogsOptions{}
+		o := &BuildRunDeleteOptions{}
 		t.Run(tt.name, func(t *testing.T) {
 			var err error
-			cmd := newBuildRunLogsCmd(context.Background(), &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}, &types.ClientSets{}, o)
+			cmd := newBuildRunDeleteCmd(context.Background(), &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}, &types.ClientSets{}, o)
 
 			if err := cmd.ParseFlags(tt.args); err != nil {
 				t.Errorf("unexpected error occurred parsing flags: %#v", err)
@@ -53,11 +49,12 @@ func Test_BuildRunLogsRequiredFlags(t *testing.T) {
 			if result := testflags.CheckError(err, "Execute", tt.executeErr); len(result) != 0 {
 				t.Error(result)
 			}
+
 		})
 	}
 }
 
-func Test_BuildRunLogsComplete(t *testing.T) {
+func Test_BuildRunDeleteComplete(t *testing.T) {
 
 	tests := []struct {
 		name string
@@ -68,15 +65,15 @@ func Test_BuildRunLogsComplete(t *testing.T) {
 			name: "buildrun name",
 			args: []string{"my-buildrun"},
 			want: map[string]string{
-				"BuildRunName": "my-buildrun",
+				"Name": "my-buildrun",
 			},
 		},
 	}
 	for _, tt := range tests {
-		o := &BuildRunLogsOptions{}
+		o := &BuildRunDeleteOptions{}
 		t.Run(tt.name, func(t *testing.T) {
 			var err error
-			cmd := newBuildRunLogsCmd(context.Background(), &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}, &types.ClientSets{}, o)
+			cmd := newBuildRunDeleteCmd(context.Background(), &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}, &types.ClientSets{}, o)
 
 			if err := cmd.ParseFlags(tt.args); err != nil {
 				t.Errorf("unexpected error occurred parsing flags: %#v", err)
@@ -101,35 +98,4 @@ func Test_BuildRunLogsComplete(t *testing.T) {
 
 		})
 	}
-}
-
-func TestStreamBuildLogs(t *testing.T) {
-	name := "test-obj"
-	pod := &corev1.Pod{}
-	pod.Name = name
-	pod.Namespace = metav1.NamespaceDefault
-	pod.Labels = map[string]string{
-		v1alpha1.LabelBuildRun: name,
-	}
-	pod.Spec.Containers = []corev1.Container{
-		{
-			Name: name,
-		},
-	}
-
-	ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
-
-	cmd := NewBuildRunLogsCmd(context.Background(), &ioStreams, &types.ClientSets{})
-
-	cmd.SetArgs([]string{name})
-	_, err := cmd.ExecuteC()
-	if err != nil {
-		t.Fatalf("%s", err.Error())
-	}
-	if !strings.Contains(out.String(), "fake logs") {
-		t.Fatalf("unexpected output: %s", out.String())
-	}
-
-	t.Logf("%s", out.String())
-
 }

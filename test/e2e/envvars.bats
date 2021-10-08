@@ -38,7 +38,7 @@ teardown() {
 	assert_success
 
 	# ensure that the build was successfully created
-	assert_output --partial "BuildRun created \"${buildrun_name}\" for Build \"${build_name}\""
+	assert_output --partial "BuildRun \"${buildrun_name}\" created for Build \"${build_name}\""
 
 	# get the yaml for the Build object
 	run kubectl get buildruns.shipwright.io/${buildrun_name} -o yaml

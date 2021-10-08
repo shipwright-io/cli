@@ -1,21 +1,25 @@
 package suggestion
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
 
 	"github.com/onsi/gomega"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/build"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/shipwright-io/cli/pkg/shp/cmd/build"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/types"
 )
 
 func TestSuggestion(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 
 	genericOpts := &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
-	cmd := build.Command(nil, genericOpts)
+	p := &types.ClientSets{}
+	cmd := build.Command(context.Background(), genericOpts, p)
 
 	err := SubcommandsRequiredWithSuggestions(cmd, []string{"cr"})
 

@@ -1,63 +1,88 @@
 package buildrun
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/kubectl/pkg/util/templates"
 
-	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
-	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/types"
 )
 
-// DeleteCommand contains data input from user for delete sub-command
-type DeleteCommand struct {
-	cmd *cobra.Command
+var (
+	// Long description for the "buildrun delete" command
+	buildRunDeleteLongDescription = templates.LongDesc(`
+		Deletes a BuildRun
+	`)
 
-	name string
+	// Examples for using the "buildrun delete" command
+	buildRunDeleteExamples = templates.Examples(`
+		$ shp buildrun delete my-buildrun
+	`)
+)
+
+// BuildRunDeleteOptions stores data passed to the command via command line flags
+type BuildRunDeleteOptions struct {
+	types.SharedOptions
+
+	Name string
 }
 
-func deleteCmd() runner.SubCommand {
-	return &DeleteCommand{
-		cmd: &cobra.Command{
-			Use:   "delete <name>",
-			Short: "Delete BuildRun",
-			Args:  cobra.ExactArgs(1),
+// newBuildRunDeleteCmd creates the "buildrun delete" command
+func newBuildRunDeleteCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets, o *BuildRunDeleteOptions) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "delete <name>",
+		Short:   "Delete an existing BuildRun",
+		Long:    buildRunDeleteLongDescription,
+		Example: buildRunDeleteExamples,
+		Args:    cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			cmdutil.CheckErr(o.Complete(args))
+			cmdutil.CheckErr(o.Run())
 		},
 	}
+
+	return cmd
 }
 
-// Cmd returns cobra command object
-func (c *DeleteCommand) Cmd() *cobra.Command {
-	return c.cmd
+// NewBuildRunDeleteCmd is a wrapper for newBuildRunDeleteCmd
+func NewBuildRunDeleteCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets) *cobra.Command {
+	o := &BuildRunDeleteOptions{
+		SharedOptions: types.SharedOptions{
+			Clients: clients,
+			Context: ctx,
+			Streams: ioStreams,
+		},
+	}
+
+	return newBuildRunDeleteCmd(ctx, ioStreams, clients, o)
 }
 
-// Complete fills in data provided by user
-func (c *DeleteCommand) Complete(params *params.Params, args []string) error {
-	c.name = args[0]
+// Complete processes any data that is needed before Run executes
+func (o *BuildRunDeleteOptions) Complete(args []string) error {
+	// Guard against index out of bound errors
+	if len(args) == 0 {
+		return errors.New("argument list is empty")
+	}
+
+	o.Name = args[0]
 
 	return nil
 }
 
-// Validate validates data input by user
-func (c *DeleteCommand) Validate() error {
-	return nil
-}
-
-// Run executes delete sub-command logic
-func (c *DeleteCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	clientset, err := params.ShipwrightClientSet()
-	if err != nil {
+// Run executes the command logic
+func (o *BuildRunDeleteOptions) Run() error {
+	if err := o.Clients.ShipwrightClientSet.ShipwrightV1alpha1().BuildRuns(o.Clients.Namespace).Delete(o.Context, o.Name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
-	if err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Delete(c.cmd.Context(), c.name, metav1.DeleteOptions{}); err != nil {
-		return err
-	}
-
-	fmt.Fprintf(ioStreams.Out, "BuildRun deleted '%v'\n", c.name)
+	fmt.Fprintf(o.Streams.Out, "BuildRun deleted '%v'\n", o.Name)
 
 	return nil
 }

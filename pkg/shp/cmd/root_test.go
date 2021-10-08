@@ -1,21 +1,26 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
 
 	"github.com/onsi/gomega"
-	"github.com/shipwright-io/cli/test/stub"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/shipwright-io/cli/pkg/shp/cmd/types"
+	"github.com/shipwright-io/cli/test/stub"
 )
 
 func TestCMD_NewCmdSHP(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 
 	genericOpts := &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
-	cmd := NewCmdSHP(genericOpts)
+	p := &types.ClientSets{}
+
+	cmd := NewRootCmd(context.Background(), genericOpts, p)
 
 	out, err := stub.ExecuteCommand(cmd, "build", "cr")
 

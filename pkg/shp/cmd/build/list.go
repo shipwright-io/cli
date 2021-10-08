@@ -1,73 +1,93 @@
 package build
 
 import (
+	"context"
 	"fmt"
 	"text/tabwriter"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
-	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/shipwright-io/cli/pkg/shp/cmd/types"
 )
 
-// ListCommand struct contains user input to the List subcommand of Build
-type ListCommand struct {
-	cmd *cobra.Command
+var (
+	// Long description for the "build list" command
+	buildListLongDescription = templates.LongDesc(`
+		List existing Builds
+	`)
 
-	noHeader bool
+	// Examples for using the "build list" command
+	buildListExamples = templates.Examples(`
+		$ shp build list
+	`)
+)
+
+// BuildListOptions stores data passed to the command via command line flags
+type BuildListOptions struct {
+	types.SharedOptions
+
+	BuildName string
+
+	NoHeader bool
 }
 
-func listCmd() runner.SubCommand {
-	listCommand := &ListCommand{
-		cmd: &cobra.Command{
-			Use:   "list [flags]",
-			Short: "List Builds",
+// newBuildListCmd creates the "build list" command
+func newBuildListCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets, o *BuildListOptions) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "list [flags]",
+		Short:   "List existing Builds",
+		Long:    buildListLongDescription,
+		Example: buildListExamples,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmdutil.CheckErr(o.Complete(args))
+			cmdutil.CheckErr(o.Run())
 		},
 	}
 
-	listCommand.cmd.Flags().BoolVar(&listCommand.noHeader, "no-header", false, "Do not show columns header in list output")
+	cmd.Flags().BoolVar(&o.NoHeader, "no-header", false, "Do not show columns header in list output")
 
-	return listCommand
+	return cmd
 }
 
-// Cmd returns cobra command object of List subcommand
-func (c *ListCommand) Cmd() *cobra.Command {
-	return c.cmd
+// NewBuildListCmd is a wrapper for newBuildListCmd
+func NewBuildListCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets) *cobra.Command {
+	o := &BuildListOptions{
+		SharedOptions: types.SharedOptions{
+			Clients: clients,
+			Context: ctx,
+			Streams: ioStreams,
+		},
+	}
+
+	return newBuildListCmd(ctx, ioStreams, clients, o)
 }
 
-// Complete fills object with user input data
-func (c *ListCommand) Complete(params *params.Params, args []string) error {
+// Complete processes any data that is needed before Run executes
+func (o *BuildListOptions) Complete(args []string) error {
 	return nil
 }
 
-// Validate checks user input data
-func (c *ListCommand) Validate() error {
-	return nil
-}
-
-// Run contains main logic of List subcommand of Build
-func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
+// Run executes the command logic
+func (o *BuildListOptions) Run() error {
 	// TODO: Support multiple output formats here, not only tabwriter
 	//       find out more in kubectl libraries and use them
 
 	// Initialize tabwriter for command output
-	writer := tabwriter.NewWriter(io.Out, 0, 8, 2, '\t', 0)
+	writer := tabwriter.NewWriter(o.Streams.Out, 0, 8, 2, '\t', 0)
 	columnNames := "NAME\tOUTPUT\tSTATUS"
 	columnTemplate := "%s\t%s\t%s\n"
 
-	var buildList *buildv1alpha1.BuildList
-	clientset, err := params.ShipwrightClientSet()
+	buildList, err := o.Clients.ShipwrightClientSet.ShipwrightV1alpha1().Builds(o.Clients.Namespace).List(o.Context, metav1.ListOptions{})
 	if err != nil {
-		return err
-	}
-	if buildList, err = clientset.ShipwrightV1alpha1().Builds(params.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
-		return err
+		return fmt.Errorf("an error occurred while attempting to get a list of existing builds: %v", err)
 	}
 
-	if !c.noHeader {
+	if !o.NoHeader {
 		fmt.Fprintln(writer, columnNames)
 	}
 

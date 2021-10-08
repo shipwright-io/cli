@@ -1,67 +1,94 @@
 package buildrun
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
+	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/kubectl/pkg/util/templates"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
-	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/types"
+	"github.com/shipwright-io/cli/pkg/shp/reactor"
 )
 
-// CancelCommand contains data input from user for delete sub-command
-type CancelCommand struct {
-	cmd *cobra.Command
+var (
+	// Long description for the "buildrun cancel" command
+	buildRunCancelLongDescription = templates.LongDesc(`
+		Cancels a BuildRun
+	`)
 
-	name string
+	// Examples for using the "buildrun cancel" command
+	buildRunCancelExamples = templates.Examples(`
+		$ shp buildrun cancel my-build
+	`)
+)
+
+// BuildRunCancelOptions stores data passed to the command via command line flags
+type BuildRunCancelOptions struct {
+	types.SharedOptions
+	PodWatcher *reactor.PodWatcher
+
+	Name string
 }
 
-func cancelCmd() runner.SubCommand {
-	return &CancelCommand{
-		cmd: &cobra.Command{
-			Use:   "cancel <name>",
-			Short: "Cancel BuildRun",
-			Args:  cobra.ExactArgs(1),
+// newBuildRunCancelCmd creates the "buildrun cancel" command
+func newBuildRunCancelCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets, o *BuildRunCancelOptions) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "cancel <name>",
+		Short:   "Cancel BuildRun",
+		Long:    buildRunCancelLongDescription,
+		Example: buildRunCancelExamples,
+		Args:    cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			cmdutil.CheckErr(o.Complete(args))
+			cmdutil.CheckErr(o.Run())
 		},
 	}
+	return cmd
 }
 
-// Cmd returns cobra command object
-func (c *CancelCommand) Cmd() *cobra.Command {
-	return c.cmd
+// NewBuildRunCancelCmd is a wrapper for newBuildRunCancelCmd
+func NewBuildRunCancelCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets) *cobra.Command {
+	o := &BuildRunCancelOptions{
+		SharedOptions: types.SharedOptions{
+			Clients: clients,
+			Context: ctx,
+			Streams: ioStreams,
+		},
+	}
+
+	return newBuildRunCancelCmd(ctx, ioStreams, clients, o)
 }
 
-// Complete fills in data provided by user
-func (c *CancelCommand) Complete(params *params.Params, args []string) error {
-	c.name = args[0]
+// Complete processes any data that is needed before Run executes
+func (o *BuildRunCancelOptions) Complete(args []string) error {
+	// Guard against index out of bound errors
+	if len(args) == 0 {
+		return errors.New("argument list is empty")
+	}
+
+	o.Name = args[0]
 
 	return nil
 }
 
-// Validate validates data input by user
-func (c *CancelCommand) Validate() error {
-	return nil
-}
-
-// Run executes cancel sub-command logic
-func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	clientset, err := params.ShipwrightClientSet()
+// Run executes the command logic
+func (o *BuildRunCancelOptions) Run() error {
+	br, err := o.Clients.ShipwrightClientSet.ShipwrightV1alpha1().BuildRuns(o.Clients.Namespace).Get(o.Context, o.Name, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("an error occurred getting BuildRun %q: %s", o.Name, err.Error())
 	}
 
-	br := &buildv1alpha1.BuildRun{}
-	if br, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Get(c.cmd.Context(), c.name, metav1.GetOptions{}); err != nil {
-		return fmt.Errorf("failed to retrieve BuildRun %s: %s", c.name, err.Error())
-	}
 	if br.IsDone() {
-		return fmt.Errorf("failed to cancel BuildRun %s: execution has already finished", c.name)
+		return fmt.Errorf("failed to cancel BuildRun %q: execution has already finished", o.Name)
 	}
 
 	type patchStringValue struct {
@@ -78,11 +105,11 @@ func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.
 	if data, err = json.Marshal(payload); err != nil {
 		return err
 	}
-	if _, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Patch(c.Cmd().Context(), c.name, types.JSONPatchType, data, metav1.PatchOptions{}); err != nil {
+	if _, err = o.Clients.ShipwrightClientSet.ShipwrightV1alpha1().BuildRuns(o.Clients.Namespace).Patch(o.Context, o.Name, ktypes.JSONPatchType, data, metav1.PatchOptions{}); err != nil {
 		return err
 	}
 
-	fmt.Fprintf(ioStreams.Out, "BuildRun successfully canceled '%v'\n", c.name)
+	fmt.Fprintf(o.Streams.Out, "BuildRun %q has been canceled\n", o.Name)
 
 	return nil
 }

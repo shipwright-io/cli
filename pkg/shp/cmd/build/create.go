@@ -1,106 +1,198 @@
 package build
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/kubectl/pkg/util/templates"
 
-	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
-	"github.com/shipwright-io/cli/pkg/shp/flags"
-	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/types"
 	"github.com/shipwright-io/cli/pkg/shp/util"
 )
 
-// CreateCommand contains data input from user
-type CreateCommand struct {
-	cmd *cobra.Command // cobra command instance
+var (
+	// Long description for the "build create" command
+	buildCreateLongDescription = templates.LongDesc(`
+		Creates a new Build
+	`)
 
-	name      string                   // build resource's name
-	buildSpec *buildv1alpha1.BuildSpec // stores command-line flags
+	// Examples for using the "build create" command
+	buildCreateExamples = templates.Examples(`
+		$ shp build create my-app --source-url=https://example.org/some/repo --output-image=some-image
+	`)
+
+	clusterBuildStrategyKind = buildv1alpha1.ClusterBuildStrategyKind
+)
+
+// BuildCreateOptions stores data passed to the command via command line flags
+type BuildCreateOptions struct {
+	types.SharedOptions
+
+	Build *buildv1alpha1.Build
+
+	Name string
+
+	SourceURL                   string
+	SourceRevision              string
+	SourceContextDir            string
+	SourceCredentialsSecretName string
+
+	StrategyAPIVersion string
+	StrategyKind       string
+	StrategyName       string
+
+	Dockerfile string
+
+	BuilderImage                 string
+	BuilderCredentialsSecretName string
+
+	OutputImage                 string
+	OutputCredentialsSecretName string
+
+	Envs []string
+
+	Timeout metav1.Duration
 }
 
-const buildCreateLongDesc = `
-Creates a new Build instance using the first argument as its name. For example:
-
-	$ shp build create my-app --source-url="..." --output-image="..."
-`
-
-// Cmd returns cobra.Command object of the create subcommand.
-func (c *CreateCommand) Cmd() *cobra.Command {
-	return c.cmd
-}
-
-// Complete fills internal subcommand structure for future work with user input
-func (c *CreateCommand) Complete(params *params.Params, args []string) error {
-	switch len(args) {
-	case 1:
-		c.name = args[0]
-	default:
-		return fmt.Errorf("one argument is expected")
-	}
-	return nil
-}
-
-// Validate is used for user input validation of flags and other data.
-func (c *CreateCommand) Validate() error {
-	if c.name == "" {
-		return fmt.Errorf("name must be provided")
-	}
-	return nil
-}
-
-// Run executes the creation of a new Build instance using flags to fill up the details.
-func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
-	b := &buildv1alpha1.Build{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: c.name,
-		},
-		Spec: *c.buildSpec,
-	}
-
-	envs, err := c.cmd.Flags().GetStringArray("env")
-	if err != nil {
-		return err
-	}
-	b.Spec.Env = append(b.Spec.Env, util.StringSliceToEnvVarSlice(envs)...)
-
-	flags.SanitizeBuildSpec(&b.Spec)
-
-	clientset, err := params.ShipwrightClientSet()
-	if err != nil {
-		return err
-	}
-	if _, err := clientset.ShipwrightV1alpha1().Builds(params.Namespace()).Create(c.cmd.Context(), b, metav1.CreateOptions{}); err != nil {
-		return err
-	}
-	fmt.Fprintf(io.Out, "Created build %q\n", c.name)
-	return nil
-}
-
-// createCmd instantiate the "build create" subcommand.
-func createCmd() runner.SubCommand {
+// newBuildCreateCmd creates the "build create" command
+func newBuildCreateCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets, o *BuildCreateOptions) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create <name> [flags]",
-		Short: "Create Build",
-		Long:  buildCreateLongDesc,
+		Use:     "create [flags]",
+		Short:   "Create a new Build",
+		Long:    buildCreateLongDescription,
+		Args:    cobra.ExactArgs(1),
+		Example: buildCreateExamples,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmdutil.CheckErr(o.Complete(args))
+			cmdutil.CheckErr(o.Run())
+		},
 	}
 
-	// instantiating command-line flags and the build-spec structure which receives the informed flag
-	// values, also marking certain flags as mandatory
-	buildSpecFlags := flags.BuildSpecFromFlags(cmd.Flags())
-	if err := cmd.MarkFlagRequired(flags.SourceURLFlag); err != nil {
-		panic(err)
-	}
-	if err := cmd.MarkFlagRequired(flags.OutputImageFlag); err != nil {
-		panic(err)
+	cmd.Flags().StringVar(&o.SourceURL, "source-url", "", "The URL of the git repository to use as the source for the build")
+	cmd.MarkFlagRequired("source-url")
+	cmd.Flags().StringVar(&o.SourceRevision, "source-revision", "", "The version of the source to use.")
+	cmd.Flags().StringVar(&o.SourceContextDir, "source-context-dir", "", "The directory within the git repository to use.")
+	cmd.Flags().StringVar(&o.SourceCredentialsSecretName, "source-credentials-secret", "", "The name of the Secret that contains credentials to access the git repository.")
+
+	cmd.Flags().StringVar(&o.StrategyAPIVersion, "strategy-apiversion", buildv1alpha1.SchemeGroupVersion.Version, "The API version of the build strategy to use.")
+	cmd.Flags().StringVar(&o.StrategyKind, "strategy-kind", "", "The Kind of build strategy to use.")
+	cmd.Flags().StringVar(&o.StrategyName, "strategy-name", "buildpacks-v3", "The name of the build strategy to use.")
+
+	cmd.Flags().StringVar(&o.Dockerfile, "dockerfile", "", "The path of the Dockerfile to use, relative to the repository root.")
+
+	cmd.Flags().StringVar(&o.BuilderImage, "input-image", "", "The builder image to use during the build process.")
+	cmd.Flags().StringVar(&o.BuilderCredentialsSecretName, "input-credentials-secret", "", "The name of the Secret that contains credentials to pull the provided builder image.")
+
+	cmd.Flags().StringVar(&o.OutputImage, "output-image", "", "The location to push the output image to.")
+	cmd.MarkFlagRequired("output-image")
+	cmd.Flags().StringVar(&o.OutputCredentialsSecretName, "output-credentials-secret", "", "The name of the Secret that contains credentials for the repository to push the built Image to.")
+
+	cmd.Flags().StringArrayVarP(&o.Envs, "env", "e", []string{}, "specify a key-value pair for an environment variable to set for the build container")
+
+	cmd.Flags().DurationVar(&o.Timeout.Duration, "timeout", time.Duration(0), "How long to let the build run before timing out.")
+
+	return cmd
+}
+
+// NewBuildCreateCmd is a wrapper for newBuildCreateCmd
+func NewBuildCreateCmd(ctx context.Context, ioStreams *genericclioptions.IOStreams, clients *types.ClientSets) *cobra.Command {
+	o := &BuildCreateOptions{
+		SharedOptions: types.SharedOptions{
+			Clients: clients,
+			Context: ctx,
+			Streams: ioStreams,
+		},
 	}
 
-	return &CreateCommand{
-		cmd:       cmd,
-		buildSpec: buildSpecFlags,
+	return newBuildCreateCmd(ctx, ioStreams, clients, o)
+}
+
+// Complete processes any data that is needed before Run executes
+func (o *BuildCreateOptions) Complete(args []string) error {
+	// Guard against index out of bound errors
+	if len(args) == 0 {
+		return errors.New("argument list is empty")
 	}
+
+	o.Name = args[0]
+
+	o.Build = &buildv1alpha1.Build{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: o.Name,
+		},
+		Spec: buildv1alpha1.BuildSpec{
+			Source: buildv1alpha1.Source{
+				URL:        o.SourceURL,
+				Revision:   &o.SourceRevision,
+				ContextDir: &o.SourceContextDir,
+			},
+			Strategy: &buildv1alpha1.Strategy{
+				APIVersion: o.StrategyAPIVersion,
+				Name:       o.StrategyName,
+			},
+			Dockerfile: &o.Dockerfile,
+			Builder: &buildv1alpha1.Image{
+				Image:       o.BuilderImage,
+				Credentials: &corev1.LocalObjectReference{},
+			},
+			Output: buildv1alpha1.Image{
+				Image:       o.OutputImage,
+				Credentials: &corev1.LocalObjectReference{},
+			},
+			Timeout: &o.Timeout,
+		},
+	}
+
+	o.Build.Spec.Env = append(o.Build.Spec.Env, util.StringSliceToEnvVarSlice(o.Envs)...)
+
+	if len(o.SourceCredentialsSecretName) != 0 {
+		o.Build.Spec.Source.Credentials = &corev1.LocalObjectReference{
+			Name: o.SourceCredentialsSecretName,
+		}
+	}
+
+	if len(o.StrategyKind) != 0 {
+		strategyKind := buildv1alpha1.BuildStrategyKind(o.StrategyKind)
+		if strategyKind != buildv1alpha1.ClusterBuildStrategyKind && strategyKind != buildv1alpha1.NamespacedBuildStrategyKind {
+			return fmt.Errorf("%q is not a BuildStrategyKind", strategyKind)
+		}
+		o.Build.Spec.Strategy.Kind = &strategyKind
+	} else {
+		o.Build.Spec.Strategy.Kind = &clusterBuildStrategyKind
+	}
+
+	if len(o.BuilderCredentialsSecretName) != 0 {
+		o.Build.Spec.Builder.Credentials = &corev1.LocalObjectReference{
+			Name: o.BuilderCredentialsSecretName,
+		}
+	}
+
+	if len(o.OutputCredentialsSecretName) != 0 {
+		o.Build.Spec.Output.Credentials = &corev1.LocalObjectReference{
+			Name: o.OutputCredentialsSecretName,
+		}
+	}
+
+	return nil
+}
+
+// Run executes the command logic
+func (o *BuildCreateOptions) Run() error {
+	b, err := o.Clients.ShipwrightClientSet.ShipwrightV1alpha1().Builds(o.Clients.Namespace).Create(o.Context, o.Build, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Created build %q\n", b.Name)
+
+	return nil
 }
