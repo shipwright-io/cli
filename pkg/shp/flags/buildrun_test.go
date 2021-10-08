@@ -107,6 +107,12 @@ func TestSanitizeBuildRunSpec(t *testing.T) {
 		name: "should not clean-up complete objects",
 		in:   completeBuildRunSpec,
 		out:  completeBuildRunSpec,
+	}, {
+		name: "should clean-up 0s duration",
+		in: buildv1alpha1.BuildRunSpec{Timeout: &metav1.Duration{
+			Duration: time.Duration(0),
+		}},
+		out: buildv1alpha1.BuildRunSpec{Timeout: nil},
 	}}
 
 	for _, tt := range testCases {

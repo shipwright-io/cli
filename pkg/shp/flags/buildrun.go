@@ -49,4 +49,7 @@ func SanitizeBuildRunSpec(br *buildv1alpha1.BuildRunSpec) {
 			br.Output = nil
 		}
 	}
+	if br.Timeout != nil && br.Timeout.Duration == 0 {
+		br.Timeout = nil
+	}
 }
