@@ -54,7 +54,22 @@ The install script waits for the Controller instance to be running.
 [BATS][batsCore] is a testing framework for Bash. It's structured as a regular script with enhanced
 syntax to define test cases, collect results, and more.
 
-To run BATS based tests, make sure you have `bats` installed, and then execute:
+The BATS core tool and it's supporting libraries are linked in this project as `git submodules`,
+alleviating the need to install BATS yourself.
+
+To run BATS based tests, make sure that you have cloned the project (including all submodules):
+
+```sh
+# Option 1: Clone the repository and populate submodules right away
+git clone --recurse-submodules --depth 1 https://github.com/shipwright-io/cli.git
+
+# Option 2: Populate submodules after cloning
+cd /your/project/directory/cli
+git submodule init
+git submodule update
+```
+
+then run:
 
 ```sh
 make test-e2e

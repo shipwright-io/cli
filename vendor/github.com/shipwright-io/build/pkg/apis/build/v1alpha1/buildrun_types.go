@@ -49,6 +49,10 @@ type BuildRunSpec struct {
 	// State is used for canceling a buildrun (and maybe more later on).
 	// +optional
 	State BuildRunRequestedState `json:"state,omitempty"`
+
+	// Env contains additional environment variables that should be passed to the build container
+	// +optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // BuildRunRequestedState defines the buildrun state the user can provide to override whatever is the current state.
@@ -58,10 +62,67 @@ const (
 	// BuildRunStateCancel indicates that the user wants to cancel the BuildRun,
 	// if not already canceled or terminated
 	BuildRunStateCancel = "BuildRunCanceled"
+
+	// BuildRunStatePodEvicted indicates that if the pods got evicted
+	// due to some reason. (Probably ran out of ephemeral storage)
+	BuildRunStatePodEvicted = "PodEvicted"
 )
+
+// SourceResult holds the results emitted from the different sources
+type SourceResult struct {
+	// Name is the name of source
+	Name string `json:"name"`
+
+	// Git holds the results emitted from from the
+	// step definition of a git source
+	//
+	// +optional
+	Git *GitSourceResult `json:"git,omitempty"`
+
+	// Bundle holds the results emitted from from the
+	// step definition of bundle source
+	//
+	// +optional
+	Bundle *BundleSourceResult `json:"bundle,omitempty"`
+}
+
+// BundleSourceResult holds the results emitted from the bundle source
+type BundleSourceResult struct {
+	// Digest hold the image digest result
+	Digest string `json:"digest,omitempty"`
+}
+
+// GitSourceResult holds the results emitted from the git source
+type GitSourceResult struct {
+	// CommitSha holds the commit sha of git source
+	CommitSha string `json:"commitSha,omitempty"`
+
+	// CommitAuthor holds the commit author of a git source
+	CommitAuthor string `json:"commitAuthor,omitempty"`
+}
+
+// Output holds the results emitted from the output step (build-and-push)
+type Output struct {
+	// Digest holds the digest of output image
+	Digest string `json:"digest,omitempty"`
+
+	// Size holds the compressed size of output image
+	Size int64 `json:"size,omitempty"`
+}
 
 // BuildRunStatus defines the observed state of BuildRun
 type BuildRunStatus struct {
+	// Sources holds the results emitted from the step definition
+	// of different sources
+	//
+	// +optional
+	Sources []SourceResult `json:"sources"`
+
+	// Output holds the results emitted from step definition of an output
+	//
+	// +optional
+	Output *Output `json:"output"`
+
 	// Conditions holds the latest available observations of a resource's current state.
 	Conditions Conditions `json:"conditions,omitempty"`
 

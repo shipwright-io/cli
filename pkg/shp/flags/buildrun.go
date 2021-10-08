@@ -20,12 +20,14 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 		Output: &buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{},
 		},
+		Env: []corev1.EnvVar{},
 	}
 
 	buildRefFlags(flags, spec.BuildRef)
 	serviceAccountFlags(flags, spec.ServiceAccount)
 	timeoutFlags(flags, spec.Timeout)
 	imageFlags(flags, "output", spec.Output)
+	envFlags(flags, spec.Env)
 
 	return spec
 }
@@ -51,5 +53,9 @@ func SanitizeBuildRunSpec(br *buildv1alpha1.BuildRunSpec) {
 	}
 	if br.Timeout != nil && br.Timeout.Duration == 0 {
 		br.Timeout = nil
+	}
+
+	if len(br.Env) == 0 {
+		br.Env = nil
 	}
 }

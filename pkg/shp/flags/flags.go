@@ -6,6 +6,8 @@ import (
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/pflag"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -18,6 +20,8 @@ const (
 	BuilderCredentialsSecretFlag = "builder-credentials-secret"
 	// DockerfileFlag command-line flag.
 	DockerfileFlag = "dockerfile"
+	// EnvFlag command-line flag.
+	EnvFlag = "env"
 	// SourceURLFlag command-line flag.
 	SourceURLFlag = "source-url"
 	// SourceRevisionFlag command-line flag.
@@ -158,5 +162,17 @@ func serviceAccountFlags(flags *pflag.FlagSet, sa *buildv1alpha1.ServiceAccount)
 		ServiceAccountGenerateFlag,
 		false,
 		"generate a Kubernetes service-account for the build",
+	)
+}
+
+// envFlags registers flags for adding corev1.EnvVars.
+func envFlags(flags *pflag.FlagSet, envs []corev1.EnvVar) {
+	var e []string
+	flags.StringArrayVarP(
+		&e,
+		"env",
+		"e",
+		[]string{},
+		"specify a key-value pair for an environment variable to set for the build container",
 	)
 }
