@@ -1,7 +1,9 @@
 package build
 
 import (
+	"bytes"
 	"strings"
+	"sync"
 	"testing"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
@@ -129,6 +131,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			follow:          true,
 			shpClientset:    shpclientset,
 			tailLogsStarted: make(map[string]bool),
+			logLock:         sync.Mutex{},
 		}
 
 		// set up context
@@ -153,9 +156,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		cmd.Complete(param, &ioStreams, []string{name})
 		if len(test.to) > 0 {
 			cmd.Run(param, &ioStreams)
-			if !strings.Contains(out.String(), test.logText) {
-				t.Errorf("test %s: unexpected output: %s", test.name, out.String())
-			}
+			checkLog(test.name, test.logText, cmd, out, t)
 			continue
 		}
 		go func() {
@@ -169,9 +170,15 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
 		pod.Status.Phase = test.phase
 		cmd.onEvent(pod)
-		if !strings.Contains(out.String(), test.logText) {
-			t.Errorf("test %s: unexpected output: %s", test.name, out.String())
-		}
+		checkLog(test.name, test.logText, cmd, out, t)
+	}
+}
 
+func checkLog(name, text string, cmd *RunCommand, out *bytes.Buffer, t *testing.T) {
+	// need to employ log lock since accessing same iostream out used by Run cmd
+	cmd.logLock.Lock()
+	defer cmd.logLock.Unlock()
+	if !strings.Contains(out.String(), text) {
+		t.Errorf("test %s: unexpected output: %s", name, out.String())
 	}
 }

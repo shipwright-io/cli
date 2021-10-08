@@ -90,8 +90,8 @@ func (p *PodWatcher) WithNoPodEventsYetFn(fn NoPodEventsYetFn) *PodWatcher {
 
 // handleEvent applies user informed functions against informed pod and event.
 func (p *PodWatcher) handleEvent(pod *corev1.Pod, event watch.Event) error {
-	p.stopLock.Lock()
-	defer p.stopLock.Unlock()
+	//p.stopLock.Lock()
+	//defer p.stopLock.Unlock()
 	p.eventTicker.Stop()
 	switch event.Type {
 	case watch.Added:
@@ -185,9 +185,9 @@ func (p *PodWatcher) Stop() {
 	// along with canceling of builds
 	p.stopLock.Lock()
 	defer p.stopLock.Unlock()
+	p.eventTicker.Stop()
 	if !p.stopped {
 		close(p.stopCh)
-		p.eventTicker.Stop()
 		p.stopped = true
 	}
 }
