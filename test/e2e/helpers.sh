@@ -18,6 +18,5 @@ function shp () {
 }
 
 function random_name () {
-	tr -dc a-z </dev/urandom | head -c64
+	LC_ALL=C tr -dc a-z </dev/urandom | head -c64
 }
-
