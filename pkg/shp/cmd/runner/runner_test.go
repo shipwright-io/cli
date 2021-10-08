@@ -20,7 +20,7 @@ func (m *mockedSubCommand) Cmd() *cobra.Command {
 	return testCmd
 }
 
-func (m *mockedSubCommand) Complete(p *params.Params, args []string) error {
+func (m *mockedSubCommand) Complete(p *params.Params, ioStreams *genericclioptions.IOStreams, args []string) error {
 	return nil
 }
 

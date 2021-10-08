@@ -20,7 +20,7 @@ func Test_PodWatcher_RequestTimeout(t *testing.T) {
 
 	clientset := fake.NewSimpleClientset()
 
-	pw, err := NewPodWatcher(ctx, time.Second, clientset, metav1.ListOptions{}, metav1.NamespaceDefault)
+	pw, err := NewPodWatcher(ctx, time.Second, clientset, metav1.NamespaceDefault)
 	g.Expect(err).To(o.BeNil())
 	called := false
 
@@ -28,7 +28,7 @@ func Test_PodWatcher_RequestTimeout(t *testing.T) {
 		called = true
 	})
 
-	pw.Start()
+	pw.Start(metav1.ListOptions{})
 	g.Expect(called).To(o.BeTrue())
 }
 
@@ -39,7 +39,7 @@ func Test_PodWatcher_ContextTimeout(t *testing.T) {
 
 	clientset := fake.NewSimpleClientset()
 
-	pw, err := NewPodWatcher(ctxWithDeadline, math.MaxInt64, clientset, metav1.ListOptions{}, metav1.NamespaceDefault)
+	pw, err := NewPodWatcher(ctxWithDeadline, math.MaxInt64, clientset, metav1.NamespaceDefault)
 	g.Expect(err).To(o.BeNil())
 	called := false
 
@@ -47,7 +47,7 @@ func Test_PodWatcher_ContextTimeout(t *testing.T) {
 		called = true
 	})
 
-	pw.Start()
+	pw.Start(metav1.ListOptions{})
 	g.Expect(called).To(o.BeTrue())
 }
 
@@ -59,7 +59,7 @@ func Test_PodWatcher_NotCalledYet(t *testing.T) {
 
 	clientset := fake.NewSimpleClientset()
 
-	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.ListOptions{}, metav1.NamespaceDefault)
+	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.NamespaceDefault)
 	g.Expect(err).To(o.BeNil())
 
 	eventsCh := make(chan bool, 1)
@@ -75,7 +75,7 @@ func Test_PodWatcher_NotCalledYet(t *testing.T) {
 	// executing the event loop in the background, and waiting for the stop channel before inspecting
 	// for errors
 	go func() {
-		_, err := pw.Start()
+		_, err := pw.Start(metav1.ListOptions{})
 		<-pw.stopCh
 		g.Expect(err).To(o.BeNil())
 		eventsDoneCh <- true
@@ -96,7 +96,7 @@ func Test_PodWatcherEvents(t *testing.T) {
 
 	clientset := fake.NewSimpleClientset()
 
-	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.ListOptions{}, metav1.NamespaceDefault)
+	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.NamespaceDefault)
 	g.Expect(err).To(o.BeNil())
 
 	eventsCh := make(chan string, 5)
@@ -126,7 +126,7 @@ func Test_PodWatcherEvents(t *testing.T) {
 	// executing the event loop in the background, and waiting for the stop channel before inspecting
 	// for errors
 	go func() {
-		_, err := pw.Start()
+		_, err := pw.Start(metav1.ListOptions{})
 		<-pw.stopCh
 		g.Expect(err).To(o.BeNil())
 		eventsDoneCh <- true
@@ -173,5 +173,6 @@ func Test_PodWatcherEvents(t *testing.T) {
 	g.Eventually(eventsCh).Should(o.Receive(&skipPODFn))
 	g.Eventually(eventsCh).Should(o.Receive(&onPodAddedFn))
 	g.Eventually(eventsCh).Should(o.Receive(&onPodModifiedFn))
-	g.Eventually(eventsCh).Should(o.Receive(&onPodDeletedFn))
+	// sometimes it is slow to get these when running go test with race detection
+	g.Eventually(eventsCh, 10*time.Second).Should(o.Receive(&onPodDeletedFn))
 }

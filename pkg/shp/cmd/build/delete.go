@@ -41,7 +41,7 @@ func (c *DeleteCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills DeleteSubCommand structure with data obtained from cobra command
-func (c *DeleteCommand) Complete(params *params.Params, args []string) error {
+func (c *DeleteCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
 	c.name = args[0]
 
 	return nil

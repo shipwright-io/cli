@@ -26,6 +26,9 @@ type PodWatcher struct {
 	stopLock    sync.Mutex
 	stopped     bool
 	eventTicker *time.Ticker
+	clientset kubernetes.Interface
+	listOpts  metav1.ListOptions
+	ns string
 	watcher     watch.Interface // client watch instance
 
 	noPodEventsYetFn NoPodEventsYetFn
@@ -115,7 +118,12 @@ func (p *PodWatcher) handleEvent(pod *corev1.Pod, event watch.Event) error {
 
 // Start runs the event loop based on a watch instantiated against informed pod. In case of errors
 // the loop is interrupted.
-func (p *PodWatcher) Start() (*corev1.Pod, error) {
+func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
+	w, err := p.clientset.CoreV1().Pods(p.ns).Watch(p.ctx, listOpts)
+	if err != nil {
+		return nil, err
+	}
+	p.watcher = w
 	for {
 		select {
 		// handling the regular pod modification events, which should trigger calling event functions
@@ -189,13 +197,8 @@ func NewPodWatcher(
 	ctx context.Context,
 	timeout time.Duration,
 	clientset kubernetes.Interface,
-	listOpts metav1.ListOptions,
 	ns string,
 ) (*PodWatcher, error) {
-	w, err := clientset.CoreV1().Pods(ns).Watch(ctx, listOpts)
-	if err != nil {
-		return nil, err
-	}
 	//TODO don't think the have not received events yet ticker needs to be tunable, but leaving a TODO for now while we get feedback
-	return &PodWatcher{ctx: ctx, to: timeout, watcher: w, eventTicker: time.NewTicker(1 * time.Second), stopCh: make(chan bool), stopLock: sync.Mutex{}}, nil
+	return &PodWatcher{ctx: ctx, to: timeout, ns: ns, clientset: clientset, eventTicker: time.NewTicker(1 * time.Second), stopCh: make(chan bool), stopLock: sync.Mutex{}}, nil
 }

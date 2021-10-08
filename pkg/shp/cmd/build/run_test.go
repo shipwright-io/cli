@@ -1,11 +1,8 @@
 package build
 
 import (
-	"runtime"
 	"strings"
-	"sync"
 	"testing"
-	"time"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	shpfake "github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
@@ -13,10 +10,10 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/spf13/cobra"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes/fake"
 	fakekubetesting "k8s.io/client-go/testing"
@@ -132,7 +129,6 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			follow:          true,
 			shpClientset:    shpclientset,
 			tailLogsStarted: make(map[string]bool),
-			watchLock:       sync.Mutex{},
 		}
 
 		// set up context
@@ -154,7 +150,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			pod.DeletionTimestamp = &metav1.Time{}
 		}
 
-		cmd.Complete(param, []string{name})
+		cmd.Complete(param, &ioStreams, []string{name})
 		if len(test.to) > 0 {
 			cmd.Run(param, &ioStreams)
 			if !strings.Contains(out.String(), test.logText) {
@@ -169,29 +165,6 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			}
 
 		}()
-
-		// yield the processor, so the initialization in Run can occur; afterward, the watchLock should allow
-		// coordination between Run and onEvent
-		runtime.Gosched()
-
-		// even with our release of the context above with Gosched(), repeated runs in CI have surfaced occasional timing issues between
-		// cmd.Run() finishing initialization and cmd.onEvent trying to used struct variables, resulting in panics; so we employ the lock here
-		// to insure the required initializations have run; this is still better than a generic "sleep log enough for
-		// the init to occur.
-		cmd.watchLock.Lock()
-		err := wait.PollImmediate(1*time.Second, 10*time.Second, func() (done bool, err error) {
-			// check any of the vars on RunCommand that are used in onEvent and make sure they are set;
-			// we are verifying the initialization done in Run() on RunCommand is complete
-			if cmd.pw != nil && cmd.ioStreams != nil && cmd.shpClientset != nil {
-				cmd.watchLock.Unlock()
-				return true, nil
-			}
-			return false, nil
-		})
-		if err != nil {
-			t.Errorf("test %s: Run initialization did not complete in time: pw %#v ioStreams %#v shpClientset %#v", test.name, cmd.pw, cmd.ioStreams, cmd.shpClientset)
-			cmd.watchLock.Unlock()
-		}
 
 		// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
 		pod.Status.Phase = test.phase

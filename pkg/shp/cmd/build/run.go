@@ -3,7 +3,6 @@ package build
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
@@ -37,7 +36,6 @@ type RunCommand struct {
 	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
 	shpClientset buildclientset.Interface
 	follow       bool // flag to tail pod logs
-	watchLock    sync.Mutex
 }
 
 const buildRunLongDesc = `
@@ -53,7 +51,7 @@ func (r *RunCommand) Cmd() *cobra.Command {
 }
 
 // Complete picks the build resource name from arguments, and instantiate additional components.
-func (r *RunCommand) Complete(params *params.Params, args []string) error {
+func (r *RunCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
 	switch len(args) {
 	case 1:
 		r.buildName = args[0]
@@ -66,6 +64,29 @@ func (r *RunCommand) Complete(params *params.Params, args []string) error {
 		return err
 	}
 	r.logTail = tail.NewTail(r.Cmd().Context(), clientset)
+	r.ioStreams = io
+	if r.follow {
+		if r.shpClientset, err = params.ShipwrightClientSet(); err != nil {
+			return err
+		}
+
+		kclientset, err := params.ClientSet()
+		if err != nil {
+			return err
+		}
+		to, err := params.RequestTimeout()
+		if err != nil {
+			return err
+		}
+		r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), to, kclientset, params.Namespace())
+		if err != nil {
+			return err
+		}
+
+		r.pw.WithOnPodModifiedFn(r.onEvent)
+		r.pw.WithTimeoutPodFn(r.onTimeout)
+
+	}
 
 	// overwriting build-ref name to use what's on arguments
 	return r.Cmd().Flags().Set(flags.BuildrefNameFlag, r.buildName)
@@ -94,17 +115,11 @@ func (r *RunCommand) tailLogs(pod *corev1.Pod) {
 
 // onTimeout reacts to either the context or request timeout causing the pod watcher to exit
 func (r *RunCommand) onTimeout(msg string) {
-	// found more data races during unit testing with concurrent events coming in
-	r.watchLock.Lock()
-	defer r.watchLock.Unlock()
 	fmt.Fprintf(r.ioStreams.Out, "BuildRun %q log following has stopped because: %q\n", r.buildRunName, msg)
 }
 
 // onEvent reacts on pod state changes, to start and stop tailing container logs.
 func (r *RunCommand) onEvent(pod *corev1.Pod) error {
-	// found more data races during unit testing with concurrent events coming in
-	r.watchLock.Lock()
-	defer r.watchLock.Unlock()
 	switch pod.Status.Phase {
 	case corev1.PodRunning:
 		// graceful time to wait for container start
@@ -154,10 +169,7 @@ func (r *RunCommand) stop() {
 
 // Run creates a BuildRun resource based on Build's name informed on arguments.
 func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	// ran into some data race conditions during unit test with this starting up, but pod events
-	// coming in before we completed initialization below
-	r.watchLock.Lock()
-	// resource using GenerateName, which will provice a unique instance
+	// resource using GenerateName, which will provide a unique instance
 	br := &buildv1alpha1.BuildRun{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", r.buildName),
@@ -180,19 +192,7 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		return nil
 	}
 
-	r.ioStreams = ioStreams
-	kclientset, err := params.ClientSet()
-	if err != nil {
-		return err
-	}
-	to, err := params.RequestTimeout()
-	if err != nil {
-		return err
-	}
 	r.buildRunName = br.Name
-	if r.shpClientset, err = params.ShipwrightClientSet(); err != nil {
-		return err
-	}
 
 	// instantiating a pod watcher with a specific label-selector to find the indented pod where the
 	// actual build started by this subcommand is being executed, including the randomized buildrun
@@ -202,17 +202,9 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		r.buildName,
 		br.GetName(),
 	)}
-	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), to, kclientset, listOpts, params.Namespace())
-	if err != nil {
-		return err
-	}
-
 	r.pw.WithOnPodModifiedFn(r.onEvent)
 	r.pw.WithTimeoutPodFn(r.onTimeout)
-	// cannot defer with unlock up top because r.pw.Start() blocks;  but the erroring out above kills the
-	// cli invocation, so it does not matter
-	r.watchLock.Unlock()
-	_, err = r.pw.Start()
+	_, err = r.pw.Start(listOpts)
 	return err
 }
 
@@ -227,7 +219,6 @@ func runCmd() runner.SubCommand {
 		cmd:             cmd,
 		buildRunSpec:    flags.BuildRunSpecFromFlags(cmd.Flags()),
 		tailLogsStarted: make(map[string]bool),
-		watchLock:       sync.Mutex{},
 	}
 	cmd.Flags().BoolVarP(&runCommand.follow, "follow", "F", runCommand.follow, "Start a build and watch its log until it completes or fails.")
 	return runCommand

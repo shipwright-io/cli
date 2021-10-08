@@ -13,7 +13,7 @@ type SubCommand interface {
 	// Cmd shares the cobra.Command instance.
 	Cmd() *cobra.Command
 	// Complete aggregate data needed for the sub-command primary logic.
-	Complete(params *params.Params, args []string) error
+	Complete(params *params.Params, ioStreams *genericclioptions.IOStreams, args []string) error
 	// Validate perform validation against the context collected.
 	Validate() error
 	// Run execute the primary sub-command logic.
