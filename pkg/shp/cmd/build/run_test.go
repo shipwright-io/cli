@@ -27,6 +27,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		phase      corev1.PodPhase
 		logText    string
 		to         string
+		noPodYet   bool
 		cancelled  bool
 		brDeleted  bool
 		podDeleted bool
@@ -82,6 +83,11 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			to:      "1s",
 			logText: reactor.RequestTimeoutMessage,
 		},
+		{
+			name:     "no pod yet",
+			noPodYet: true,
+			logText:  "has not observed any pod events yet",
+		},
 	}
 
 	for _, test := range tests {
@@ -109,6 +115,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			},
 		}
 		shpclientset := shpfake.NewSimpleClientset()
+
 		// need this reactor since the Run method uses the ObjectMeta.GenerateName k8s feature to generate the random
 		// name for the BuildRun.  However, for our purposes with unit testing, we want to control the name of the BuildRun
 		// to facilitate the list/selector via labels that is also employed by the Run method.
@@ -122,7 +129,10 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			return true, br, nil
 		}
 		shpclientset.PrependReactor("get", "buildruns", getReactorFunc)
-		kclientset := fake.NewSimpleClientset(pod)
+		kclientset := fake.NewSimpleClientset()
+		if !test.noPodYet {
+			kclientset = fake.NewSimpleClientset(pod)
+		}
 		ccmd := &cobra.Command{}
 		cmd := &RunCommand{
 			cmd:             ccmd,
@@ -159,6 +169,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			checkLog(test.name, test.logText, cmd, out, t)
 			continue
 		}
+
 		go func() {
 			err := cmd.Run(param, &ioStreams)
 			if err != nil {
@@ -167,9 +178,13 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 
 		}()
 
-		// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
-		pod.Status.Phase = test.phase
-		cmd.onEvent(pod)
+		if !test.noPodYet {
+			// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
+			pod.Status.Phase = test.phase
+			cmd.onEvent(pod)
+		} else {
+			cmd.onNoPodEventsYet()
+		}
 		checkLog(test.name, test.logText, cmd, out, t)
 	}
 }
