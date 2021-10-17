@@ -32,12 +32,14 @@ type RunCommand struct {
 	logTail         *tail.Tail                   // follow container logs
 	tailLogsStarted map[string]bool              // controls tail instance per container
 
-	buildName    string // build name
+	logLock sync.Mutex
+
+	buildName    string
 	buildRunName string
+	namespace    string
 	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
 	shpClientset buildclientset.Interface
 	follow       bool // flag to tail pod logs
-	watchLock    sync.Mutex
 }
 
 const buildRunLongDesc = `
@@ -53,7 +55,7 @@ func (r *RunCommand) Cmd() *cobra.Command {
 }
 
 // Complete picks the build resource name from arguments, and instantiate additional components.
-func (r *RunCommand) Complete(params *params.Params, args []string) error {
+func (r *RunCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
 	switch len(args) {
 	case 1:
 		r.buildName = args[0]
@@ -66,6 +68,31 @@ func (r *RunCommand) Complete(params *params.Params, args []string) error {
 		return err
 	}
 	r.logTail = tail.NewTail(r.Cmd().Context(), clientset)
+	r.ioStreams = io
+	r.namespace = params.Namespace()
+	if r.follow {
+		if r.shpClientset, err = params.ShipwrightClientSet(); err != nil {
+			return err
+		}
+
+		kclientset, err := params.ClientSet()
+		if err != nil {
+			return err
+		}
+		to, err := params.RequestTimeout()
+		if err != nil {
+			return err
+		}
+		r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), to, kclientset, params.Namespace())
+		if err != nil {
+			return err
+		}
+
+		r.pw.WithOnPodModifiedFn(r.onEvent)
+		r.pw.WithTimeoutPodFn(r.onTimeout)
+		r.pw.WithNoPodEventsYetFn(r.onNoPodEventsYet)
+
+	}
 
 	// overwriting build-ref name to use what's on arguments
 	return r.Cmd().Flags().Set(flags.BuildrefNameFlag, r.buildName)
@@ -92,11 +119,49 @@ func (r *RunCommand) tailLogs(pod *corev1.Pod) {
 	}
 }
 
+// onNoPodEventsYet reacts to the pod watcher telling us it has not received any pod events for our build run
+func (r *RunCommand) onNoPodEventsYet() {
+	r.Log(fmt.Sprintf("BuildRun %q log following has not observed any pod events yet.", r.buildRunName))
+	br, err := r.shpClientset.ShipwrightV1alpha1().BuildRuns(r.namespace).Get(r.cmd.Context(), r.buildRunName, metav1.GetOptions{})
+	if err != nil {
+		r.Log(fmt.Sprintf("error accessing BuildRun %q: %s", r.buildRunName, err.Error()))
+		return
+	}
+
+	c := br.Status.GetCondition(buildv1alpha1.Succeeded)
+	giveUp := false
+	msg := ""
+	switch {
+	case c != nil && c.Status == corev1.ConditionTrue:
+		giveUp = true
+		msg = fmt.Sprintf("BuildRun '%s' has been marked as successful.\n", br.Name)
+	case c != nil && c.Status == corev1.ConditionFalse:
+		giveUp = true
+		msg = fmt.Sprintf("BuildRun '%s' has been marked as failed.\n", br.Name)
+	case br.IsCanceled():
+		giveUp = true
+		msg = fmt.Sprintf("BuildRun '%s' has been canceled.\n", br.Name)
+	case br.DeletionTimestamp != nil:
+		giveUp = true
+		msg = fmt.Sprintf("BuildRun '%s' has been deleted.\n", br.Name)
+	case !br.HasStarted():
+		r.Log(fmt.Sprintf("BuildRun '%s' has been marked as failed.\n", br.Name))
+	}
+	if giveUp {
+		r.Log(msg)
+		r.Log(fmt.Sprintf("exiting 'ship build run --follow' for BuildRun %q", br.Name))
+		r.stop()
+	}
+
+}
+
+// onTimeout reacts to either the context or request timeout causing the pod watcher to exit
+func (r *RunCommand) onTimeout(msg string) {
+	r.Log(fmt.Sprintf("BuildRun %q log following has stopped because: %q\n", r.buildRunName, msg))
+}
+
 // onEvent reacts on pod state changes, to start and stop tailing container logs.
 func (r *RunCommand) onEvent(pod *corev1.Pod) error {
-	// found more data races during unit testing with concurrent events coming in
-	r.watchLock.Lock()
-	defer r.watchLock.Unlock()
 	switch pod.Status.Phase {
 	case corev1.PodRunning:
 		// graceful time to wait for container start
@@ -118,14 +183,14 @@ func (r *RunCommand) onEvent(pod *corev1.Pod) error {
 			err = fmt.Errorf("build pod '%s' has failed", pod.GetName())
 		}
 		// see if because of deletion or cancelation
-		fmt.Fprintf(r.ioStreams.Out, msg)
+		r.Log(msg)
 		r.stop()
 		return err
 	case corev1.PodSucceeded:
-		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' has succeeded!\n", pod.GetName())
+		r.Log(fmt.Sprintf("Pod '%s' has succeeded!\n", pod.GetName()))
 		r.stop()
 	default:
-		fmt.Fprintf(r.ioStreams.Out, "Pod '%s' is in state %q...\n", pod.GetName(), string(pod.Status.Phase))
+		r.Log(fmt.Sprintf("Pod '%s' is in state %q...\n", pod.GetName(), string(pod.Status.Phase)))
 		// handle any issues with pulling images that may fail
 		for _, c := range pod.Status.Conditions {
 			if c.Type == corev1.PodInitialized || c.Type == corev1.ContainersReady {
@@ -146,10 +211,7 @@ func (r *RunCommand) stop() {
 
 // Run creates a BuildRun resource based on Build's name informed on arguments.
 func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	// ran into some data race conditions during unit test with this starting up, but pod events
-	// coming in before we completed initialization below
-	r.watchLock.Lock()
-	// resource using GenerateName, which will provice a unique instance
+	// resource using GenerateName, which will provide a unique instance
 	br := &buildv1alpha1.BuildRun{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", r.buildName),
@@ -162,7 +224,7 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	if err != nil {
 		return err
 	}
-	br, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Create(r.cmd.Context(), br, metav1.CreateOptions{})
+	br, err = clientset.ShipwrightV1alpha1().BuildRuns(r.namespace).Create(r.cmd.Context(), br, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -172,15 +234,7 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		return nil
 	}
 
-	r.ioStreams = ioStreams
-	kclientset, err := params.ClientSet()
-	if err != nil {
-		return err
-	}
 	r.buildRunName = br.Name
-	if r.shpClientset, err = params.ShipwrightClientSet(); err != nil {
-		return err
-	}
 
 	// instantiating a pod watcher with a specific label-selector to find the indented pod where the
 	// actual build started by this subcommand is being executed, including the randomized buildrun
@@ -190,17 +244,15 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		r.buildName,
 		br.GetName(),
 	)}
-	r.pw, err = reactor.NewPodWatcher(r.Cmd().Context(), kclientset, listOpts, params.Namespace())
-	if err != nil {
-		return err
-	}
-
-	r.pw.WithOnPodModifiedFn(r.onEvent)
-	// cannot defer with unlock up top because r.pw.Start() blocks;  but the erroring out above kills the
-	// cli invocation, so it does not matter
-	r.watchLock.Unlock()
-	_, err = r.pw.Start()
+	_, err = r.pw.Start(listOpts)
 	return err
+}
+
+func (r *RunCommand) Log(msg string) {
+	// concurrent fmt.Fprintf(r.ioStream.Out...) calls need locking to avoid data races, as we 'write' to the stream
+	r.logLock.Lock()
+	defer r.logLock.Unlock()
+	fmt.Fprintf(r.ioStreams.Out, msg)
 }
 
 // runCmd instantiate the "build run" sub-command using common BuildRun flags.
@@ -214,7 +266,7 @@ func runCmd() runner.SubCommand {
 		cmd:             cmd,
 		buildRunSpec:    flags.BuildRunSpecFromFlags(cmd.Flags()),
 		tailLogsStarted: make(map[string]bool),
-		watchLock:       sync.Mutex{},
+		logLock:         sync.Mutex{},
 	}
 	cmd.Flags().BoolVarP(&runCommand.follow, "follow", "F", runCommand.follow, "Start a build and watch its log until it completes or fails.")
 	return runCommand

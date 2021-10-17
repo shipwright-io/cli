@@ -39,7 +39,7 @@ func (c *ListCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills object with user input data
-func (c *ListCommand) Complete(params *params.Params, args []string) error {
+func (c *ListCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
 	return nil
 }
 

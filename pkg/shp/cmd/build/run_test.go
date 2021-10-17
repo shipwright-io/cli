@@ -1,21 +1,21 @@
 package build
 
 import (
-	"runtime"
+	"bytes"
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	shpfake "github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/spf13/cobra"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes/fake"
 	fakekubetesting "k8s.io/client-go/testing"
@@ -26,6 +26,8 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		name       string
 		phase      corev1.PodPhase
 		logText    string
+		to         string
+		noPodYet   bool
 		cancelled  bool
 		brDeleted  bool
 		podDeleted bool
@@ -76,6 +78,16 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			// k8s folks to "be careful" with it; fortunately, what we do for tail and pod_watcher so far is within
 			// the realm of reliable.
 		},
+		{
+			name:    "timeout",
+			to:      "1s",
+			logText: reactor.RequestTimeoutMessage,
+		},
+		{
+			name:     "no pod yet",
+			noPodYet: true,
+			logText:  "has not observed any pod events yet",
+		},
 	}
 
 	for _, test := range tests {
@@ -103,6 +115,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			},
 		}
 		shpclientset := shpfake.NewSimpleClientset()
+
 		// need this reactor since the Run method uses the ObjectMeta.GenerateName k8s feature to generate the random
 		// name for the BuildRun.  However, for our purposes with unit testing, we want to control the name of the BuildRun
 		// to facilitate the list/selector via labels that is also employed by the Run method.
@@ -116,7 +129,10 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			return true, br, nil
 		}
 		shpclientset.PrependReactor("get", "buildruns", getReactorFunc)
-		kclientset := fake.NewSimpleClientset(pod)
+		kclientset := fake.NewSimpleClientset()
+		if !test.noPodYet {
+			kclientset = fake.NewSimpleClientset(pod)
+		}
 		ccmd := &cobra.Command{}
 		cmd := &RunCommand{
 			cmd:             ccmd,
@@ -125,12 +141,16 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			follow:          true,
 			shpClientset:    shpclientset,
 			tailLogsStarted: make(map[string]bool),
-			watchLock:       sync.Mutex{},
+			logLock:         sync.Mutex{},
 		}
 
 		// set up context
 		cmd.Cmd().ExecuteC()
-		param := params.NewParamsForTest(kclientset, shpclientset, nil, metav1.NamespaceDefault)
+		pm := genericclioptions.NewConfigFlags(true)
+		if len(test.to) > 0 {
+			pm.Timeout = &test.to
+		}
+		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault)
 
 		ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
 
@@ -143,7 +163,13 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			pod.DeletionTimestamp = &metav1.Time{}
 		}
 
-		cmd.Complete(param, []string{name})
+		cmd.Complete(param, &ioStreams, []string{name})
+		if len(test.to) > 0 {
+			cmd.Run(param, &ioStreams)
+			checkLog(test.name, test.logText, cmd, out, t)
+			continue
+		}
+
 		go func() {
 			err := cmd.Run(param, &ioStreams)
 			if err != nil {
@@ -152,35 +178,22 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 
 		}()
 
-		// yield the processor, so the initialization in Run can occur; afterward, the watchLock should allow
-		// coordination between Run and onEvent
-		runtime.Gosched()
-
-		// even with our release of the context above with Gosched(), repeated runs in CI have surfaced occasional timing issues between
-		// cmd.Run() finishing initialization and cmd.onEvent trying to used struct variables, resulting in panics; so we employ the lock here
-		// to insure the required initializations have run; this is still better than a generic "sleep log enough for
-		// the init to occur.
-		cmd.watchLock.Lock()
-		err := wait.PollImmediate(1*time.Second, 3*time.Second, func() (done bool, err error) {
-			// check any of the vars on RunCommand that are used in onEvent and make sure they are set;
-			// we are verifying the initialization done in Run() on RunCommand is complete
-			if cmd.pw != nil && cmd.ioStreams != nil && cmd.shpClientset != nil {
-				cmd.watchLock.Unlock()
-				return true, nil
-			}
-			return false, nil
-		})
-		if err != nil {
-			cmd.watchLock.Unlock()
-			t.Errorf("Run initialization did not complete in time")
+		if !test.noPodYet {
+			// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
+			pod.Status.Phase = test.phase
+			cmd.onEvent(pod)
+		} else {
+			cmd.onNoPodEventsYet()
 		}
+		checkLog(test.name, test.logText, cmd, out, t)
+	}
+}
 
-		// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
-		pod.Status.Phase = test.phase
-		cmd.onEvent(pod)
-		if !strings.Contains(out.String(), test.logText) {
-			t.Errorf("test %s: unexpected output: %s", test.name, out.String())
-		}
-
+func checkLog(name, text string, cmd *RunCommand, out *bytes.Buffer, t *testing.T) {
+	// need to employ log lock since accessing same iostream out used by Run cmd
+	cmd.logLock.Lock()
+	defer cmd.logLock.Unlock()
+	if !strings.Contains(out.String(), text) {
+		t.Errorf("test %s: unexpected output: %s", name, out.String())
 	}
 }

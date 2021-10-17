@@ -2,7 +2,9 @@ package reactor
 
 import (
 	"context"
+	"math"
 	"testing"
+	"time"
 
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -12,13 +14,89 @@ import (
 	o "github.com/onsi/gomega"
 )
 
+func Test_PodWatcher_RequestTimeout(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	ctx := context.TODO()
+
+	clientset := fake.NewSimpleClientset()
+
+	pw, err := NewPodWatcher(ctx, time.Second, clientset, metav1.NamespaceDefault)
+	g.Expect(err).To(o.BeNil())
+	called := false
+
+	pw.WithTimeoutPodFn(func(msg string) {
+		called = true
+	})
+
+	pw.Start(metav1.ListOptions{})
+	g.Expect(called).To(o.BeTrue())
+}
+
+func Test_PodWatcher_ContextTimeout(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	ctx := context.TODO()
+	ctxWithDeadline, _ := context.WithDeadline(ctx, time.Now().Add(time.Second))
+
+	clientset := fake.NewSimpleClientset()
+
+	pw, err := NewPodWatcher(ctxWithDeadline, math.MaxInt64, clientset, metav1.NamespaceDefault)
+	g.Expect(err).To(o.BeNil())
+	called := false
+
+	pw.WithTimeoutPodFn(func(msg string) {
+		called = true
+	})
+
+	pw.Start(metav1.ListOptions{})
+	g.Expect(called).To(o.BeTrue())
+}
+
+func Test_PodWatcher_NotCalledYet(t *testing.T) {
+	// we separate this test out from the other events given the
+	// lazy check we have for not getting pod events
+	g := gomega.NewGomegaWithT(t)
+	ctx := context.TODO()
+
+	clientset := fake.NewSimpleClientset()
+
+	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.NamespaceDefault)
+	g.Expect(err).To(o.BeNil())
+
+	eventsCh := make(chan bool, 1)
+	eventsDoneCh := make(chan bool, 1)
+
+	called := false
+	pw.WithNoPodEventsYetFn(func() {
+		called = true
+		eventsCh <- true
+	})
+
+
+	// executing the event loop in the background, and waiting for the stop channel before inspecting
+	// for errors
+	go func() {
+		_, err := pw.Start(metav1.ListOptions{})
+		<-pw.stopCh
+		g.Expect(err).To(o.BeNil())
+		eventsDoneCh <- true
+	}()
+
+	<-eventsCh
+	pw.Stop()
+	<-eventsDoneCh
+
+	if !called {
+		t.Fatal("called still false")
+	}
+}
+
 func Test_PodWatcherEvents(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 	ctx := context.TODO()
 
 	clientset := fake.NewSimpleClientset()
 
-	pw, err := NewPodWatcher(ctx, clientset, metav1.ListOptions{}, metav1.NamespaceDefault)
+	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.NamespaceDefault)
 	g.Expect(err).To(o.BeNil())
 
 	eventsCh := make(chan string, 5)
@@ -48,7 +126,7 @@ func Test_PodWatcherEvents(t *testing.T) {
 	// executing the event loop in the background, and waiting for the stop channel before inspecting
 	// for errors
 	go func() {
-		_, err := pw.Start()
+		_, err := pw.Start(metav1.ListOptions{})
 		<-pw.stopCh
 		g.Expect(err).To(o.BeNil())
 		eventsDoneCh <- true
@@ -95,5 +173,6 @@ func Test_PodWatcherEvents(t *testing.T) {
 	g.Eventually(eventsCh).Should(o.Receive(&skipPODFn))
 	g.Eventually(eventsCh).Should(o.Receive(&onPodAddedFn))
 	g.Eventually(eventsCh).Should(o.Receive(&onPodModifiedFn))
-	g.Eventually(eventsCh).Should(o.Receive(&onPodDeletedFn))
+	// sometimes it is slow to get these when running go test with race detection
+	g.Eventually(eventsCh, 10*time.Second).Should(o.Receive(&onPodDeletedFn))
 }

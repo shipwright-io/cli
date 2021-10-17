@@ -35,7 +35,7 @@ func (c *CreateCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills internal subcommand structure for future work with user input
-func (c *CreateCommand) Complete(params *params.Params, args []string) error {
+func (c *CreateCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
 	switch len(args) {
 	case 1:
 		c.name = args[0]

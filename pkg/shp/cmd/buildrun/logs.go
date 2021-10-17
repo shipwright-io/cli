@@ -39,7 +39,7 @@ func (c *LogsCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills in data provided by user
-func (c *LogsCommand) Complete(params *params.Params, args []string) error {
+func (c *LogsCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
 	c.name = args[0]
 
 	return nil

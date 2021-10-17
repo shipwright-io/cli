@@ -1,6 +1,10 @@
 package params
 
 import (
+	"math"
+	"strings"
+	"time"
+
 	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
 	"github.com/spf13/pflag"
 
@@ -45,6 +49,19 @@ func (p *Params) ClientSet() (kubernetes.Interface, error) {
 	}
 
 	return p.clientset, nil
+}
+
+// RequestTimeout returns the setting from k8s --request-timeout param
+func (p *Params) RequestTimeout() (time.Duration, error) {
+	if p.configFlags.Timeout == nil {
+		return math.MaxInt64, nil
+	}
+	// 0 or empty also mean no timeout
+	to := strings.TrimSpace(*p.configFlags.Timeout)
+	if len(to) == 0 || to == "0" || strings.HasPrefix(to, "0") {
+		return math.MaxInt64, nil
+	}
+	return time.ParseDuration(*p.configFlags.Timeout)
 }
 
 // ShipwrightClientSet returns a Shipwright Clientset

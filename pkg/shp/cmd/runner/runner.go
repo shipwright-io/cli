@@ -26,7 +26,7 @@ func (r *Runner) Cmd() *cobra.Command {
 // RunE cobra.Command's RunE implementation focusing on sub-commands lifecycle. To achieve it, a
 // dynamic client and configured namespace are informed.
 func (r *Runner) RunE(cmd *cobra.Command, args []string) error {
-	if err := r.subCmd.Complete(r.p, args); err != nil {
+	if err := r.subCmd.Complete(r.p, r.ioStreams, args); err != nil {
 		return err
 	}
 	if err := r.subCmd.Validate(); err != nil {
