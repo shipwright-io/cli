@@ -127,6 +127,8 @@ func TestSanitizeBuildSpec(t *testing.T) {
 		},
 	}
 
+	emptyString := ""
+
 	testCases := []struct {
 		name string
 		in   buildv1alpha1.BuildSpec
@@ -161,6 +163,10 @@ func TestSanitizeBuildSpec(t *testing.T) {
 			Duration: time.Duration(0),
 		}},
 		out: buildv1alpha1.BuildSpec{Timeout: nil},
+	}, {
+		name: "should clean-up an empty Dockerfile",
+		in:   buildv1alpha1.BuildSpec{Dockerfile: &emptyString},
+		out:  buildv1alpha1.BuildSpec{Dockerfile: nil},
 	}}
 
 	for _, tt := range testCases {

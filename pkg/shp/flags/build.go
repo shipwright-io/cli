@@ -65,4 +65,7 @@ func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
 	if b.Timeout != nil && b.Timeout.Duration == 0 {
 		b.Timeout = nil
 	}
+	if b.Dockerfile != nil && *b.Dockerfile == "" {
+		b.Dockerfile = nil
+	}
 }
