@@ -167,6 +167,14 @@ func TestSanitizeBuildSpec(t *testing.T) {
 		name: "should clean-up an empty Dockerfile",
 		in:   buildv1alpha1.BuildSpec{Dockerfile: &emptyString},
 		out:  buildv1alpha1.BuildSpec{Dockerfile: nil},
+	}, {
+		name: "should clean-up an empty revision",
+		in: buildv1alpha1.BuildSpec{Source: buildv1alpha1.Source{
+			Revision: &emptyString,
+		}},
+		out: buildv1alpha1.BuildSpec{Source: buildv1alpha1.Source{
+			Revision: nil,
+		}},
 	}}
 
 	for _, tt := range testCases {
