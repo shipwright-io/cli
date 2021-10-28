@@ -51,6 +51,9 @@ func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
 	if b.Source.Credentials != nil && b.Source.Credentials.Name == "" {
 		b.Source.Credentials = nil
 	}
+	if b.Source.Revision != nil && *b.Source.Revision == "" {
+		b.Source.Revision = nil
+	}
 	if b.Builder != nil {
 		if b.Builder.Credentials != nil && b.Builder.Credentials.Name == "" {
 			b.Builder.Credentials = nil
