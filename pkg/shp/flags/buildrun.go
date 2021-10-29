@@ -27,7 +27,7 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 	serviceAccountFlags(flags, spec.ServiceAccount)
 	timeoutFlags(flags, spec.Timeout)
 	imageFlags(flags, "output", spec.Output)
-	envFlags(flags, spec.Env)
+	envFlags(flags, &spec.Env)
 
 	return spec
 }

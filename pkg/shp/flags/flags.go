@@ -166,13 +166,11 @@ func serviceAccountFlags(flags *pflag.FlagSet, sa *buildv1alpha1.ServiceAccount)
 }
 
 // envFlags registers flags for adding corev1.EnvVars.
-func envFlags(flags *pflag.FlagSet, envs []corev1.EnvVar) {
-	var e []string
-	flags.StringArrayVarP(
-		&e,
-		EnvFlag,
+func envFlags(flags *pflag.FlagSet, envs *[]corev1.EnvVar) {
+	flags.VarP(
+		NewCoreEnvVarArrayValue(envs),
+		"env",
 		"e",
-		[]string{},
 		"specify a key-value pair for an environment variable to set for the build container",
 	)
 }
