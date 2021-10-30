@@ -71,7 +71,6 @@ func Test_PodWatcher_NotCalledYet(t *testing.T) {
 		eventsCh <- true
 	})
 
-
 	// executing the event loop in the background, and waiting for the stop channel before inspecting
 	// for errors
 	go func() {

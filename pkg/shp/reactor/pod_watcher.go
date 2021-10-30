@@ -26,9 +26,9 @@ type PodWatcher struct {
 	stopLock    sync.Mutex
 	stopped     bool
 	eventTicker *time.Ticker
-	clientset kubernetes.Interface
-	listOpts  metav1.ListOptions
-	ns string
+	clientset   kubernetes.Interface
+	listOpts    metav1.ListOptions
+	ns          string
 	watcher     watch.Interface // client watch instance
 
 	noPodEventsYetFn NoPodEventsYetFn

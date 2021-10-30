@@ -170,7 +170,7 @@ func envFlags(flags *pflag.FlagSet, envs []corev1.EnvVar) {
 	var e []string
 	flags.StringArrayVarP(
 		&e,
-		"env",
+		EnvFlag,
 		"e",
 		[]string{},
 		"specify a key-value pair for an environment variable to set for the build container",
