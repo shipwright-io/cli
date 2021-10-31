@@ -62,11 +62,15 @@ func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 		Spec: *c.buildSpec,
 	}
 
-	envs, err := c.cmd.Flags().GetStringArray("env")
+	envs, err := c.cmd.Flags().GetStringArray(flags.EnvFlag)
 	if err != nil {
 		return err
 	}
-	b.Spec.Env = append(b.Spec.Env, util.StringSliceToEnvVarSlice(envs)...)
+	parsedEnvs, err := util.StringSliceToEnvVarSlice(envs)
+	if err != nil {
+		return err
+	}
+	b.Spec.Env = append(b.Spec.Env, parsedEnvs...)
 
 	flags.SanitizeBuildSpec(&b.Spec)
 

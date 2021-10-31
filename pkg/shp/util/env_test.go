@@ -46,8 +46,32 @@ func TestStringSliceToEnvVar(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := StringSliceToEnvVarSlice(tt.args.envs); !reflect.DeepEqual(got, tt.want) {
+			if got, _ := StringSliceToEnvVarSlice(tt.args.envs); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("StringSliceToEnvVar() = %#v, want %#v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStringSliceToEnvVar_ErrorCases(t *testing.T) {
+	type args struct {
+		envs []string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "value part missing",
+			args: args{
+				envs: []string{"abc"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := StringSliceToEnvVarSlice(tt.args.envs); err == nil {
+				t.Errorf("StringSliceToEnvVarSlice() = want error but got nil")
 			}
 		})
 	}
