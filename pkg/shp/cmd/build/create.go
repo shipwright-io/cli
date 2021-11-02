@@ -12,7 +12,6 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
-	"github.com/shipwright-io/cli/pkg/shp/util"
 )
 
 // CreateCommand contains data input from user
@@ -61,16 +60,6 @@ func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 		},
 		Spec: *c.buildSpec,
 	}
-
-	envs, err := c.cmd.Flags().GetStringArray(flags.EnvFlag)
-	if err != nil {
-		return err
-	}
-	parsedEnvs, err := util.StringSliceToEnvVarSlice(envs)
-	if err != nil {
-		return err
-	}
-	b.Spec.Env = append(b.Spec.Env, parsedEnvs...)
 
 	flags.SanitizeBuildSpec(&b.Spec)
 

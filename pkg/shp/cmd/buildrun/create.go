@@ -12,7 +12,6 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
-	"github.com/shipwright-io/cli/pkg/shp/util"
 )
 
 // CreateCommand reprents the build's create subcommand.
@@ -62,16 +61,6 @@ func (c *CreateCommand) Run(params *params.Params, ioStreams *genericclioptions.
 		},
 		Spec: *c.buildRunSpec,
 	}
-
-	envs, err := c.cmd.Flags().GetStringArray(flags.EnvFlag)
-	if err != nil {
-		return err
-	}
-	parsedEnvs, err := util.StringSliceToEnvVarSlice(envs)
-	if err != nil {
-		return err
-	}
-	br.Spec.Env = append(br.Spec.Env, parsedEnvs...)
 
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
