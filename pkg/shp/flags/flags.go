@@ -46,6 +46,10 @@ const (
 	ServiceAccountGenerateFlag = "sa-generate"
 	// TimeoutFlag command-line flag.
 	TimeoutFlag = "timeout"
+	// OutputImageLabelsFlag command-line flag.
+	OutputImageLabelsFlag = "output-image-label"
+	// OutputImageAnnotationsFlag command-line flag.
+	OutputImageAnnotationsFlag = "output-image-annotation"
 )
 
 // sourceFlags flags for ".spec.source"
@@ -172,5 +176,26 @@ func envFlags(flags *pflag.FlagSet, envs *[]corev1.EnvVar) {
 		"env",
 		"e",
 		"specify a key-value pair for an environment variable to set for the build container",
+	)
+}
+
+// imageLabelsFlags registers flags for output image labels.
+func imageLabelsFlags(flags *pflag.FlagSet, labels map[string]string) {
+	flags.VarP(
+		NewMapValue(labels),
+		OutputImageLabelsFlag,
+		"",
+		"specify a set of key-value pairs that correspond to labels to set on the output image",
+	)
+
+}
+
+// imageLabelsFlags registers flags for output image annotations.
+func imageAnnotationsFlags(flags *pflag.FlagSet, annotations map[string]string) {
+	flags.VarP(
+		NewMapValue(annotations),
+		OutputImageAnnotationsFlag,
+		"",
+		"specify a set of key-value pairs that correspond to annotations to set on the output image",
 	)
 }
