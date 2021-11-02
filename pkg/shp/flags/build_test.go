@@ -39,6 +39,8 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		Output: buildv1alpha1.Image{
 			Credentials: &credentials,
 			Image:       "output-image",
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
 		},
 		Timeout: &metav1.Duration{
 			Duration: 1 * time.Second,
