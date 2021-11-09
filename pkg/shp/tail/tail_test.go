@@ -7,16 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-
-	o "github.com/onsi/gomega"
 )
 
 func Test_Tail(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	name := "pod"
 	containerName := "container"
@@ -49,15 +47,15 @@ func Test_Tail(t *testing.T) {
 	stdoutWriter.Close()
 	stderrWriter.Close()
 
-	// reading out stdout and stderr output by copying the io.Writer contents to an intermediary
+	// reading out stdout and stderr output by copying the iWriter contents to an intermediary
 	// buffer and checking how many bytes were subject to copying.
 	var buf bytes.Buffer
 
 	stdoutNumBytes, err := io.Copy(&buf, stdoutReader)
-	g.Expect(err).To(o.BeNil())
-	g.Expect(stdoutNumBytes).To(o.Equal(int64(0)))
+	g.Expect(err).To(BeNil())
+	g.Expect(stdoutNumBytes).To(Equal(int64(0)))
 
 	stderrNumBytes, err := io.Copy(&buf, stderrReader)
-	g.Expect(err).To(o.BeNil())
-	g.Expect(stderrNumBytes).To(o.Equal(int64(0)))
+	g.Expect(err).To(BeNil())
+	g.Expect(stderrNumBytes).To(Equal(int64(0)))
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewMapValue(t *testing.T) {
-	g := o.NewGomegaWithT(t)
+	g := o.NewWithT(t)
 
 	spec := &buildv1alpha1.BuildSpec{Output: buildv1alpha1.Image{
 		Labels: map[string]string{},

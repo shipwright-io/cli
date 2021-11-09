@@ -33,7 +33,7 @@ func (m *MapValue) Set(value string) error {
 // Type analogous to the pflag "stringArray" type, where each flag entry will be translated to a
 // single array (slice) entry, therefore the comma (",") is accepted as part of the value, as any
 // other special character.
-func (c *MapValue) Type() string {
+func (m *MapValue) Type() string {
 	return "stringArray"
 }
 

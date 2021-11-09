@@ -5,17 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	o "github.com/onsi/gomega"
 )
 
 func TestBuildRunSpecFromFlags(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	str := "something-random"
 	expected := &buildv1alpha1.BuildRunSpec{
@@ -41,42 +39,42 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 
 	t.Run(".spec.buildRef", func(t *testing.T) {
 		err := flags.Set(BuildrefNameFlag, expected.BuildRef.Name)
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).To(BeNil())
 
-		g.Expect(*expected.BuildRef).To(o.Equal(*spec.BuildRef), "spec.buildRef")
+		g.Expect(*expected.BuildRef).To(Equal(*spec.BuildRef), "spec.buildRef")
 	})
 
 	t.Run(".spec.serviceAccount", func(t *testing.T) {
 		err := flags.Set(ServiceAccountNameFlag, *expected.ServiceAccount.Name)
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).To(BeNil())
 
 		generate := fmt.Sprintf("%v", expected.ServiceAccount.Generate)
 		err = flags.Set(ServiceAccountGenerateFlag, generate)
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).To(BeNil())
 
-		g.Expect(*expected.ServiceAccount).To(o.Equal(*spec.ServiceAccount), "spec.serviceAccount")
+		g.Expect(*expected.ServiceAccount).To(Equal(*spec.ServiceAccount), "spec.serviceAccount")
 	})
 
 	t.Run(".spec.timeout", func(t *testing.T) {
 		err := flags.Set(TimeoutFlag, expected.Timeout.Duration.String())
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).To(BeNil())
 
-		g.Expect(*expected.Timeout).To(o.Equal(*spec.Timeout), "spec.timeout")
+		g.Expect(*expected.Timeout).To(Equal(*spec.Timeout), "spec.timeout")
 	})
 
 	t.Run(".spec.output", func(t *testing.T) {
 		err := flags.Set(OutputImageFlag, expected.Output.Image)
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).To(BeNil())
 
 		err = flags.Set(OutputCredentialsSecretFlag, expected.Output.Credentials.Name)
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).To(BeNil())
 
-		g.Expect(*expected.Output).To(o.Equal(*spec.Output), "spec.output")
+		g.Expect(*expected.Output).To(Equal(*spec.Output), "spec.output")
 	})
 }
 
 func TestSanitizeBuildRunSpec(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	name := "name"
 	completeBuildRunSpec := buildv1alpha1.BuildRunSpec{
@@ -119,7 +117,7 @@ func TestSanitizeBuildRunSpec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			copy := tt.in.DeepCopy()
 			SanitizeBuildRunSpec(copy)
-			g.Expect(tt.out).To(o.Equal(*copy))
+			g.Expect(tt.out).To(Equal(*copy))
 		})
 	}
 }

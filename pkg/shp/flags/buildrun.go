@@ -39,7 +39,7 @@ func SanitizeBuildRunSpec(br *buildv1alpha1.BuildRunSpec) {
 	}
 	if br.ServiceAccount != nil {
 		if (br.ServiceAccount.Name == nil || *br.ServiceAccount.Name == "") &&
-			br.ServiceAccount.Generate == false {
+			!br.ServiceAccount.Generate {
 			br.ServiceAccount = nil
 		}
 	}
