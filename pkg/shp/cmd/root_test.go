@@ -12,7 +12,7 @@ import (
 )
 
 func TestCMD_NewCmdSHP(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	genericOpts := &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	cmd := NewCmdSHP(genericOpts)

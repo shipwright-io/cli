@@ -60,7 +60,7 @@ func (r *RunCommand) Complete(params *params.Params, io *genericclioptions.IOStr
 	case 1:
 		r.buildName = args[0]
 	default:
-		return errors.New("Build name is not informed")
+		return errors.New("build name is not informed")
 	}
 
 	clientset, err := params.ClientSet()
@@ -248,11 +248,12 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	return err
 }
 
+// Log prints a message
 func (r *RunCommand) Log(msg string) {
 	// concurrent fmt.Fprintf(r.ioStream.Out...) calls need locking to avoid data races, as we 'write' to the stream
 	r.logLock.Lock()
 	defer r.logLock.Unlock()
-	fmt.Fprintf(r.ioStreams.Out, msg)
+	fmt.Fprint(r.ioStreams.Out, msg)
 }
 
 // runCmd instantiate the "build run" sub-command using common BuildRun flags.

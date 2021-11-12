@@ -100,6 +100,7 @@ func NewParams() *Params {
 	return p
 }
 
+// NewParamsForTest creates an instance of Params for testing purpose
 func NewParamsForTest(clientset kubernetes.Interface,
 	shpClientset buildclientset.Interface,
 	configFlags *genericclioptions.ConfigFlags,

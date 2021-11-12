@@ -8,7 +8,7 @@ import (
 )
 
 func TestParamsCreation(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	flagset := pflag.NewFlagSet("name", 0)
 

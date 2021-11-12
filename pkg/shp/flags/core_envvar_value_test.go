@@ -10,7 +10,7 @@ import (
 )
 
 func TestCoreEnvVarSliceValue(t *testing.T) {
-	g := o.NewGomegaWithT(t)
+	g := o.NewWithT(t)
 
 	spec := &buildv1alpha1.BuildSpec{Env: []corev1.EnvVar{}}
 	c := NewCoreEnvVarArrayValue(&spec.Env)

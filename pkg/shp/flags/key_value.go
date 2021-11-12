@@ -12,7 +12,7 @@ import (
 func splitKeyValue(value string) (string, string, error) {
 	s := strings.SplitN(value, "=", 2)
 	if len(s) != 2 || s[0] == "" {
-		return "", "", fmt.Errorf("informed value '%s' is not in key=value format!", value)
+		return "", "", fmt.Errorf("informed value '%s' is not in key=value format", value)
 	}
 	return s[0], s[1], nil
 }

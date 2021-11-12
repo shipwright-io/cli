@@ -30,7 +30,7 @@ func (c *CoreEnvVarArrayValue) Set(value string) error {
 	}
 	for _, e := range *c.envs {
 		if k == e.Name {
-			return fmt.Errorf("environment variable '%s' is already set!", k)
+			return fmt.Errorf("environment variable '%s' is already set", k)
 		}
 	}
 	*c.envs = append(*c.envs, corev1.EnvVar{Name: k, Value: v})

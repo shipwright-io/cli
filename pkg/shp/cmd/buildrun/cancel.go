@@ -56,7 +56,7 @@ func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.
 		return err
 	}
 
-	br := &buildv1alpha1.BuildRun{}
+	var br *buildv1alpha1.BuildRun
 	if br, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Get(c.cmd.Context(), c.name, metav1.GetOptions{}); err != nil {
 		return fmt.Errorf("failed to retrieve BuildRun %s: %s", c.name, err.Error())
 	}

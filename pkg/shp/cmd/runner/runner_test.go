@@ -33,7 +33,7 @@ func (m *mockedSubCommand) Run(p *params.Params, ioStreams *genericclioptions.IO
 }
 
 func TestCMD_Runner(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	p := params.NewParams()
 

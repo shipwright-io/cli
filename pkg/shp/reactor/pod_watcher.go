@@ -12,7 +12,10 @@ import (
 )
 
 const (
+	// ContextTimeoutMessage is the message for a context timeout
 	ContextTimeoutMessage = "context deadline has been exceeded"
+
+	// RequestTimeoutMessage is the message for a request timeout
 	RequestTimeoutMessage = "request timeout has expired"
 )
 
@@ -27,7 +30,6 @@ type PodWatcher struct {
 	stopped     bool
 	eventTicker *time.Ticker
 	clientset   kubernetes.Interface
-	listOpts    metav1.ListOptions
 	ns          string
 	watcher     watch.Interface // client watch instance
 
