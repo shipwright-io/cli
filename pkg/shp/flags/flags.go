@@ -187,7 +187,6 @@ func imageLabelsFlags(flags *pflag.FlagSet, labels map[string]string) {
 		"",
 		"specify a set of key-value pairs that correspond to labels to set on the output image",
 	)
-
 }
 
 // imageLabelsFlags registers flags for output image annotations.
