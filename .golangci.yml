@@ -1,3 +1,10 @@
 linters:
   enable:
     - gosec
+  disable:
+    - errcheck
+
+linters-settings:
+  gosec:
+    excludes:
+      - G101 # Potential hardcoded credentials
