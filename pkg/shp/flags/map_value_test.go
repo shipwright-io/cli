@@ -40,5 +40,5 @@ func TestNewMapValue(t *testing.T) {
 
 	// making sure the string representation produced is as expected
 	s := c.String()
-	g.Expect(s).To(o.Equal("[a=b,\"b=c,d,e=f\",c=d e]"))
+	g.Expect(s).To(o.BeEquivalentTo("[a=b,\"b=c,d,e=f\",c=d e]"))
 }
