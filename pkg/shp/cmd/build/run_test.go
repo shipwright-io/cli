@@ -3,11 +3,11 @@ package build
 import (
 	"bytes"
 	"strings"
-	"sync"
 	"testing"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	shpfake "github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
@@ -35,40 +35,40 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		{
 			name:    "succeeded",
 			phase:   corev1.PodSucceeded,
-			logText: "Pod 'testpod' has succeeded!",
+			logText: "Pod \"testpod\" has succeeded!",
 		},
 		{
 			name:    "pending",
 			phase:   corev1.PodPending,
-			logText: "Pod 'testpod' is in state \"Pending\"",
+			logText: "Pod \"testpod\" is in state \"Pending\"",
 		},
 		{
 			name:    "unknown",
 			phase:   corev1.PodUnknown,
-			logText: "Pod 'testpod' is in state \"Unknown\"",
+			logText: "Pod \"testpod\" is in state \"Unknown\"",
 		},
 		{
 			name:      "failed-cancelled",
 			phase:     corev1.PodFailed,
 			cancelled: true,
-			logText:   "BuildRun 'testpod' has been canceled.",
+			logText:   "BuildRun \"testpod\" has been canceled.",
 		},
 		{
 			name:      "failed-br-deleted",
 			phase:     corev1.PodFailed,
 			brDeleted: true,
-			logText:   "BuildRun 'testpod' has been deleted.",
+			logText:   "BuildRun \"testpod\" has been deleted.",
 		},
 		{
 			name:       "failed-pod-deleted",
 			phase:      corev1.PodFailed,
 			podDeleted: true,
-			logText:    "Pod 'testpod' has been deleted.",
+			logText:    "Pod \"testpod\" has been deleted.",
 		},
 		{
 			name:    "failed-something-else",
 			phase:   corev1.PodFailed,
-			logText: "Pod 'testpod' has failed!",
+			logText: "Pod \"testpod\" has failed!",
 		},
 		{
 			name:  "running",
@@ -135,13 +135,10 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		}
 		ccmd := &cobra.Command{}
 		cmd := &RunCommand{
-			cmd:             ccmd,
-			buildRunName:    name,
-			buildRunSpec:    flags.BuildRunSpecFromFlags(ccmd.Flags()),
-			follow:          true,
-			shpClientset:    shpclientset,
-			tailLogsStarted: make(map[string]bool),
-			logLock:         sync.Mutex{},
+			cmd:          ccmd,
+			buildRunName: name,
+			buildRunSpec: flags.BuildRunSpecFromFlags(ccmd.Flags()),
+			follow:       true,
 		}
 
 		// set up context
@@ -153,14 +150,33 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault)
 
 		ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
+		cmd.follower, _ = follower.NewFollower(cmd.Cmd().Context(), br.Name, &ioStreams, param)
 
 		switch {
 		case test.cancelled:
 			br.Spec.State = buildv1alpha1.BuildRunStateCancel
+			br.Status.Conditions = []buildv1alpha1.Condition{
+				{
+					Type: buildv1alpha1.Succeeded,
+					Status: corev1.ConditionFalse,
+				},
+			}
 		case test.brDeleted:
 			br.DeletionTimestamp = &metav1.Time{}
+			br.Status.Conditions = []buildv1alpha1.Condition{
+				{
+					Type: buildv1alpha1.Succeeded,
+					Status: corev1.ConditionFalse,
+				},
+			}
 		case test.podDeleted:
 			pod.DeletionTimestamp = &metav1.Time{}
+			br.Status.Conditions = []buildv1alpha1.Condition{
+				{
+					Type: buildv1alpha1.Succeeded,
+					Status: corev1.ConditionFalse,
+				},
+			}
 		}
 
 		cmd.Complete(param, &ioStreams, []string{name})
@@ -181,9 +197,9 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		if !test.noPodYet {
 			// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
 			pod.Status.Phase = test.phase
-			cmd.onEvent(pod)
+			cmd.follower.OnEvent(pod)
 		} else {
-			cmd.onNoPodEventsYet()
+			cmd.follower.OnNoPodEventsYet()
 		}
 		checkLog(test.name, test.logText, cmd, out, t)
 	}
@@ -191,8 +207,8 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 
 func checkLog(name, text string, cmd *RunCommand, out *bytes.Buffer, t *testing.T) {
 	// need to employ log lock since accessing same iostream out used by Run cmd
-	cmd.logLock.Lock()
-	defer cmd.logLock.Unlock()
+	cmd.follower.GetLogLock().Lock()
+	defer cmd.follower.GetLogLock().Unlock()
 	if !strings.Contains(out.String(), text) {
 		t.Errorf("test %s: unexpected output: %s", name, out.String())
 	}

@@ -88,6 +88,12 @@ func (p *Params) ShipwrightClientSet() (buildclientset.Interface, error) {
 // Namespace returns kubernetes namespace with alle the overrides
 // from command line and kubernetes config
 func (p *Params) Namespace() string {
+	if len(p.namespace) == 0 {
+		clientConfig := p.configFlags.ToRawKubeConfigLoader()
+		clientConfig.ClientConfig()
+		p.namespace, _, _ = clientConfig.Namespace()
+
+	}
 	return p.namespace
 }
 
