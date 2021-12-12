@@ -38,7 +38,21 @@ func TestNewMapValue(t *testing.T) {
 	g.Expect(len(spec.Output.Labels)).To(o.Equal(3))
 	g.Expect(spec.Output.Labels["c"]).To(o.Equal("d e"))
 
+	// verify the map status
+	g.Expect(c.kvMap).To(o.BeEquivalentTo(map[string]string{
+		"a": "b",
+		"b": "c,d,e=f",
+		"c": "d e",
+	}))
+
 	// making sure the string representation produced is as expected
 	s := c.String()
-	g.Expect(s).To(o.BeEquivalentTo("[a=b,\"b=c,d,e=f\",c=d e]"))
+	g.Expect(s).To(o.BeElementOf(
+		"[a=b,\"b=c,d,e=f\",c=d e]",
+		"[a=b,c=d e,\"b=c,d,e=f\"]",
+		"[\"b=c,d,e=f\",a=b,c=d e]",
+		"[\"b=c,d,e=f\",c=d e,a=b]",
+		"[c=d e,a=b,\"b=c,d,e=f\"]",
+		"[c=d e,\"b=c,d,e=f\",a=b,\"b=c,d,e=f\"]",
+	))
 }

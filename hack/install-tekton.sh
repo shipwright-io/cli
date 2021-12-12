@@ -5,7 +5,7 @@
 
 set -eu
 
-TEKTON_VERSION="${TEKTON_VERSION:-v0.25.0}"
+TEKTON_VERSION="${TEKTON_VERSION:-v0.30.0}"
 
 TEKTON_HOST="github.com"
 TEKTON_HOST_PATH="tektoncd/pipeline/releases/download"
