@@ -19,6 +19,8 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 		Timeout: &metav1.Duration{},
 		Output: &buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{},
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
 		},
 		Env: []corev1.EnvVar{},
 	}
@@ -28,6 +30,8 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 	timeoutFlags(flags, spec.Timeout)
 	imageFlags(flags, "output", spec.Output)
 	envFlags(flags, &spec.Env)
+	imageLabelsFlags(flags, spec.Output.Labels)
+	imageAnnotationsFlags(flags, spec.Output.Annotations)
 
 	return spec
 }

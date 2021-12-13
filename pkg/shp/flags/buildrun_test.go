@@ -30,6 +30,8 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 		Output: &buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{Name: "name"},
 			Image:       str,
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
 		},
 	}
 
