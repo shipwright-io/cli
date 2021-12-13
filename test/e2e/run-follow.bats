@@ -19,34 +19,26 @@ teardown() {
   	buildrun_name=$(random_name)
 
     # create a Build with two environment variables
-    run shp build create ${build_name} --source-url=https://github.com/shipwright-io/sample-go --output-image=my-image
+    run shp build create ${build_name} --source-url=https://github.com/shipwright-io/sample-go --source-context-dir=source-build --output-image=registry.registry.svc.cluster.local:32222/shipwright-io/build-e2e
     assert_success
 
     # initiate a BuildRun with -F
     run shp build run ${build_name} -F
-    #assert_success
-    #TODO
-    # currently do not check success because the create build sample I pulled from either of the existing e2e's do
-    # not run to success, both locally and CI; for the one pulled from envvars:
-    #     [build-and-push] ERROR: No buildpack groups passed detection.
-    #     [build-and-push] ERROR: Please check that you are running against the correct path.
-    #     [build-and-push] ERROR: failed to detect: no buildpacks participating
-    # ideally, we pull additional items from shipwright-io/build and sort that out, as it uses https://github.com/shipwright-io/sample-go.
-    # All that said, the key element for this e2e, log following, is still verifiable
-
+    assert_success
 
     # confirm output that would only exist if following BuildRun logs
     assert_output --partial "[source-default]"
     assert_output --partial "[place-tools]"
     assert_output --partial "[build-and-push]"
+    assert_output --partial "has succeeded!"
 
     # initiate a BuildRun with --follow
     run shp build run ${build_name} --follow
-    #TODO see above
-    #assert_success
+    assert_success
 
      # confirm output that would only exist if following BuildRun logs
      assert_output --partial "[source-default]"
      assert_output --partial "[place-tools]"
      assert_output --partial "[build-and-push]"
+     assert_output --partial "has succeeded!"
 }
