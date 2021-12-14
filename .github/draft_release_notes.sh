@@ -15,23 +15,27 @@ if [ -z ${PREVIOUS_TAG+x} ]; then
   echo "Error: PREVIOUS_TAG is not set"
 fi
 
+releaseDir="/tmp/release-notes"
+
+mkdir -p ${releaseDir}
+
 sudo apt-get -y update
 sudo apt-get -y install wget curl git
 curl -L https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz | tar xzf -
 PWD="$(pwd)"
 export PATH=$PWD/hub-linux-amd64-2.14.2/bin:$PATH
 git fetch --all --tags --prune --force
-echo "# Draft Release changes since ${PREVIOUS_TAG}" > Changes.md
-echo > Features.md
-echo "## Features" >> Features.md
-echo > Fixes.md
-echo "## Fixes" >> Fixes.md
-echo > API.md
-echo "## API Changes" >> API.md
-echo > Docs.md
-echo "## Docs" >> Docs.md
-echo > Misc.md
-echo "## Misc" >> Misc.md
+echo "# Draft Release changes since ${PREVIOUS_TAG}" > "${releaseDir}/Changes.md"
+echo > "${releaseDir}/Features.md"
+echo "## Features" >> "${releaseDir}/Features.md"
+echo > "${releaseDir}/Fixes.md"
+echo "## Fixes" >> "${releaseDir}/Fixes.md"
+echo > "${releaseDir}/API.md"
+echo "## API Changes" >> "${releaseDir}/API.md"
+echo > "${releaseDir}/Docs.md"
+echo "## Docs" >> "${releaseDir}/Docs.md"
+echo > "${releaseDir}/Misc.md"
+echo "## Misc" >> "${releaseDir}/Misc.md"
 
 # this effectively gets the commit associated with github.event.inputs.tags
 COMMON_ANCESTOR=$(git merge-base $PREVIOUS_TAG HEAD)
@@ -100,42 +104,47 @@ while IFS= read -r pr; do
    echo $pr | grep 'kind/bug'
    rc=$?
    if [ ${rc} -eq 0 ]; then
-      echo >> Fixes.md
-      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> Fixes.md
+      echo >> "${releaseDir}/Fixes.md"
+      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> "${releaseDir}/Fixes.md"
       MISC=no
    fi
    echo $pr | grep 'kind/api-change'
    rc=$?
    if [ ${rc} -eq 0 ]; then
-      echo >> API.md
-      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> API.md
+      echo >> "${releaseDir}/API.md"
+      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> "${releaseDir}/API.md"
       MISC=no
    fi
    echo $pr | grep 'kind/feature'
    rc=$?
    if [ ${rc} -eq 0 ]; then
-      echo >> Features.md
-      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> Features.md
+      echo >> "${releaseDir}/Features.md"
+      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> "${releaseDir}/Features.md"
       MISC=no
    fi
    echo $pr | grep 'kind/documentation'
    rc=$?
    if [ ${rc} -eq 0 ]; then
-      echo >> Docs.md
-      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> Docs.md
+      echo >> "${releaseDir}/Docs.md"
+      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> "${releaseDir}/Docs.md"
       MISC=no
    fi
    if [ "$MISC" == "yes" ]; then
-      echo >> Misc.md
-      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> Misc.md
+      echo >> "${releaseDir}/Misc.md"
+      echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> "${releaseDir}/Misc.md"
    fi
    # update the PR template if our greps etc. for pulling the release note changes
    #PR_RELEASE_NOTE=$(wget -q -O- https://api.github.com/repos/shipwright-io/build/issues/${PR_NUM:1} | grep -oPz '(?s)(?<=```release-note..)(.+?)(?=```)' | grep -avP '\W*(Your release note here|action required: your release note here|NONE)\W*')
    echo "Added from ${AUTHOR} PR ${PR_NUM:1} to the release note draft"
 done < last-300-prs-with-release-note.txt
 
-cat Features.md >> Changes.md
-cat Fixes.md >> Changes.md
-cat API.md >> Changes.md
-cat Docs.md >> Changes.md
-cat Misc.md >> Changes.md
+cat "${releaseDir}/Features.md" >> "${releaseDir}/Changes.md"
+cat "${releaseDir}/Fixes.md" >> "${releaseDir}/Changes.md"
+cat "${releaseDir}/API.md" >> "${releaseDir}/Changes.md"
+cat "${releaseDir}/Docs.md" >> "${releaseDir}/Changes.md"
+cat "${releaseDir}/Misc.md" >> "${releaseDir}/Changes.md"
+
+echo "Cleaning up"
+
+rm -rf hub-linux-amd64-2.14.2
+rm last-300-prs-with-release-note.txt

@@ -1,26 +1,44 @@
 ---
 name: Release
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Release tag'
+        required: true
+      previous-tag:
+        description: 'Previous release tag'
+        required: true
 jobs:
   release:
     name: Release
+    if: ${{ github.repository == 'shipwright-io/cli' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # To be able to update releases
     steps:
     - name: Checkout
       uses: actions/checkout@v2
       with:
+        ref: ${{ github.event.inputs.release }}
         fetch-depth: 0
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
         go-version: 1.17.x
+    - name: Build Release Changelog
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PREVIOUS_TAG: ${{ github.event.inputs.previous-tag }}
+      # This creates a set of release notes at Changes.md
+      run: |
+        export GITHUB_TOKEN
+        export PREVIOUS_TAG
+        "${GITHUB_WORKSPACE}/.github/draft_release_notes.sh"
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v2
       with:
         version: latest
-        args: release --rm-dist
+        args: release --rm-dist --release-notes /tmp/release-notes/Changes.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
