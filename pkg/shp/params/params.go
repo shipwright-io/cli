@@ -5,11 +5,16 @@ import (
 	"strings"
 	"time"
 
-	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
-	"github.com/spf13/pflag"
-
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/kubectl/pkg/scheme"
+
+	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
+
+	"github.com/spf13/pflag"
 )
 
 // Params is a place for Shipwright CLI to store its runtime parameters including configured dynamic
@@ -27,14 +32,10 @@ func (p *Params) AddFlags(flags *pflag.FlagSet) {
 	p.configFlags.AddFlags(flags)
 }
 
-// ClientSet returns a kubernetes clientset.
-func (p *Params) ClientSet() (kubernetes.Interface, error) {
-	if p.clientset != nil {
-		return p.clientset, nil
-	}
-
+// RESTConfig returns the rest configuration based on local flags.
+func (p *Params) RESTConfig() (*rest.Config, error) {
 	clientConfig := p.configFlags.ToRawKubeConfigLoader()
-	config, err := clientConfig.ClientConfig()
+	restConfig, err := clientConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +44,25 @@ func (p *Params) ClientSet() (kubernetes.Interface, error) {
 		return nil, err
 	}
 
-	p.clientset, err = kubernetes.NewForConfig(config)
+	restConfig.APIPath = "/api"
+	restConfig.GroupVersion = &corev1.SchemeGroupVersion
+	restConfig.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{
+		CodecFactory: scheme.Codecs,
+	}
+	return restConfig, nil
+}
+
+// ClientSet returns a kubernetes clientset.
+func (p *Params) ClientSet() (kubernetes.Interface, error) {
+	if p.clientset != nil {
+		return p.clientset, nil
+	}
+
+	restConfig, err := p.RESTConfig()
+	if err != nil {
+		return nil, err
+	}
+	p.clientset, err = kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}

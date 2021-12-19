@@ -121,6 +121,6 @@ func runCmd() runner.SubCommand {
 		cmd:          cmd,
 		buildRunSpec: flags.BuildRunSpecFromFlags(cmd.Flags()),
 	}
-	cmd.Flags().BoolVarP(&runCommand.follow, "follow", "F", runCommand.follow, "Start a build and watch its log until it completes or fails.")
+	flags.FollowFlag(cmd.Flags(), &runCommand.follow)
 	return runCommand
 }

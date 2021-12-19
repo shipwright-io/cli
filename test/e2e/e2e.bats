@@ -24,7 +24,7 @@ teardown() {
 	assert_line "Available Commands:"
 	assert_line "  build       Manage Builds"
 	assert_line "  buildrun    Manage BuildRuns"
-	assert_line "  completion  generate the autocompletion script for the specified shell"
+	assert_line "  completion  Generate the autocompletion script for the specified shell"
 	assert_line "  help        Help about any command"
 }
 
