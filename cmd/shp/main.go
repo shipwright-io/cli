@@ -11,6 +11,8 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd"
+
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 // ApplicationName application name.
