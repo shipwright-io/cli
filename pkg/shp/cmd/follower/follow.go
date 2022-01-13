@@ -117,6 +117,11 @@ func (f *Follower) stop() {
 
 // OnEvent reacts on pod state changes, to start and stop tailing container logs.
 func (f *Follower) OnEvent(pod *corev1.Pod) error {
+	// the BuildRun name can be empty when the follow was triggered with the buildrun creation
+	if f.buildRunName == "" {
+		f.buildRunName = pod.GetLabels()[buildv1alpha1.LabelBuildRun]
+	}
+
 	switch pod.Status.Phase {
 	case corev1.PodRunning:
 		if !f.enteredRunningState {
@@ -130,29 +135,34 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 	case corev1.PodFailed:
 		msg := ""
 		var br *buildv1alpha1.BuildRun
-		err := wait.PollImmediate(1*time.Second, 15*time.Second, func() (done bool, err error) {
-			br, err = f.shpClientset.ShipwrightV1alpha1().BuildRuns(pod.Namespace).Get(f.ctx, f.buildRunName, metav1.GetOptions{})
-			if err != nil {
-				if kerrors.IsNotFound(err) {
+		var err error
+
+		if f.buildRunName != "" {
+			err = wait.PollImmediate(1*time.Second, 15*time.Second, func() (done bool, err error) {
+				br, err = f.shpClientset.ShipwrightV1alpha1().BuildRuns(pod.Namespace).Get(f.ctx, f.buildRunName, metav1.GetOptions{})
+				if err != nil {
+					if kerrors.IsNotFound(err) {
+						return true, nil
+					}
+					f.Log(fmt.Sprintf("error getting buildrun %q for pod %q: %s\n", f.buildRunName, pod.GetName(), err.Error()))
+					return false, nil
+				}
+				if br.IsDone() {
 					return true, nil
 				}
-				f.Log(fmt.Sprintf("error getting buildrun %q for pod %q: %s\n", f.buildRunName, pod.GetName(), err.Error()))
 				return false, nil
+			})
+			if err != nil {
+				f.Log(fmt.Sprintf("gave up trying to get a buildrun %q in a terminal state for pod %q, proceeding with pod failure processing", f.buildRunName, pod.GetName()))
 			}
-			if br.IsDone() {
-				return true, nil
-			}
-			return false, nil
-		})
-		if err != nil {
-			f.Log(fmt.Sprintf("gave up trying to get a buildrun %q in a terminal state for pod %q, proceeding with pod failure processing", f.buildRunName, pod.GetName()))
 		}
+
 		switch {
-		case br == nil:
+		case f.buildRunName != "" && br == nil:
 			msg = fmt.Sprintf("BuildRun %q has been deleted.\n", br.Name)
-		case err == nil && br.IsCanceled():
+		case err == nil && br != nil && br.IsCanceled():
 			msg = fmt.Sprintf("BuildRun %q has been canceled.\n", br.Name)
-		case (err == nil && br.DeletionTimestamp != nil) || (err != nil && kerrors.IsNotFound(err)):
+		case (err == nil && br != nil && br.DeletionTimestamp != nil) || (err != nil && kerrors.IsNotFound(err)):
 			msg = fmt.Sprintf("BuildRun %q has been deleted.\n", br.Name)
 		case pod.DeletionTimestamp != nil:
 			msg = fmt.Sprintf("Pod %q has been deleted.\n", pod.GetName())
@@ -204,43 +214,50 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 
 // OnTimeout reacts to either the context or request timeout causing the pod watcher to exit
 func (f *Follower) OnTimeout(msg string) {
-	f.Log(fmt.Sprintf("BuildRun %q log following has stopped because: %q\n", f.buildRunName, msg))
+	if f.buildRunName == "" {
+		f.Log(fmt.Sprintf("BuildRun log following has stopped because: %q\n", msg))
+	} else {
+		f.Log(fmt.Sprintf("BuildRun %q log following has stopped because: %q\n", f.buildRunName, msg))
+	}
 }
 
 // OnNoPodEventsYet reacts to the pod watcher telling us it has not received any pod events for our build run
 func (f *Follower) OnNoPodEventsYet() {
-	f.Log(fmt.Sprintf("BuildRun %q log following has not observed any pod events yet.\n", f.buildRunName))
-	br, err := f.shpClientset.ShipwrightV1alpha1().BuildRuns(f.namespace).Get(f.ctx, f.buildRunName, metav1.GetOptions{})
-	if err != nil {
-		f.Log(fmt.Sprintf("error accessing BuildRun %q: %s", f.buildRunName, err.Error()))
-		return
-	}
+	if f.buildRunName == "" {
+		f.Log("BuildRun log following has not observed any pod events yet.\n")
+	} else {
+		f.Log(fmt.Sprintf("BuildRun %q log following has not observed any pod events yet.\n", f.buildRunName))
+		br, err := f.shpClientset.ShipwrightV1alpha1().BuildRuns(f.namespace).Get(f.ctx, f.buildRunName, metav1.GetOptions{})
+		if err != nil {
+			f.Log(fmt.Sprintf("error accessing BuildRun %q: %s", f.buildRunName, err.Error()))
+			return
+		}
 
-	c := br.Status.GetCondition(buildv1alpha1.Succeeded)
-	giveUp := false
-	msg := ""
-	switch {
-	case c != nil && c.Status == corev1.ConditionTrue:
-		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been marked as successful.\n", br.Name)
-	case c != nil && c.Status == corev1.ConditionFalse:
-		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been marked as failed.\n", br.Name)
-	case br.IsCanceled():
-		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been canceled.\n", br.Name)
-	case br.DeletionTimestamp != nil:
-		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been deleted.\n", br.Name)
-	case !br.HasStarted():
-		f.Log(fmt.Sprintf("BuildRun '%s' has been marked as failed.\n", br.Name))
+		c := br.Status.GetCondition(buildv1alpha1.Succeeded)
+		giveUp := false
+		msg := ""
+		switch {
+		case c != nil && c.Status == corev1.ConditionTrue:
+			giveUp = true
+			msg = fmt.Sprintf("BuildRun %q has been marked as successful.\n", br.Name)
+		case c != nil && c.Status == corev1.ConditionFalse:
+			giveUp = true
+			msg = fmt.Sprintf("BuildRun %q has been marked as failed.\n", br.Name)
+		case br.IsCanceled():
+			giveUp = true
+			msg = fmt.Sprintf("BuildRun %q has been canceled.\n", br.Name)
+		case br.DeletionTimestamp != nil:
+			giveUp = true
+			msg = fmt.Sprintf("BuildRun %q has been deleted.\n", br.Name)
+		case !br.HasStarted():
+			f.Log(fmt.Sprintf("BuildRun %q has not yet started.\n", br.Name))
+		}
+		if giveUp {
+			f.Log(msg)
+			f.Log(fmt.Sprintf("exiting 'shp build run --follow' for BuildRun %q", br.Name))
+			f.stop()
+		}
 	}
-	if giveUp {
-		f.Log(msg)
-		f.Log(fmt.Sprintf("exiting 'shp build run --follow' for BuildRun %q", br.Name))
-		f.stop()
-	}
-
 }
 
 // Start initiates the log following for the referenced BuildRun's Pod
