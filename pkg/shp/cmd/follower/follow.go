@@ -10,7 +10,6 @@ import (
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
-	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/shipwright-io/cli/pkg/shp/tail"
 	"github.com/shipwright-io/cli/pkg/shp/util"
@@ -18,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -25,67 +25,52 @@ import (
 
 // Follower encapsulate the function of tailing the logs for Pods derived from BuildRuns
 type Follower struct {
-	ctx context.Context
+	ctx            context.Context              // global context instance
+	buildRun       types.NamespacedName         // qualified object name
+	ioStreams      *genericclioptions.IOStreams // io-streams instance
+	pw             *reactor.PodWatcher          // pod-watcher instance
+	clientset      kubernetes.Interface         // kubernetes api-client
+	buildClientset buildclientset.Interface     // shipwright api-client
 
-	ioStreams       *genericclioptions.IOStreams // io-streams instance
-	pw              *reactor.PodWatcher          // pod-watcher instance
-	logTail         *tail.Tail                   // follow container logs
-	tailLogsStarted map[string]bool              // controls tail instance per container
+	logTail         *tail.Tail      // follow container logs
+	tailLogsStarted map[string]bool // controls tail instance per container
 
-	logLock      sync.Mutex
-	shpClientset buildclientset.Interface
-	kclientset   kubernetes.Interface
-
-	buildRunName string
-	namespace    string
-
-	enteredRunningState bool
+	logLock             sync.Mutex // avoiding race condition to print logs
+	enteredRunningState bool       // target pod is running
 }
 
-// NewFollower returns a Follower instance
+// NewFollower returns a Follower instance.
 func NewFollower(
 	ctx context.Context,
-	buildRunName string,
+	buildRun types.NamespacedName,
 	ioStreams *genericclioptions.IOStreams,
-	params *params.Params,
-) (*Follower, error) {
-	follower := &Follower{ctx: ctx, ioStreams: ioStreams, buildRunName: buildRunName, logLock: sync.Mutex{}, tailLogsStarted: make(map[string]bool)}
-	follower.complete(params)
-	return follower, nil
-}
+	pw *reactor.PodWatcher,
+	clientset kubernetes.Interface,
+	buildClientset buildclientset.Interface,
+) *Follower {
+	f := &Follower{
+		ctx:            ctx,
+		buildRun:       buildRun,
+		ioStreams:      ioStreams,
+		pw:             pw,
+		clientset:      clientset,
+		buildClientset: buildClientset,
 
-// GetLogLock returns the mutex used for coordinating access to log buffers.
-func (f *Follower) GetLogLock() *sync.Mutex {
-	return &f.logLock
-}
-
-func (f *Follower) complete(params *params.Params) error {
-	clientset, err := params.ClientSet()
-	if err != nil {
-		return err
-	}
-	f.logTail = tail.NewTail(f.ctx, clientset)
-	f.namespace = params.Namespace()
-	if f.shpClientset, err = params.ShipwrightClientSet(); err != nil {
-		return err
-	}
-	f.kclientset, err = params.ClientSet()
-	if err != nil {
-		return err
-	}
-	to, err := params.RequestTimeout()
-	if err != nil {
-		return err
-	}
-	f.pw, err = reactor.NewPodWatcher(f.ctx, to, f.kclientset, params.Namespace())
-	if err != nil {
-		return err
+		logTail:         tail.NewTail(ctx, clientset),
+		logLock:         sync.Mutex{},
+		tailLogsStarted: map[string]bool{},
 	}
 
 	f.pw.WithOnPodModifiedFn(f.OnEvent)
 	f.pw.WithTimeoutPodFn(f.OnTimeout)
 	f.pw.WithNoPodEventsYetFn(f.OnNoPodEventsYet)
-	return nil
+
+	return f
+}
+
+// GetLogLock returns the mutex used for coordinating access to log buffers.
+func (f *Follower) GetLogLock() *sync.Mutex {
+	return &f.logLock
 }
 
 // Log prints a message
@@ -109,8 +94,8 @@ func (f *Follower) tailLogs(pod *corev1.Pod) {
 	}
 }
 
-// stop invoke stop on streaming components.
-func (f *Follower) stop() {
+// Stop stop log tail instance.
+func (f *Follower) Stop() {
 	f.logTail.Stop()
 	f.pw.Stop()
 }
@@ -131,12 +116,13 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 		msg := ""
 		var br *buildv1alpha1.BuildRun
 		err := wait.PollImmediate(1*time.Second, 15*time.Second, func() (done bool, err error) {
-			br, err = f.shpClientset.ShipwrightV1alpha1().BuildRuns(pod.Namespace).Get(f.ctx, f.buildRunName, metav1.GetOptions{})
+			brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(pod.Namespace)
+			br, err = brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
 			if err != nil {
 				if kerrors.IsNotFound(err) {
 					return true, nil
 				}
-				f.Log(fmt.Sprintf("error getting buildrun %q for pod %q: %s\n", f.buildRunName, pod.GetName(), err.Error()))
+				f.Log(fmt.Sprintf("error getting buildrun %q for pod %q: %s\n", f.buildRun.Name, pod.GetName(), err.Error()))
 				return false, nil
 			}
 			if br.IsDone() {
@@ -145,7 +131,7 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 			return false, nil
 		})
 		if err != nil {
-			f.Log(fmt.Sprintf("gave up trying to get a buildrun %q in a terminal state for pod %q, proceeding with pod failure processing", f.buildRunName, pod.GetName()))
+			f.Log(fmt.Sprintf("gave up trying to get a buildrun %q in a terminal state for pod %q, proceeding with pod failure processing", f.buildRun.Name, pod.GetName()))
 		}
 		switch {
 		case br == nil:
@@ -166,7 +152,7 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 		}
 		// see if because of deletion or cancelation
 		f.Log(msg)
-		f.stop()
+		f.Stop()
 		return err
 	case corev1.PodSucceeded:
 		// encountered scenarios where the build run quickly enough that the pod effectively skips the running state,
@@ -175,7 +161,7 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 			f.Log(fmt.Sprintf("succeeded event for pod %q arrived before or in place of running event so dumping logs now", pod.GetName()))
 			var b strings.Builder
 			for _, c := range pod.Spec.Containers {
-				logs, err := util.GetPodLogs(f.ctx, f.kclientset, *pod, c.Name)
+				logs, err := util.GetPodLogs(f.ctx, f.clientset, *pod, c.Name)
 				if err != nil {
 					f.Log(fmt.Sprintf("could not get logs for container %q: %s", c.Name, err.Error()))
 					continue
@@ -186,7 +172,7 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 			f.Log(b.String())
 		}
 		f.Log(fmt.Sprintf("Pod %q has succeeded!\n", pod.GetName()))
-		f.stop()
+		f.Stop()
 	default:
 		f.Log(fmt.Sprintf("Pod %q is in state %q...\n", pod.GetName(), string(pod.Status.Phase)))
 		// handle any issues with pulling images that may fail
@@ -204,15 +190,16 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 
 // OnTimeout reacts to either the context or request timeout causing the pod watcher to exit
 func (f *Follower) OnTimeout(msg string) {
-	f.Log(fmt.Sprintf("BuildRun %q log following has stopped because: %q\n", f.buildRunName, msg))
+	f.Log(fmt.Sprintf("BuildRun %q log following has stopped because: %q\n", f.buildRun.Name, msg))
 }
 
 // OnNoPodEventsYet reacts to the pod watcher telling us it has not received any pod events for our build run
 func (f *Follower) OnNoPodEventsYet() {
-	f.Log(fmt.Sprintf("BuildRun %q log following has not observed any pod events yet.\n", f.buildRunName))
-	br, err := f.shpClientset.ShipwrightV1alpha1().BuildRuns(f.namespace).Get(f.ctx, f.buildRunName, metav1.GetOptions{})
+	f.Log(fmt.Sprintf("BuildRun %q log following has not observed any pod events yet.\n", f.buildRun.Name))
+	brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(f.buildRun.Namespace)
+	br, err := brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
 	if err != nil {
-		f.Log(fmt.Sprintf("error accessing BuildRun %q: %s", f.buildRunName, err.Error()))
+		f.Log(fmt.Sprintf("error accessing BuildRun %q: %s", f.buildRun.Name, err.Error()))
 		return
 	}
 
@@ -238,9 +225,8 @@ func (f *Follower) OnNoPodEventsYet() {
 	if giveUp {
 		f.Log(msg)
 		f.Log(fmt.Sprintf("exiting 'shp build run --follow' for BuildRun %q", br.Name))
-		f.stop()
+		f.Stop()
 	}
-
 }
 
 // Start initiates the log following for the referenced BuildRun's Pod

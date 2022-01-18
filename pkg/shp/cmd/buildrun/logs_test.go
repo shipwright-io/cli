@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	shpfake "github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	fakekubetesting "k8s.io/client-go/testing"
@@ -184,14 +183,13 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault)
 
 		ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
-		cmd.follower, _ = follower.NewFollower(cmd.Cmd().Context(), br.Name, &ioStreams, param)
 
 		switch {
 		case test.cancelled:
 			br.Spec.State = v1alpha1.BuildRunStateCancel
 			br.Status.Conditions = []v1alpha1.Condition{
 				{
-					Type: v1alpha1.Succeeded,
+					Type:   v1alpha1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}

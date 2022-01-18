@@ -7,7 +7,6 @@ import (
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	shpfake "github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
@@ -16,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes/fake"
 	fakekubetesting "k8s.io/client-go/testing"
@@ -136,7 +136,6 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		ccmd := &cobra.Command{}
 		cmd := &RunCommand{
 			cmd:          ccmd,
-			buildRunName: name,
 			buildRunSpec: flags.BuildRunSpecFromFlags(ccmd.Flags()),
 			follow:       true,
 		}
@@ -150,14 +149,22 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault)
 
 		ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
-		cmd.follower, _ = follower.NewFollower(cmd.Cmd().Context(), br.Name, &ioStreams, param)
+		var err error
+		cmd.follower, err = param.NewFollower(
+			cmd.Cmd().Context(),
+			types.NamespacedName{Namespace: br.GetNamespace(), Name: br.GetName()},
+			&ioStreams,
+		)
+		if err != nil {
+			t.Fatalf("error instantiating follower: %q", err)
+		}
 
 		switch {
 		case test.cancelled:
 			br.Spec.State = buildv1alpha1.BuildRunStateCancel
 			br.Status.Conditions = []buildv1alpha1.Condition{
 				{
-					Type: buildv1alpha1.Succeeded,
+					Type:   buildv1alpha1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}
@@ -165,7 +172,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			br.DeletionTimestamp = &metav1.Time{}
 			br.Status.Conditions = []buildv1alpha1.Condition{
 				{
-					Type: buildv1alpha1.Succeeded,
+					Type:   buildv1alpha1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}
@@ -173,7 +180,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			pod.DeletionTimestamp = &metav1.Time{}
 			br.Status.Conditions = []buildv1alpha1.Condition{
 				{
-					Type: buildv1alpha1.Succeeded,
+					Type:   buildv1alpha1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}
@@ -191,7 +198,6 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			if err != nil {
 				t.Errorf("%s", err.Error())
 			}
-
 		}()
 
 		if !test.noPodYet {

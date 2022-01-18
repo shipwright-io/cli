@@ -18,16 +18,20 @@ teardown() {
   	build_name=$(random_name)
   	buildrun_name=$(random_name)
 
-    # create a Build with two environment variables
-    run shp build create ${build_name} --source-url=https://github.com/shipwright-io/sample-go --source-context-dir=source-build --output-image=registry.registry.svc.cluster.local:32222/shipwright-io/build-e2e
+    # creating a golang based build
+    run shp build create ${build_name} \
+        --source-url=https://github.com/shipwright-io/sample-go \
+        --source-context-dir=source-build \
+        --output-image=registry.registry.svc.cluster.local:32222/shipwright-io/build-e2e 
     assert_success
 
     # initiate a BuildRun
     run shp buildrun create --buildref-name ${build_name} ${buildrun_name}
-    # tail logs with -F
-    run shp buildrun logs --follow ${buildrun_name}
     assert_success
 
+    # tail logs with -F
+    run shp buildrun logs --follow ${buildrun_name} 2>&1
+    assert_success
 
     # confirm output that would only exist if following BuildRun logs
     assert_output --partial "[source-default]"

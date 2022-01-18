@@ -10,15 +10,16 @@ import (
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/shipwright-io/build/pkg/reconciler/buildrun/resources/sources"
 
+	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/shipwright-io/cli/pkg/shp/streamer"
-	"github.com/shipwright-io/cli/pkg/shp/tail"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -32,10 +33,8 @@ type UploadCommand struct {
 	dataStreamer    *streamer.Streamer // tar streamer instance
 	streamingIsDone bool               // marks the streaming is completed
 
-	logTail         *tail.Tail      // follow container logs
-	tailLogsStarted map[string]bool // controls tail instance per container
-
-	pw *reactor.PodWatcher // pod-watcher instance
+	pw       *reactor.PodWatcher // pod-watcher instance
+	follower *follower.Follower  // follower instance
 }
 
 const (
@@ -108,18 +107,8 @@ func (u *UploadCommand) Complete(p *params.Params, _ *genericclioptions.IOStream
 		return err
 	}
 
-	ctx := u.Cmd().Context()
-
-	// components to stream local data to running pod and to read logging as they are produced, the
-	// same behavior of `kubectl logs --follow`
 	u.dataStreamer = streamer.NewStreamer(restConfig, clientset)
-	u.logTail = tail.NewTail(ctx, clientset)
-
-	timeout, err := p.RequestTimeout()
-	if err != nil {
-		return err
-	}
-	u.pw, err = reactor.NewPodWatcher(ctx, timeout, clientset, p.Namespace())
+	u.pw, err = p.NewPodWatcher(u.Cmd().Context())
 	return err
 }
 
@@ -137,7 +126,7 @@ func (u *UploadCommand) Validate() error {
 
 // createBuildRun creates the BuildRun instance to receive the data upload afterwards, it returns the
 // BuildRun name just created and error.
-func (u *UploadCommand) createBuildRun(p *params.Params) (string, error) {
+func (u *UploadCommand) createBuildRun(p *params.Params) (*types.NamespacedName, error) {
 	buildRefName := u.buildRunSpec.BuildRef.Name
 	u.buildRunSpec.Sources = &[]buildv1alpha1.BuildSource{{
 		Name: "local-copy",
@@ -156,16 +145,16 @@ func (u *UploadCommand) createBuildRun(p *params.Params) (string, error) {
 
 	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	br, err = clientset.ShipwrightV1alpha1().
 		BuildRuns(ns).
 		Create(u.cmd.Context(), br, metav1.CreateOptions{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	log.Printf("BuildRun '%s' created!", br.GetName())
-	return br.GetName(), nil
+	return &types.NamespacedName{Namespace: ns, Name: br.GetName()}, nil
 }
 
 // performDataStreaming execute the data transfer process end-to-end.
@@ -198,58 +187,29 @@ func (u *UploadCommand) performDataStreaming(target *streamer.Target) error {
 	return nil
 }
 
-// tailLogs instantiate and start following logs for the POD's container, making sure it happens only
-// once. Noop when the follow flag is disabled.
-func (u *UploadCommand) tailLogs(pod *corev1.Pod) {
-	if !u.follow {
-		return
-	}
-
-	containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
-	for _, container := range containers {
-		if _, exists := u.tailLogsStarted[container.Name]; exists {
-			continue
-		}
-
-		name := container.Name
-		log.Printf("Following logs for the POD's container '%s'...", name)
-		u.tailLogsStarted[name] = true
-		u.logTail.Start(pod.GetNamespace(), pod.GetName(), name)
-	}
-}
-
 // stop following logs and watch over pod.
 func (u *UploadCommand) stop() {
-	u.logTail.Stop()
+	if u.follower != nil {
+		u.follower.Stop()
+	}
 	u.pw.Stop()
 }
 
-// onPodModifiedEvent is invoked everytime the pod running the actual build process changes, thus we
-// can react upon the state changes in order to orchestrate the data upload, log follow, etc.
+// onPodModifiedEvent is invoked everytime the pod running the actual build process changes, thus it
+// can react upon the state changes in order to orchestrate the data upload.
 func (u *UploadCommand) onPodModifiedEvent(pod *corev1.Pod) error {
 	switch pod.Status.Phase {
-	case corev1.PodPending:
-		log.Printf("Pod '%s' is pending... ", pod.GetName())
 	case corev1.PodRunning:
-		log.Printf("Pod '%s' is running... ", pod.GetName())
-
-		target := &streamer.Target{
+		return u.performDataStreaming(&streamer.Target{
 			Namespace: pod.GetNamespace(),
 			Pod:       pod.GetName(),
 			Container: fmt.Sprintf("step-%s", sources.WaiterContainerName),
 			BaseDir:   targetBaseDir,
-		}
-		if err := u.performDataStreaming(target); err != nil {
-			return err
-		}
-
-		u.tailLogs(pod)
+		})
 	case corev1.PodFailed:
-		log.Printf("Pod '%s' failed!", pod.GetName())
 		u.stop()
 		return fmt.Errorf("build pod '%s' has failed", pod.GetName())
 	case corev1.PodSucceeded:
-		log.Printf("Pod '%s' succeeded!", pod.GetName())
 		u.stop()
 	}
 	return nil
@@ -259,9 +219,16 @@ func (u *UploadCommand) onPodModifiedEvent(pod *corev1.Pod) error {
 // pod status and react accordingly.
 func (u *UploadCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStreams) error {
 	// creating a BuildRun with settings for the local source upload
-	buildRunName, err := u.createBuildRun(p)
+	br, err := u.createBuildRun(p)
 	if err != nil {
 		return err
+	}
+
+	if u.follow {
+		// when follow flag is enabled, instantiating the "follower" to live tail logs
+		if u.follower, err = p.NewFollower(u.Cmd().Context(), *br, ioStreams); err != nil {
+			return err
+		}
 	}
 
 	// registering the routine that will react upon build pod state changes
@@ -272,7 +239,7 @@ func (u *UploadCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStr
 	labelSelector := fmt.Sprintf(
 		"%s=%s,%s=%s",
 		buildNameAnnotation, u.buildRunSpec.BuildRef.Name,
-		buildRunNameAnnotation, buildRunName,
+		buildRunNameAnnotation, br.Name,
 	)
 	listOpts := metav1.ListOptions{LabelSelector: labelSelector}
 
@@ -291,10 +258,9 @@ func uploadCmd() runner.SubCommand {
 		SilenceUsage: true,
 	}
 	u := &UploadCommand{
-		cmd:             cmd,
-		buildRunSpec:    flags.BuildRunSpecFromFlags(cmd.Flags()),
-		follow:          false,
-		tailLogsStarted: map[string]bool{},
+		cmd:          cmd,
+		buildRunSpec: flags.BuildRunSpecFromFlags(cmd.Flags()),
+		follow:       false,
 	}
 	flags.FollowFlag(cmd.Flags(), &u.follow)
 	return u

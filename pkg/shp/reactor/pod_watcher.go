@@ -33,12 +33,12 @@ type PodWatcher struct {
 	ns          string
 	watcher     watch.Interface // client watch instance
 
-	noPodEventsYetFn NoPodEventsYetFn
-	toPodFn          TimeoutPodFn
-	skipPodFn        SkipPodFn
-	onPodAddedFn     OnPodEventFn
-	onPodModifiedFn  OnPodEventFn
-	onPodDeletedFn   OnPodEventFn
+	noPodEventsYetFn []NoPodEventsYetFn
+	toPodFn          []TimeoutPodFn
+	skipPodFn        []SkipPodFn
+	onPodAddedFn     []OnPodEventFn
+	onPodModifiedFn  []OnPodEventFn
+	onPodDeletedFn   []OnPodEventFn
 }
 
 // SkipPodFn a given pod instance is informed and expects a boolean as return. When true is returned
@@ -56,37 +56,37 @@ type NoPodEventsYetFn func()
 
 // WithSkipPodFn sets the skip function instance.
 func (p *PodWatcher) WithSkipPodFn(fn SkipPodFn) *PodWatcher {
-	p.skipPodFn = fn
+	p.skipPodFn = append(p.skipPodFn, fn)
 	return p
 }
 
 // WithOnPodAddedFn sets the function executed when a pod is added.
 func (p *PodWatcher) WithOnPodAddedFn(fn OnPodEventFn) *PodWatcher {
-	p.onPodAddedFn = fn
+	p.onPodAddedFn = append(p.onPodAddedFn, fn)
 	return p
 }
 
 // WithOnPodModifiedFn sets the function executed when a pod is modified.
 func (p *PodWatcher) WithOnPodModifiedFn(fn OnPodEventFn) *PodWatcher {
-	p.onPodModifiedFn = fn
+	p.onPodModifiedFn = append(p.onPodModifiedFn, fn)
 	return p
 }
 
 // WithOnPodDeletedFn sets the function executed when a pod is modified.
 func (p *PodWatcher) WithOnPodDeletedFn(fn OnPodEventFn) *PodWatcher {
-	p.onPodDeletedFn = fn
+	p.onPodDeletedFn = append(p.onPodDeletedFn, fn)
 	return p
 }
 
 // WithTimeoutPodFn sets the function executed when the context or request timeout fires
 func (p *PodWatcher) WithTimeoutPodFn(fn TimeoutPodFn) *PodWatcher {
-	p.toPodFn = fn
+	p.toPodFn = append(p.toPodFn, fn)
 	return p
 }
 
 // WithNoPodEventsYetFn sets the function executed when the watcher decides it has waited long enough for the first event
 func (p *PodWatcher) WithNoPodEventsYetFn(fn NoPodEventsYetFn) *PodWatcher {
-	p.noPodEventsYetFn = fn
+	p.noPodEventsYetFn = append(p.noPodEventsYetFn, fn)
 	return p
 }
 
@@ -97,20 +97,20 @@ func (p *PodWatcher) handleEvent(pod *corev1.Pod, event watch.Event) error {
 	p.eventTicker.Stop()
 	switch event.Type {
 	case watch.Added:
-		if p.onPodAddedFn != nil {
-			if err := p.onPodAddedFn(pod); err != nil {
+		for _, fn := range p.onPodAddedFn {
+			if err := fn(pod); err != nil {
 				return err
 			}
 		}
 	case watch.Modified:
-		if p.onPodModifiedFn != nil {
-			if err := p.onPodModifiedFn(pod); err != nil {
+		for _, fn := range p.onPodModifiedFn {
+			if err := fn(pod); err != nil {
 				return err
 			}
 		}
 	case watch.Deleted:
-		if p.onPodDeletedFn != nil {
-			if err := p.onPodDeletedFn(pod); err != nil {
+		for _, fn := range p.onPodDeletedFn {
+			if err := fn(pod); err != nil {
 				return err
 			}
 		}
@@ -139,8 +139,17 @@ func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
 				continue
 			}
 
-			if p.skipPodFn != nil && p.skipPodFn(pod) {
-				continue
+			if len(p.skipPodFn) > 0 {
+				skip := false
+				for _, fn := range p.skipPodFn {
+					if fn(pod) {
+						skip = true
+						break
+					}
+				}
+				if skip {
+					continue
+				}
 			}
 			if err := p.handleEvent(pod, event); err != nil {
 				return pod, err
@@ -149,8 +158,8 @@ func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
 		// the event loop as well.
 		case <-p.ctx.Done():
 			p.watcher.Stop()
-			if p.toPodFn != nil {
-				p.toPodFn(ContextTimeoutMessage)
+			for _, fn := range p.toPodFn {
+				fn(ContextTimeoutMessage)
 			}
 			return nil, nil
 
@@ -158,8 +167,8 @@ func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
 		// if we have exceeded it, we exit
 		case <-time.After(p.to):
 			p.watcher.Stop()
-			if p.toPodFn != nil {
-				p.toPodFn(RequestTimeoutMessage)
+			for _, fn := range p.toPodFn {
+				fn(RequestTimeoutMessage)
 			}
 			return nil, nil
 
@@ -169,8 +178,8 @@ func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
 		// a lot of the relevant constants in github.com/k8s/k8s, which is a hassle to vendor in, prototypes
 		// felt fragile
 		case <-p.eventTicker.C:
-			if p.noPodEventsYetFn != nil {
-				p.noPodEventsYetFn()
+			for _, fn := range p.noPodEventsYetFn {
+				fn()
 			}
 
 		// watching over stop channel to stop the event loop on demand.
