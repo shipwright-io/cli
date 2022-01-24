@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -48,17 +49,19 @@ func (c *LogsCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills in data provided by user
-func (c *LogsCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *LogsCommand) Complete(params *params.Params, ioStreams *genericclioptions.IOStreams, args []string) error {
 	c.name = args[0]
-	if c.follow {
-		var err error
-		c.follower, err = follower.NewFollower(c.Cmd().Context(), c.name, io, params)
-		if err != nil {
-			return err
-		}
+	if !c.follow {
+		return nil
 	}
 
-	return nil
+	br := types.NamespacedName{
+		Namespace: params.Namespace(),
+		Name:      c.name,
+	}
+	var err error
+	c.follower, err = params.NewFollower(c.Cmd().Context(), br, ioStreams)
+	return err
 }
 
 // Validate validates data input by user

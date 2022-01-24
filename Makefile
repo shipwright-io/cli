@@ -14,7 +14,7 @@ ARGS ?=
 
 # Tekton and Shipwright Build Controller versions for CI
 TEKTON_VERSION ?= v0.30.0
-SHIPWRIGHT_VERSION ?= v0.7.0
+SHIPWRIGHT_VERSION ?= nightly-2022-01-21-1642741753
 
 .EXPORT_ALL_VARIABLES:
 

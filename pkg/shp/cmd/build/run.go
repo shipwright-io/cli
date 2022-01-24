@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -22,7 +23,6 @@ type RunCommand struct {
 	cmd *cobra.Command // cobra command instance
 
 	buildName    string
-	buildRunName string
 	namespace    string
 	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
 	follow       bool                        // flag to tail pod logs
@@ -42,7 +42,7 @@ func (r *RunCommand) Cmd() *cobra.Command {
 }
 
 // Complete picks the build resource name from arguments, and instantiate additional components.
-func (r *RunCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (r *RunCommand) Complete(params *params.Params, ioStreams *genericclioptions.IOStreams, args []string) error {
 	switch len(args) {
 	case 1:
 		r.buildName = args[0]
@@ -51,13 +51,6 @@ func (r *RunCommand) Complete(params *params.Params, io *genericclioptions.IOStr
 	}
 
 	r.namespace = params.Namespace()
-	if r.follow {
-		var err error
-		r.follower, err = follower.NewFollower(r.Cmd().Context(), r.buildRunName, io, params)
-		if err != nil {
-			return err
-		}
-	}
 
 	// overwriting build-ref name to use what's on arguments
 	return r.Cmd().Flags().Set(flags.BuildrefNameFlag, r.buildName)
@@ -82,11 +75,12 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	}
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
+	ctx := r.cmd.Context()
 	clientset, err := params.ShipwrightClientSet()
 	if err != nil {
 		return err
 	}
-	br, err = clientset.ShipwrightV1alpha1().BuildRuns(r.namespace).Create(r.cmd.Context(), br, metav1.CreateOptions{})
+	br, err = clientset.ShipwrightV1alpha1().BuildRuns(r.namespace).Create(ctx, br, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -96,7 +90,15 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		return nil
 	}
 
-	r.buildRunName = br.Name
+	// during unit-testing the follower instance will be injected directly, which makes possible to
+	// simulate the pod events without creating a race condition
+	if r.follower == nil {
+		buildRun := types.NamespacedName{Namespace: r.namespace, Name: br.GetName()}
+		r.follower, err = params.NewFollower(ctx, buildRun, ioStreams)
+		if err != nil {
+			return err
+		}
+	}
 
 	// instantiating a pod watcher with a specific label-selector to find the indented pod where the
 	// actual build started by this subcommand is being executed, including the randomized buildrun
@@ -121,6 +123,6 @@ func runCmd() runner.SubCommand {
 		cmd:          cmd,
 		buildRunSpec: flags.BuildRunSpecFromFlags(cmd.Flags()),
 	}
-	cmd.Flags().BoolVarP(&runCommand.follow, "follow", "F", runCommand.follow, "Start a build and watch its log until it completes or fails.")
+	flags.FollowFlag(cmd.Flags(), &runCommand.follow)
 	return runCommand
 }
