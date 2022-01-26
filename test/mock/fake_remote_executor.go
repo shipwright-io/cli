@@ -31,14 +31,14 @@ func (f *FakeRemoteExecutor) Stdin() string {
 // only return a stubbed error, and extract elements from the request.
 func (f *FakeRemoteExecutor) Execute(
 	_ string,
-	reqUrl *url.URL,
+	reqURL *url.URL,
 	_ *rest.Config,
 	stdin io.Reader,
 	stdout, stderr io.Writer,
 	_ bool,
 	_ remotecommand.TerminalSizeQueue,
 ) error {
-	values, exists := reqUrl.Query()["command"]
+	values, exists := reqURL.Query()["command"]
 	if exists {
 		f.command = values
 	}

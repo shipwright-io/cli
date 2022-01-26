@@ -90,7 +90,7 @@ func (u *UploadCommand) extractArgs(args []string) error {
 	return u.Cmd().Flags().Set(flags.BuildrefNameFlag, buildRefName)
 }
 
-// Complete instantiate teh dependencies for the log following and the data streaming.
+// Complete instantiate the dependencies for the log following and the data streaming.
 func (u *UploadCommand) Complete(p *params.Params, _ *genericclioptions.IOStreams, args []string) error {
 	// extracting the command-line arguments to store the build-name and the path to the directory
 	// to be uploaded, in subsequent steps
