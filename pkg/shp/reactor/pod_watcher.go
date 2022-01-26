@@ -32,6 +32,7 @@ type PodWatcher struct {
 	clientset   kubernetes.Interface
 	ns          string
 	watcher     watch.Interface // client watch instance
+	listOpts    metav1.ListOptions
 
 	noPodEventsYetFn []NoPodEventsYetFn
 	toPodFn          []TimeoutPodFn
@@ -51,8 +52,9 @@ type OnPodEventFn func(pod *corev1.Pod) error
 // TimeoutPodFn when either the context or request timeout expires before the Pod finishes
 type TimeoutPodFn func(msg string)
 
-// NoPodEventsYetFn when the watch has not received the create event within a reasonable time
-type NoPodEventsYetFn func()
+// NoPodEventsYetFn when the watch has not received the create event within a reasonable time,
+// where a PodList is also provided in the off chance the Pod completed before the Watch was started.
+type NoPodEventsYetFn func(podList *corev1.PodList)
 
 // WithSkipPodFn sets the skip function instance.
 func (p *PodWatcher) WithSkipPodFn(fn SkipPodFn) *PodWatcher {
@@ -121,6 +123,7 @@ func (p *PodWatcher) handleEvent(pod *corev1.Pod, event watch.Event) error {
 // Start runs the event loop based on a watch instantiated against informed pod. In case of errors
 // the loop is interrupted.
 func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
+	p.listOpts = listOpts
 	w, err := p.clientset.CoreV1().Pods(p.ns).Watch(p.ctx, listOpts)
 	if err != nil {
 		return nil, err
@@ -178,8 +181,14 @@ func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
 		// a lot of the relevant constants in github.com/k8s/k8s, which is a hassle to vendor in, prototypes
 		// felt fragile
 		case <-p.eventTicker.C:
+			// for the narrow edge case where the final event for the Pod occurs before the
+			// watch can be established, we list the pods and if we find any, call noPodEventsYetFn.
+			// Reminder, if we do get events, this ticker is stopped/cancelled
+			podList, _ := p.clientset.CoreV1().Pods(p.ns).List(p.ctx, p.listOpts)
+			// no need to return the error here, calling the no pod events listener is more important and it
+			// more than likely will treat a nil/empty PodList the same regardless
 			for _, fn := range p.noPodEventsYetFn {
-				fn()
+				fn(podList)
 			}
 
 		// watching over stop channel to stop the event loop on demand.

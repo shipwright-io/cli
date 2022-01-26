@@ -194,8 +194,13 @@ func (f *Follower) OnTimeout(msg string) {
 }
 
 // OnNoPodEventsYet reacts to the pod watcher telling us it has not received any pod events for our build run
-func (f *Follower) OnNoPodEventsYet() {
+func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 	f.Log(fmt.Sprintf("BuildRun %q log following has not observed any pod events yet.\n", f.buildRun.Name))
+	if podList != nil && len(podList.Items) > 0 {
+		f.Log(fmt.Sprintf("BuildRun %q's Pod completed before the log following's watch was established.\n", f.buildRun.Name))
+		f.OnEvent(&podList.Items[0])
+		return
+	}
 	brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(f.buildRun.Namespace)
 	br, err := brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
 	if err != nil {

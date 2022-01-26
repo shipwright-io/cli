@@ -2,6 +2,8 @@ package reactor
 
 import (
 	"context"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
+	fakekubetesting "k8s.io/client-go/testing"
 	"math"
 	"testing"
 	"time"
@@ -65,7 +67,7 @@ func Test_PodWatcher_NotCalledYet(t *testing.T) {
 	eventsDoneCh := make(chan bool, 1)
 
 	called := false
-	pw.WithNoPodEventsYetFn(func() {
+	pw.WithNoPodEventsYetFn(func(podList *corev1.PodList) {
 		called = true
 		eventsCh <- true
 	})
@@ -85,6 +87,63 @@ func Test_PodWatcher_NotCalledYet(t *testing.T) {
 
 	if !called {
 		t.Fatal("called still false")
+	}
+}
+
+func Test_PodWatcher_NotCalledYet_AllEventsBeforeWatchStart(t *testing.T) {
+	// we separate this test out from the other events given the
+	// lazy check we have for not getting pod events
+	g := NewWithT(t)
+	ctx := context.TODO()
+
+	clientset := fake.NewSimpleClientset()
+	// set up lister that will return pod, but we don't create/update a Pod, thus we do not trigger
+	// events on the watch; mimics a Pod completing before the watch is established.
+	listReactorFunc := func(action fakekubetesting.Action) (handled bool, ret kruntime.Object, err error) {
+		pod := corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: metav1.NamespaceDefault,
+				Name:      "pod",
+			},
+		}
+		return true, &corev1.PodList{Items: []corev1.Pod{pod}}, nil
+	}
+	clientset.PrependReactor("list", "pods", listReactorFunc)
+
+	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.NamespaceDefault)
+	g.Expect(err).To(BeNil())
+
+	eventsCh := make(chan bool, 1)
+	eventsDoneCh := make(chan bool, 1)
+
+	noEventsCalled := false
+	podListProvided := false
+	pw.WithNoPodEventsYetFn(func(podList *corev1.PodList) {
+		noEventsCalled = true
+		if podList != nil {
+			podListProvided = true
+		}
+		eventsCh <- true
+	})
+
+	// executing the event loop in the background, and waiting for the stop channel before inspecting
+	// for errors
+	go func() {
+		_, err := pw.Start(metav1.ListOptions{})
+		<-pw.stopCh
+		g.Expect(err).To(BeNil())
+		eventsDoneCh <- true
+	}()
+
+	<-eventsCh
+	pw.Stop()
+	<-eventsDoneCh
+
+	if !noEventsCalled {
+		t.Fatal("noEventsCalled still false")
+	}
+	if !podListProvided {
+		t.Fatal("podListProvided still false")
 	}
 }
 
