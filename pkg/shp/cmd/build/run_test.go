@@ -205,7 +205,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			pod.Status.Phase = test.phase
 			cmd.follower.OnEvent(pod)
 		} else {
-			cmd.follower.OnNoPodEventsYet()
+			cmd.follower.OnNoPodEventsYet(nil)
 		}
 		checkLog(test.name, test.logText, cmd, out, t)
 	}
