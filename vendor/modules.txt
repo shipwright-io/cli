@@ -270,7 +270,7 @@ github.com/russross/blackfriday
 # github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 ## explicit; go 1.13
 github.com/sabhiram/go-gitignore
-# github.com/shipwright-io/build v0.7.1-0.20220120135729-a962084c65d6
+# github.com/shipwright-io/build v0.8.0
 ## explicit; go 1.17
 github.com/shipwright-io/build/pkg/apis/build/v1alpha1
 github.com/shipwright-io/build/pkg/client/clientset/versioned
