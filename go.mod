@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/onsi/gomega v1.17.0
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
-	github.com/shipwright-io/build v0.7.1-0.20220120135729-a962084c65d6
+	github.com/shipwright-io/build v0.8.0
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
 	github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
