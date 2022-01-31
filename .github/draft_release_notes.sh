@@ -82,12 +82,12 @@ while IFS= read -r pr; do
    AUTHOR=$(echo $pr | cut -d';' -f2)
    PR_NUM=$(echo $pr | cut -d';' -f3)
    echo "Examining from ${AUTHOR} PR ${PR_NUM}"
-   PR_BODY=$(wget -q -O- https://api.github.com/repos/shipwright-io/build/issues/${PR_NUM:1})
+   PR_BODY=$(wget -q -O- https://api.github.com/repos/shipwright-io/cli/issues/${PR_NUM:1})
    echo $PR_BODY | grep -oPz '(?s)(?<=```release-note..)(.+?)(?=```)' > /dev/null 2>&1
    rc=$?
    if [ ${rc} -eq 1 ]; then
       echo "First validation:  the release-note field for PR ${PR_NUM} was not properly formatted.  Until it is fixed, it will be skipped for release note inclusion."
-      echo "See the PR template at https://raw.githubusercontent.com/shipwright-io/build/master/.github/pull_request_template.md for verification steps"
+      echo "See the PR template at https://raw.githubusercontent.com/shipwright-io/cli/master/.github/pull_request_template.md for verification steps"
       continue
    fi
    PR_BODY_FILTER_ONE=$(echo $PR_BODY | grep -oPz '(?s)(?<=```release-note..)(.+?)(?=```)')
@@ -95,7 +95,7 @@ while IFS= read -r pr; do
    rc=$?
    if [ ${rc} -eq 1 ]; then
       echo "Second validation:  the release-note field for PR ${PR_NUM} was not properly formatted.  Until it is fixed, it will be skipped for release note inclusion."
-      echo "See the PR template at https://raw.githubusercontent.com/shipwright-io/build/master/.github/pull_request_template.md for verification steps"
+      echo "See the PR template at https://raw.githubusercontent.com/shipwright-io/cli/master/.github/pull_request_template.md for verification steps"
       continue
    fi
    PR_RELEASE_NOTE=$(echo $PR_BODY_FILTER_ONE | grep -avP '\W*(Your release note here|action required: your release note here|NONE)\W*')
@@ -134,7 +134,7 @@ while IFS= read -r pr; do
       echo "$PR_NUM by $AUTHOR: $PR_RELEASE_NOTE_NO_NEWLINES" >> "${releaseDir}/Misc.md"
    fi
    # update the PR template if our greps etc. for pulling the release note changes
-   #PR_RELEASE_NOTE=$(wget -q -O- https://api.github.com/repos/shipwright-io/build/issues/${PR_NUM:1} | grep -oPz '(?s)(?<=```release-note..)(.+?)(?=```)' | grep -avP '\W*(Your release note here|action required: your release note here|NONE)\W*')
+   #PR_RELEASE_NOTE=$(wget -q -O- https://api.github.com/repos/shipwright-io/cli/issues/${PR_NUM:1} | grep -oPz '(?s)(?<=```release-note..)(.+?)(?=```)' | grep -avP '\W*(Your release note here|action required: your release note here|NONE)\W*')
    echo "Added from ${AUTHOR} PR ${PR_NUM:1} to the release note draft"
 done < last-300-prs-with-release-note.txt
 
