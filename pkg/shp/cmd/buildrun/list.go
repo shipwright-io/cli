@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
@@ -57,8 +59,8 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	//       find out more in kubectl libraries and use them
 
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 2, '\t', 0)
-	columnNames := "NAME\tSTATUS"
-	columnTemplate := "%s\t%s\n"
+	columnNames := "NAME\tSTATUS\tAGE"
+	columnTemplate := "%s\t%s\t%s\n"
 
 	clientset, err := params.ShipwrightClientSet()
 	if err != nil {
@@ -83,8 +85,9 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 				break
 			}
 		}
+		age := duration.ShortHumanDuration(time.Since((br.Status.StartTime).Time))
 
-		fmt.Fprintf(writer, columnTemplate, name, status)
+		fmt.Fprintf(writer, columnTemplate, name, status, age)
 	}
 
 	writer.Flush()
