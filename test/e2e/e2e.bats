@@ -62,14 +62,14 @@ teardown() {
 	# ensure that shp command doesn't log the api calls by default
 	run shp build list
 	assert_success
-	refute_line --regexp "GET .*/apis/shipwright.io/v1alpha1/namespaces/default/builds"
+	refute_line --regexp "GET .*/apis/shipwright.io/v1alpha1/namespaces/"
 	refute_line --partial "Response Headers"
 	refute_line --partial "Response Body"
 
 	# ensure that shp command supports -v loglevel flag.
 	run shp -v=10 build list
 	assert_success
-	assert_line --regexp "GET .*/apis/shipwright.io/v1alpha1/namespaces/default/builds"
+	assert_line --regexp "GET .*/apis/shipwright.io/v1alpha1/namespaces/"
 	assert_line --partial "Response Headers"
 	assert_line --partial "Response Body"
 }

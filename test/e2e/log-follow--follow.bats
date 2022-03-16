@@ -17,12 +17,13 @@ teardown() {
   	# generate random names for our build and buildrun
   	build_name=$(random_name)
   	buildrun_name=$(random_name)
+    output_image=$(get_output_image build-e2e)
 
     # creating a golang based build
     run shp build create ${build_name} \
         --source-url=https://github.com/shipwright-io/sample-go \
         --source-context-dir=source-build \
-        --output-image=registry.registry.svc.cluster.local:32222/shipwright-io/build-e2e 
+        --output-image=${output_image}
     assert_success
 
     # initiate a BuildRun

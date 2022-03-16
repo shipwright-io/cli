@@ -15,6 +15,13 @@ GO_CACHE ?= $(shell go env GOCACHE)
 
 ARGS ?=
 
+# container registry deployment namespace
+REGISTRY_NAMESPACE ?= registry
+
+# hostname and namespace for the end-to-end tests producing container images
+OUTPUT_HOSTNAME ?= registry.registry.svc.cluster.local:32222
+OUTPUT_NAMESPACE ?= shipwright-io
+
 # Tekton and Shipwright Build Controller versions for CI
 TEKTON_VERSION ?= v0.30.0
 SHIPWRIGHT_VERSION ?= v0.8.0
@@ -59,6 +66,10 @@ test-e2e:
 # wait for KinD cluster to be on ready state, so tests can be performed
 verify-kind:
 	./hack/verify-kind.sh
+
+# deploys a Container Registry instance, for the end-to-end tests
+install-registry:
+	./hack/install-registry.sh
 
 # deploys Tekton and Shipwright Build Controller following the versions exported
 install-shipwright:
