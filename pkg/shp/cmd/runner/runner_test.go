@@ -20,7 +20,7 @@ func (m *mockedSubCommand) Cmd() *cobra.Command {
 	return testCmd
 }
 
-func (m *mockedSubCommand) Complete(p *params.Params, ioStreams *genericclioptions.IOStreams, args []string) error {
+func (m *mockedSubCommand) Complete(_ params.Interface, _ *genericclioptions.IOStreams, _ []string) error {
 	return nil
 }
 
@@ -28,7 +28,7 @@ func (m *mockedSubCommand) Validate() error {
 	return nil
 }
 
-func (m *mockedSubCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStreams) error {
+func (m *mockedSubCommand) Run(_ params.Interface, ioStreams *genericclioptions.IOStreams) error {
 	return nil
 }
 
@@ -40,13 +40,13 @@ func TestCMD_Runner(t *testing.T) {
 	genericStreams := &genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	r := NewRunner(p, genericStreams, &mockedSubCommand{})
 
-	t.Run("cmd", func(t *testing.T) {
+	t.Run("cmd", func(_ *testing.T) {
 		cmd := r.Cmd()
 
 		g.Expect(cmd.RunE).ToNot(gomega.BeNil())
 	})
 
-	t.Run("RunE", func(t *testing.T) {
+	t.Run("RunE", func(_ *testing.T) {
 		err := r.RunE(testCmd, []string{})
 
 		g.Expect(err).To(gomega.BeNil())

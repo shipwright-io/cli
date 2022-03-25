@@ -2,239 +2,218 @@ package follower
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
-	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
+	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/shipwright-io/cli/pkg/shp/tail"
 	"github.com/shipwright-io/cli/pkg/shp/util"
-
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 )
 
-// Follower encapsulate the function of tailing the logs for Pods derived from BuildRuns
-type Follower struct {
-	ctx            context.Context              // global context instance
-	buildRun       types.NamespacedName         // qualified object name
-	ioStreams      *genericclioptions.IOStreams // io-streams instance
-	pw             *reactor.PodWatcher          // pod-watcher instance
-	clientset      kubernetes.Interface         // kubernetes api-client
-	buildClientset buildclientset.Interface     // shipwright api-client
+// PodLogsFollower uses PodWatcher to react upon pod state changes with the final objective of
+// streaming all logs from all the containers in the pod.
+type PodLogsFollower struct {
+	ctx context.Context
 
-	logTail         *tail.Tail      // follow container logs
-	tailLogsStarted map[string]bool // controls tail instance per container
+	pw        *reactor.PodWatcher          // podwatcher instance
+	clientset kubernetes.Interface         // kubernetes client
+	ioStreams *genericclioptions.IOStreams // log output interface
 
-	logLock             sync.Mutex // avoiding race condition to print logs
-	enteredRunningState bool       // target pod is running
+	podIsRunning   bool            // pod is set as running
+	logTail        *tail.Tail      // helper to tail container logs
+	logTailStarted map[string]bool // containers with logTail started
+
+	onlyOnce bool // retrieve the pod logs only once
 }
 
-// NewFollower returns a Follower instance.
-func NewFollower(
-	ctx context.Context,
-	buildRun types.NamespacedName,
-	ioStreams *genericclioptions.IOStreams,
-	pw *reactor.PodWatcher,
-	clientset kubernetes.Interface,
-	buildClientset buildclientset.Interface,
-) *Follower {
-	f := &Follower{
-		ctx:            ctx,
-		buildRun:       buildRun,
-		ioStreams:      ioStreams,
-		pw:             pw,
-		clientset:      clientset,
-		buildClientset: buildClientset,
+var (
+	// ErrPodDeleted a pod has been deleted, having DeletionTimestamp set
+	ErrPodDeleted = errors.New("pod has been deleted")
 
-		logTail:         tail.NewTail(ctx, clientset),
-		logLock:         sync.Mutex{},
-		tailLogsStarted: map[string]bool{},
+	// ErrPodFailed a pod has failed, generic reason
+	ErrPodFailed = errors.New("pod has failed")
+
+	// ErrPodStatusUnknown a pod has status condition set to unknown
+	ErrPodStatusUnknown = errors.New("pod status is unknown")
+)
+
+// log log entries on the standard output of the ioStreams instance.
+func (p *PodLogsFollower) log(format string, a ...interface{}) {
+	fmt.Fprintf(p.ioStreams.Out, format, a...)
+}
+
+// log log entries on the error output of the ioStreams instance.
+func (p *PodLogsFollower) logError(format string, a ...interface{}) {
+	fmt.Fprintf(p.ioStreams.ErrOut, format, a...)
+}
+
+// onPodRunning as soon as the pod gets into the running state it will start streaming logs from all
+// containers, and mark it as running.
+func (p *PodLogsFollower) onPodRunning(pod *corev1.Pod) {
+	if p.onlyOnce {
+		p.getPodLogs(pod)
+		return
+	}
+	// when the pod is already running the log tailing must be already set up, thefore skipping it
+	// when dealing with subsequent pod modifications
+	if p.podIsRunning {
+		return
 	}
 
-	f.pw.WithOnPodModifiedFn(f.OnEvent)
-	f.pw.WithTimeoutPodFn(f.OnTimeout)
-	f.pw.WithNoPodEventsYetFn(f.OnNoPodEventsYet)
+	p.log("Pod %q in %q state, starting up log tail\n", pod.GetName(), corev1.PodRunning)
 
-	return f
-}
-
-// GetLogLock returns the mutex used for coordinating access to log buffers.
-func (f *Follower) GetLogLock() *sync.Mutex {
-	return &f.logLock
-}
-
-// Log prints a message
-func (f *Follower) Log(msg string) {
-	// concurrent fmt.Fprintf(r.ioStream.Out...) calls need locking to avoid data races, as we 'write' to the stream
-	f.logLock.Lock()
-	defer f.logLock.Unlock()
-	fmt.Fprint(f.ioStreams.Out, msg)
-}
-
-// tailLogs start tailing logs for each container name in init-containers and containers, if not
-// started already.
-func (f *Follower) tailLogs(pod *corev1.Pod) {
+	time.Sleep(3 * time.Second)
 	containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
 	for _, container := range containers {
-		if _, exists := f.tailLogsStarted[container.Name]; exists {
+		if _, exists := p.logTailStarted[container.Name]; exists {
 			continue
 		}
-		f.tailLogsStarted[container.Name] = true
-		f.logTail.Start(pod.GetNamespace(), pod.GetName(), container.Name)
+		p.logTailStarted[container.Name] = true
+		p.logTail.Start(pod.GetNamespace(), pod.GetName(), container.Name)
+	}
+	p.podIsRunning = true
+}
+
+// getPodLogs retrieve the current snapshot of the pod logs, without following it.
+func (p *PodLogsFollower) getPodLogs(pod *corev1.Pod) {
+	var buffer strings.Builder
+	containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
+	for _, container := range containers {
+		logs, err := util.GetPodLogs(p.ctx, p.clientset, *pod, container.Name)
+		if err != nil {
+			p.logError("Error trying to get logs from container %q: %q", container.Name, err)
+			continue
+		}
+		fmt.Fprintf(&buffer, "*** Pod %q, container %q: ***\n\n", pod.Name, container.Name)
+		fmt.Fprintln(&buffer, logs)
+	}
+	p.log(buffer.String())
+
+	if p.onlyOnce {
+		p.Stop()
 	}
 }
 
-// Stop stop log tail instance.
-func (f *Follower) Stop() {
-	f.logTail.Stop()
-	f.pw.Stop()
+// onPodFailed as soon as the pod fails, it will determine why and prepare the error accordingly.
+func (p *PodLogsFollower) onPodFailed(pod *corev1.Pod) error {
+	if pod.DeletionTimestamp != nil {
+		p.log("Pod %q has been deleted!\n", pod.GetName())
+		return fmt.Errorf("%w: %s", ErrPodDeleted, pod.GetName())
+	}
+	p.getPodLogs(pod)
+	p.log("Pod %q has failed!\n", pod.GetName())
+	return fmt.Errorf("%w: %s", ErrPodFailed, pod.GetName())
 }
 
-// OnEvent reacts on pod state changes, to start and stop tailing container logs.
-func (f *Follower) OnEvent(pod *corev1.Pod) error {
-	switch pod.Status.Phase {
-	case corev1.PodRunning:
-		if !f.enteredRunningState {
-			f.Log(fmt.Sprintf("Pod %q in %q state, starting up log tail", pod.GetName(), corev1.PodRunning))
-			f.enteredRunningState = true
-			// graceful time to wait for container start
-			time.Sleep(3 * time.Second)
-			// start tailing container logs
-			f.tailLogs(pod)
-		}
-	case corev1.PodFailed:
-		msg := ""
-		var br *buildv1alpha1.BuildRun
-		err := wait.PollImmediate(1*time.Second, 15*time.Second, func() (done bool, err error) {
-			brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(pod.Namespace)
-			br, err = brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
-			if err != nil {
-				if kerrors.IsNotFound(err) {
-					return true, nil
-				}
-				f.Log(fmt.Sprintf("error getting buildrun %q for pod %q: %s\n", f.buildRun.Name, pod.GetName(), err.Error()))
-				return false, nil
-			}
-			if br.IsDone() {
-				return true, nil
-			}
-			return false, nil
-		})
-		if err != nil {
-			f.Log(fmt.Sprintf("gave up trying to get a buildrun %q in a terminal state for pod %q, proceeding with pod failure processing", f.buildRun.Name, pod.GetName()))
-		}
-		switch {
-		case br == nil:
-			msg = fmt.Sprintf("BuildRun %q has been deleted.\n", br.Name)
-		case err == nil && br.IsCanceled():
-			msg = fmt.Sprintf("BuildRun %q has been canceled.\n", br.Name)
-		case (err == nil && br.DeletionTimestamp != nil) || (err != nil && kerrors.IsNotFound(err)):
-			msg = fmt.Sprintf("BuildRun %q has been deleted.\n", br.Name)
-		case pod.DeletionTimestamp != nil:
-			msg = fmt.Sprintf("Pod %q has been deleted.\n", pod.GetName())
-		default:
-			msg = fmt.Sprintf("Pod %q has failed!\n", pod.GetName())
-			podBytes, err2 := json.MarshalIndent(pod, "", "    ")
-			if err2 == nil {
-				msg = fmt.Sprintf("Pod %q has failed!\nPod JSON:\n%s\n", pod.GetName(), string(podBytes))
-			}
-			err = fmt.Errorf("build pod %q has failed", pod.GetName())
-		}
-		// see if because of deletion or cancelation
-		f.Log(msg)
-		f.Stop()
-		return err
-	case corev1.PodSucceeded:
-		// encountered scenarios where the build run quickly enough that the pod effectively skips the running state,
-		// or the events come in reverse order, and we never enter the tail
-		if !f.enteredRunningState {
-			f.Log(fmt.Sprintf("succeeded event for pod %q arrived before or in place of running event so dumping logs now", pod.GetName()))
-			var b strings.Builder
-			for _, c := range pod.Spec.Containers {
-				logs, err := util.GetPodLogs(f.ctx, f.clientset, *pod, c.Name)
-				if err != nil {
-					f.Log(fmt.Sprintf("could not get logs for container %q: %s", c.Name, err.Error()))
-					continue
-				}
-				fmt.Fprintf(&b, "*** Pod %q, container %q: ***\n\n", pod.Name, c.Name)
-				fmt.Fprintln(&b, logs)
-			}
-			f.Log(b.String())
-		}
-		f.Log(fmt.Sprintf("Pod %q has succeeded!\n", pod.GetName()))
-		f.Stop()
-	default:
-		f.Log(fmt.Sprintf("Pod %q is in state %q...\n", pod.GetName(), string(pod.Status.Phase)))
-		// handle any issues with pulling images that may fail
-		for _, c := range pod.Status.Conditions {
-			if c.Type == corev1.PodInitialized || c.Type == corev1.ContainersReady {
-				if c.Status == corev1.ConditionUnknown {
-					return fmt.Errorf(c.Message)
-				}
+// onPodSucceeded as soon as the pod succeeds it checks if it was running before, otherwise fetch all
+// logs at once.
+func (p *PodLogsFollower) onPodSucceeded(pod *corev1.Pod) {
+	if p.podIsRunning {
+		p.log("Pod %q has succeeded!\n", pod.GetName())
+		return
+	}
+	p.getPodLogs(pod)
+}
+
+// inspectPodStatus checks the informed pod status, trying to identify if it's on unknown condition.
+func (p *PodLogsFollower) inspectPodStatus(pod *corev1.Pod) error {
+	p.log("Pod %q is in state %q...\n", pod.GetName(), pod.Status.Phase)
+
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodInitialized || condition.Type == corev1.ContainersReady {
+			if condition.Status == corev1.ConditionUnknown {
+				return fmt.Errorf("%w: %s", ErrPodStatusUnknown, pod.GetName())
 			}
 		}
 	}
 	return nil
-
 }
 
-// OnTimeout reacts to either the context or request timeout causing the pod watcher to exit
-func (f *Follower) OnTimeout(msg string) {
-	f.Log(fmt.Sprintf("BuildRun %q log following has stopped because: %q\n", f.buildRun.Name, msg))
-}
-
-// OnNoPodEventsYet reacts to the pod watcher telling us it has not received any pod events for our build run
-func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
-	f.Log(fmt.Sprintf("BuildRun %q log following has not observed any pod events yet.\n", f.buildRun.Name))
-	if podList != nil && len(podList.Items) > 0 {
-		f.Log(fmt.Sprintf("BuildRun %q's Pod completed before the log following's watch was established.\n", f.buildRun.Name))
-		f.OnEvent(&podList.Items[0])
-		return
+// OnEvent reacts to the informed pod depending on its execution phase.
+func (p *PodLogsFollower) OnEvent(pod *corev1.Pod) error {
+	switch pod.Status.Phase {
+	case corev1.PodRunning:
+		p.onPodRunning(pod)
+	case corev1.PodFailed:
+		p.Stop()
+		return p.onPodFailed(pod)
+	case corev1.PodSucceeded:
+		p.Stop()
+		p.onPodSucceeded(pod)
+	default:
+		return p.inspectPodStatus(pod)
 	}
-	brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(f.buildRun.Namespace)
-	br, err := brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
+	return nil
+}
+
+// WatchEventTimeout fallback mechanism to capture pods.
+func (p *PodLogsFollower) WatchEventTimeout(pod *corev1.Pod) (bool, error) {
+	return false, p.OnEvent(pod)
+}
+
+// Start watching for events.
+func (p *PodLogsFollower) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
+	return p.pw.Start(listOpts)
+}
+
+// Stop watching for events and following logs.
+func (p *PodLogsFollower) Stop() {
+	p.logTail.Stop()
+	p.pw.Stop()
+}
+
+// SetOnlyOnce retrieve the logs only once, as soon as the pod is able to provide logs.
+func (p *PodLogsFollower) SetOnlyOnce() {
+	p.onlyOnce = true
+}
+
+// NewPodLogsFollower instantiate the PodLogsFollower by setting up the PodWatcher event callbacks.
+func NewPodLogsFollower(
+	ctx context.Context,
+	pw *reactor.PodWatcher,
+	clientset kubernetes.Interface,
+	ioStreams *genericclioptions.IOStreams,
+) *PodLogsFollower {
+	p := &PodLogsFollower{
+		ctx: ctx,
+
+		pw:        pw,
+		clientset: clientset,
+		ioStreams: ioStreams,
+
+		logTail:        tail.NewTail(ctx, clientset),
+		logTailStarted: map[string]bool{},
+	}
+	// when starting a watch against stale pods, those are reported as "added" event, and possibly
+	// won't be subject to modifications
+	pw.WithOnPodAddedFn(p.OnEvent)
+	// when watching over pods in execution, as the build workflow progresses it will issue
+	// modification events
+	pw.WithOnPodModifiedFn(p.OnEvent)
+	// when watching over pods subject to deletion
+	pw.WithOnPodDeletedFn(p.OnEvent)
+	// when watch does not issue events after a certain period
+	pw.WithWatchEventTimeoutFn(p.WatchEventTimeout)
+	return p
+}
+
+// NewPodLogsFollowerFromParams instantiate the PodLogsFollower based on the Params instance.
+func NewPodLogsFollowerFromParams(
+	ctx context.Context,
+	p params.Interface,
+	pw *reactor.PodWatcher,
+	ioStreams *genericclioptions.IOStreams,
+) (*PodLogsFollower, error) {
+	clientset, err := p.ClientSet()
 	if err != nil {
-		f.Log(fmt.Sprintf("error accessing BuildRun %q: %s", f.buildRun.Name, err.Error()))
-		return
+		return nil, err
 	}
-
-	c := br.Status.GetCondition(buildv1alpha1.Succeeded)
-	giveUp := false
-	msg := ""
-	switch {
-	case c != nil && c.Status == corev1.ConditionTrue:
-		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been marked as successful.\n", br.Name)
-	case c != nil && c.Status == corev1.ConditionFalse:
-		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been marked as failed.\n", br.Name)
-	case br.IsCanceled():
-		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been canceled.\n", br.Name)
-	case br.DeletionTimestamp != nil:
-		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been deleted.\n", br.Name)
-	case !br.HasStarted():
-		f.Log(fmt.Sprintf("BuildRun '%s' has been marked as failed.\n", br.Name))
-	}
-	if giveUp {
-		f.Log(msg)
-		f.Log(fmt.Sprintf("exiting 'shp build run --follow' for BuildRun %q", br.Name))
-		f.Stop()
-	}
-}
-
-// Start initiates the log following for the referenced BuildRun's Pod
-func (f *Follower) Start(lo metav1.ListOptions) (*corev1.Pod, error) {
-	return f.pw.Start(lo)
+	return NewPodLogsFollower(ctx, pw, clientset, ioStreams), nil
 }

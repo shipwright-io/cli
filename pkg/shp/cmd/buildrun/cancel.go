@@ -38,7 +38,7 @@ func (c *CancelCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills in data provided by user
-func (c *CancelCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *CancelCommand) Complete(_ params.Interface, _ *genericclioptions.IOStreams, args []string) error {
 	c.name = args[0]
 
 	return nil
@@ -50,14 +50,14 @@ func (c *CancelCommand) Validate() error {
 }
 
 // Run executes cancel sub-command logic
-func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	clientset, err := params.ShipwrightClientSet()
+func (c *CancelCommand) Run(p params.Interface, ioStreams *genericclioptions.IOStreams) error {
+	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
 		return err
 	}
 
 	var br *buildv1alpha1.BuildRun
-	if br, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Get(c.cmd.Context(), c.name, metav1.GetOptions{}); err != nil {
+	if br, err = clientset.ShipwrightV1alpha1().BuildRuns(p.Namespace()).Get(c.cmd.Context(), c.name, metav1.GetOptions{}); err != nil {
 		return fmt.Errorf("failed to retrieve BuildRun %s: %s", c.name, err.Error())
 	}
 	if br.IsDone() {
@@ -78,7 +78,7 @@ func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.
 	if data, err = json.Marshal(payload); err != nil {
 		return err
 	}
-	if _, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Patch(c.Cmd().Context(), c.name, types.JSONPatchType, data, metav1.PatchOptions{}); err != nil {
+	if _, err = clientset.ShipwrightV1alpha1().BuildRuns(p.Namespace()).Patch(c.Cmd().Context(), c.name, types.JSONPatchType, data, metav1.PatchOptions{}); err != nil {
 		return err
 	}
 

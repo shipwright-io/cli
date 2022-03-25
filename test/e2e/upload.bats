@@ -31,7 +31,7 @@ function assert_shp_upload_follow_output() {
 @test "shp build upload" {
 	build_name=$(random_name)
 
-	output_image="registry.registry.svc.cluster.local:32222/shipwright-io/build-e2e"
+	output_image=$(get_output_image build-e2e)
 	source_url="https://github.com/shipwright-io/sample-go"
 	repo_dir="${BATS_TEST_TMPDIR}/sample-go"
 

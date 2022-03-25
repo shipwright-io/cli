@@ -35,7 +35,7 @@ func (c *DeleteCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills in data provided by user
-func (c *DeleteCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *DeleteCommand) Complete(_ params.Interface, _ *genericclioptions.IOStreams, args []string) error {
 	c.name = args[0]
 
 	return nil
@@ -47,13 +47,13 @@ func (c *DeleteCommand) Validate() error {
 }
 
 // Run executes delete sub-command logic
-func (c *DeleteCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	clientset, err := params.ShipwrightClientSet()
+func (c *DeleteCommand) Run(p params.Interface, ioStreams *genericclioptions.IOStreams) error {
+	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
 		return err
 	}
 
-	if err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Delete(c.cmd.Context(), c.name, metav1.DeleteOptions{}); err != nil {
+	if err = clientset.ShipwrightV1alpha1().BuildRuns(p.Namespace()).Delete(c.cmd.Context(), c.name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 

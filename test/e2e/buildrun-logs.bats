@@ -30,11 +30,14 @@ teardown() {
     run shp buildrun create --buildref-name ${build_name} ${buildrun_name}
     assert_success
 
-    # tail logs with -F
-    run shp buildrun logs --follow ${buildrun_name} 2>&1
+    # tail the logs as soon as the build starts
+    run shp buildrun logs ${buildrun_name}
     assert_success
+    assert_output --partial "*** Pod"
 
-    # confirm output that would only exist if following BuildRun logs
+    # following the pod logs until the end
+    run shp buildrun logs --follow ${buildrun_name}
+    assert_success
     assert_output --partial "[source-default]"
     assert_output --partial "[place-tools]"
     assert_output --partial "[build-and-push]"

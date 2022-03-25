@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/buildrun"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/follower"
 	"github.com/shipwright-io/cli/pkg/shp/params"
+	"github.com/shipwright-io/cli/pkg/shp/reactor"
 
 	"github.com/spf13/cobra"
 
@@ -22,11 +24,12 @@ import (
 type RunCommand struct {
 	cmd *cobra.Command // cobra command instance
 
-	buildName    string
-	namespace    string
+	buildName string // build name, collected during complete
+
 	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
 	follow       bool                        // flag to tail pod logs
-	follower     *follower.Follower
+
+	podLogsFollower *follower.PodLogsFollower
 }
 
 const buildRunLongDesc = `
@@ -42,15 +45,15 @@ func (r *RunCommand) Cmd() *cobra.Command {
 }
 
 // Complete picks the build resource name from arguments, and instantiate additional components.
-func (r *RunCommand) Complete(params *params.Params, ioStreams *genericclioptions.IOStreams, args []string) error {
-	switch len(args) {
-	case 1:
-		r.buildName = args[0]
-	default:
+func (r *RunCommand) Complete(
+	p params.Interface,
+	ioStreams *genericclioptions.IOStreams,
+	args []string,
+) error {
+	if len(args) != 1 {
 		return errors.New("build name is not informed")
 	}
-
-	r.namespace = params.Namespace()
+	r.buildName = args[0]
 
 	// overwriting build-ref name to use what's on arguments
 	return r.Cmd().Flags().Set(flags.BuildrefNameFlag, r.buildName)
@@ -65,7 +68,7 @@ func (r *RunCommand) Validate() error {
 }
 
 // Run creates a BuildRun resource based on Build's name informed on arguments.
-func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
+func (r *RunCommand) Run(p params.Interface, ioStreams *genericclioptions.IOStreams) error {
 	// resource using GenerateName, which will provide a unique instance
 	br := &buildv1alpha1.BuildRun{
 		ObjectMeta: metav1.ObjectMeta{
@@ -76,25 +79,30 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
 	ctx := r.cmd.Context()
-	clientset, err := params.ShipwrightClientSet()
+	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
 		return err
 	}
-	br, err = clientset.ShipwrightV1alpha1().BuildRuns(r.namespace).Create(ctx, br, metav1.CreateOptions{})
+	br, err = clientset.ShipwrightV1alpha1().
+		BuildRuns(p.Namespace()).
+		Create(ctx, br, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
 
+	fmt.Fprintf(ioStreams.Out, "BuildRun created %q for build %q\n", br.GetName(), r.buildName)
 	if !r.follow {
-		fmt.Fprintf(ioStreams.Out, "BuildRun created %q for build %q\n", br.GetName(), r.buildName)
 		return nil
 	}
 
 	// during unit-testing the follower instance will be injected directly, which makes possible to
 	// simulate the pod events without creating a race condition
-	if r.follower == nil {
-		buildRun := types.NamespacedName{Namespace: r.namespace, Name: br.GetName()}
-		r.follower, err = params.NewFollower(ctx, buildRun, ioStreams)
+	if r.podLogsFollower == nil {
+		pw, err := reactor.NewPodWatcherFromParams(r.cmd.Context(), p)
+		if err != nil {
+			return err
+		}
+		r.podLogsFollower, err = follower.NewPodLogsFollowerFromParams(ctx, p, pw, ioStreams)
 		if err != nil {
 			return err
 		}
@@ -103,12 +111,16 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	// instantiating a pod watcher with a specific label-selector to find the indented pod where the
 	// actual build started by this subcommand is being executed, including the randomized buildrun
 	// name
-	listOpts := metav1.ListOptions{LabelSelector: fmt.Sprintf(
-		"build.shipwright.io/name=%s,buildrun.shipwright.io/name=%s",
-		r.buildName,
-		br.GetName(),
-	)}
-	_, err = r.follower.Start(listOpts)
+	buildNameLabel := fmt.Sprintf("%s=%s", buildv1alpha1.LabelBuild, r.buildName)
+	buildRunNameLabel := fmt.Sprintf("%s=%s", buildv1alpha1.LabelBuildRun, br.GetName())
+	listOpts := metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s,%s", buildNameLabel, buildRunNameLabel),
+	}
+
+	if _, err = r.podLogsFollower.Start(listOpts); err != nil {
+		buildRunName := types.NamespacedName{Namespace: br.GetNamespace(), Name: br.GetName()}
+		_ = buildrun.InspectBuildRun(ctx, clientset, buildRunName, ioStreams)
+	}
 	return err
 }
 
