@@ -15,7 +15,7 @@ import (
 	"k8s.io/kubectl/pkg/scheme"
 
 	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
+	"github.com/shipwright-io/cli/pkg/shp/follower"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 
 	"github.com/spf13/pflag"

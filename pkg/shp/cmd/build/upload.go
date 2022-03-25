@@ -10,9 +10,9 @@ import (
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/shipwright-io/build/pkg/reconciler/buildrun/resources/sources"
 
-	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
+	"github.com/shipwright-io/cli/pkg/shp/follower"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/shipwright-io/cli/pkg/shp/streamer"
