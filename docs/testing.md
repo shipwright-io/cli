@@ -19,13 +19,19 @@ make test-unit
 
 ## End-to-End (E2E)
 
-End-to-End tests aim to mimic the real world usage of this CLI against the
-[Shipwright Build Controller][shipwrightBuild]. To run end-to-end tests, make sure you have the
-latest changes compiled (`make build`), and then run the tests (`make test-e2e`), in short:
+End-to-End tests aim to mimic the real world usage of this CLI against the [Shipwright Build Controller][shipwrightBuild]. To run end-to-end tests, execute:
 
 ```sh
-make build test-e2e
+make test-e2e 
 ```
+
+You can overwrite the container registry hostname and namespace used during the testing, as the following example:
+
+```sh
+make test-e2e OUTPUT_HOSTNAME="ghcr.io" OUTPUT_NAMESPACE="username"
+```
+
+Thus, the container registry used for testing images is based on `ghcr.io/username`.
 
 ### Requirements
 

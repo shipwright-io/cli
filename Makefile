@@ -60,7 +60,7 @@ test-unit:
 	go test $(GO_FLAGS) $(GO_TEST_FLAGS) $(CMD) $(PKG) $(ARGS)
 
 # looks for *.bats files in the test/e2e directory and runs them
-test-e2e:
+test-e2e: $(BIN)
 	./test/e2e/bats/core/bin/bats --recursive test/e2e/*.bats
 
 # wait for KinD cluster to be on ready state, so tests can be performed
