@@ -16,12 +16,14 @@ func pointerUInt(value uint) *uint {
 // BuildSpecFromFlags creates a BuildSpec instance based on command-line flags.
 func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	clusterBuildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
+	bundlePruneOption := buildv1alpha1.PruneNever
 	spec := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
-			Credentials: &corev1.LocalObjectReference{},
-			Revision:    pointer.String(""),
-			ContextDir:  pointer.String(""),
-			URL:         pointer.String(""),
+			Credentials:     &corev1.LocalObjectReference{},
+			Revision:        pointer.String(""),
+			ContextDir:      pointer.String(""),
+			URL:             pointer.String(""),
+			BundleContainer: &buildv1alpha1.BundleContainer{Prune: &bundlePruneOption},
 		},
 		Strategy: buildv1alpha1.Strategy{
 			Kind:       &clusterBuildStrategyKind,
@@ -75,6 +77,9 @@ func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
 	}
 	if b.Source.URL != nil && *b.Source.URL == "" {
 		b.Source.URL = nil
+	}
+	if b.Source.BundleContainer != nil && b.Source.BundleContainer.Image == "" {
+		b.Source.BundleContainer = nil
 	}
 	if b.Builder != nil {
 		if b.Builder.Credentials != nil && b.Builder.Credentials.Name == "" {

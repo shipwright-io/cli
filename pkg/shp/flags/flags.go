@@ -30,6 +30,10 @@ const (
 	SourceContextDirFlag = "source-context-dir"
 	// SourceCredentialsSecretFlag command-line flag.
 	SourceCredentialsSecretFlag = "source-credentials-secret"
+	// SourceBundleImageFlag command-line flag
+	SourceBundleImageFlag = "source-bundle-image"
+	// SourceBundlePruneFlag command-line flag
+	SourceBundlePruneFlag = "source-bundle-prune"
 	// StrategyAPIVersionFlag command-line flag.
 	StrategyAPIVersionFlag = "strategy-apiversion"
 	// StrategyKindFlag command-line flag.
@@ -84,7 +88,18 @@ func sourceFlags(flags *pflag.FlagSet, source *buildv1alpha1.Source) {
 		&source.Credentials.Name,
 		SourceCredentialsSecretFlag,
 		"",
-		"name of the secret with git repository credentials",
+		"name of the secret with credentials to access the source, e.g. git or registry credentials",
+	)
+	flags.StringVar(
+		&source.BundleContainer.Image,
+		SourceBundleImageFlag,
+		"",
+		"source bundle image location, e.g. ghcr.io/shipwright-io/sample-go/source-bundle:latest",
+	)
+	flags.Var(
+		pruneOptionFlag{ref: source.BundleContainer.Prune},
+		SourceBundlePruneFlag,
+		fmt.Sprintf("source bundle prune option, either %s, or %s", buildv1alpha1.PruneNever, buildv1alpha1.PruneAfterPull),
 	)
 }
 

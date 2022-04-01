@@ -30,8 +30,10 @@ shp build create <name> [flags]
       --retention-succeeded-limit uint           number of succeeded BuildRuns to be kept (default 65535)
       --retention-ttl-after-failed duration      duration to delete a failed BuildRun after completion
       --retention-ttl-after-succeeded duration   duration to delete a succeeded BuildRun after completion
+      --source-bundle-image string               source bundle image location, e.g. ghcr.io/shipwright-io/sample-go/source-bundle:latest
+      --source-bundle-prune pruneOption          source bundle prune option, either Never, or AfterPull (default Never)
       --source-context-dir string                use a inner directory as context directory
-      --source-credentials-secret string         name of the secret with git repository credentials
+      --source-credentials-secret string         name of the secret with credentials to access the source, e.g. git or registry credentials
       --source-revision string                   git repository source revision
       --source-url string                        git repository source URL
       --strategy-apiversion string               kubernetes api-version of the build-strategy resource (default "v1alpha1")

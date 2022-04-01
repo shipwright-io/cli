@@ -5,12 +5,17 @@ Run a Build with local data
 ### Synopsis
 
 
-Creates a new BuildRun instance and instructs the Build Controller to wait for the data streamed,
-instead of executing "git clone". Therefore, you can employ Shipwright Builds from a local repository
-clone.
+Creates a new BuildRun instance and instructs the Build Controller to use data from a local directory
+to be used for the Build. Two options are supported: streaming and bundling. With these, you can
+employ Shipwright Builds from a local repository clone.
 
-The upload skips the ".git" directory completely, and it follows the ".gitignore" directives, when
-the file is found at the root of the directory uploaded.
+When streaming is used, the Build Controller waits for the data being streamed to the build pod,
+instead of executing "git clone". The upload skips the ".git" directory completely, and it follows
+the ".gitignore" directives, when the file is found at the root of the directory uploaded.
+
+In case a source bundle image is defined, the bundling feature is used, which will bundle the local
+source code into a bundle container and upload it to the specified container registry. Instead of
+executing using Git in the source step, it will use the container registry to obtain the source code.
 
 	$ shp buildrun upload <build-name>
 	$ shp buildrun upload <build-name> /path/to/repository

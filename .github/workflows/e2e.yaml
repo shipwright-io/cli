@@ -16,6 +16,7 @@ jobs:
           - v1.21.2
       max-parallel: 2
     runs-on: ubuntu-latest
+
     steps:
       - name: Setup Go
         uses: actions/setup-go@v2
@@ -49,6 +50,9 @@ jobs:
       - name: Install Registry
         run: make install-registry
 
+      - name: Add cluster hosted registry name to /etc/hosts
+        run: echo "127.0.0.1 registry.registry.svc.cluster.local" | sudo tee -a /etc/hosts
+
       - name: Installing Shipwright Build Controller
         run: make install-shipwright
 
@@ -56,4 +60,6 @@ jobs:
         run: make build
 
       - name: End-to-End Tests
-        run: make test-e2e
+        run: |
+          nohup kubectl port-forward --namespace registry deployment/registry 32222:5000 &
+          make test-e2e

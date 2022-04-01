@@ -72,3 +72,49 @@ function assert_shp_upload_follow_output() {
 	assert_shp_upload_output
 	assert_shp_upload_follow_output
 }
+
+@test "shp build upload with bundle" {
+	build_name=$(random_name)
+
+	output_image="$(get_output_image build-e2e)"
+	source_url="https://github.com/shipwright-io/sample-go"
+	repo_dir="${BATS_TEST_TMPDIR}/sample-go"
+
+	# Verify that invalid prune options are not accepted
+	run shp build create ${build_name} \
+		--source-bundle-image="$(get_output_image source-bundle):latest" \
+		--source-bundle-prune=Magic
+	assert_failure
+	assert_output --partial 'invalid argument'
+
+	# Create straightforward Dockerfile based build of the Go sample repository and with a
+	# source bundle image specified, to make this build use bundle upload rather than the
+	# local source copy approach.
+	#
+	# Note: This will only work if the registry used for the source bundle image is reachable
+	# from the local shp client. In case of the KinD based registry, this will only work if there
+	# is an entry in the /etc/hosts to resove the cluster local address into localhost.
+	#
+	run shp build create ${build_name} \
+		--source-bundle-image="$(get_output_image source-bundle):latest" \
+		--source-bundle-prune=AfterPull \
+		--source-context-dir="docker-build" \
+		--dockerfile=Dockerfile \
+		--strategy-name=kaniko \
+		--output-image="${output_image}"
+	assert_success
+
+	# Sample repository to be used for the test
+	#
+	run git clone "${source_url}" "${repo_dir}"
+	assert_success
+
+	#
+	# Test Case
+	#
+	run shp build upload ${build_name} "${repo_dir}"
+	assert_success
+	assert_output --partial 'Creating a BuildRun for'
+	assert_output --partial 'created!'
+	assert_output --partial 'Uploading local source'
+}

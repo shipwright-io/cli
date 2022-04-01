@@ -63,6 +63,11 @@ func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 
 	flags.SanitizeBuildSpec(&b.Spec)
 
+	// print warning with regards to source bundle image being used
+	if b.Spec.Source.BundleContainer != nil && b.Spec.Source.BundleContainer.Image != "" {
+		fmt.Fprintf(io.Out, "Build %q uses a source bundle image, which means source code will be transferred to a container registry. It is advised to use private images to ensure the security of the source code being uploaded.\n", c.name)
+	}
+
 	clientset, err := params.ShipwrightClientSet()
 	if err != nil {
 		return err
