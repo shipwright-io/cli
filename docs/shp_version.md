@@ -1,12 +1,18 @@
-## shp
+## shp version
 
-Command-line client for Shipwright's Build API.
+version
 
 ```
-shp [command] [resource] [flags]
+shp version [flags]
 ```
 
 ### Options
+
+```
+  -h, --help   help for version
+```
+
+### Options inherited from parent commands
 
 ```
       --as string                      Username to impersonate for the operation
@@ -17,7 +23,6 @@ shp [command] [resource] [flags]
       --client-key string              Path to a client key file for TLS
       --cluster string                 The name of the kubeconfig cluster to use
       --context string                 The name of the kubeconfig context to use
-  -h, --help                           help for shp
       --insecure-skip-tls-verify       If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
       --kubeconfig string              Path to the kubeconfig file to use for CLI requests.
   -n, --namespace string               If present, the namespace scope for this CLI request
@@ -30,7 +35,5 @@ shp [command] [resource] [flags]
 
 ### SEE ALSO
 
-* [shp build](shp_build.md)	 - Manage Builds
-* [shp buildrun](shp_buildrun.md)	 - Manage BuildRuns
-* [shp version](shp_version.md)	 - version
+* [shp](shp.md)	 - Command-line client for Shipwright's Build API.
 

@@ -14,7 +14,7 @@ builds:
   flags:
   - -trimpath
   ldflags:
-  - -s -w -extldflags "-static"
+  - -s -w -extldflags "-static" -X github.com/shipwright-io/cli/pkg/shp/cmd/version.version={{.Version}}
   main: ./cmd/shp/main.go
   binary: shp
 archives:
