@@ -85,9 +85,6 @@ func createCmd() runner.SubCommand {
 	// instantiating command-line flags and the build-spec structure which receives the informed flag
 	// values, also marking certain flags as mandatory
 	buildSpecFlags := flags.BuildSpecFromFlags(cmd.Flags())
-	if err := cmd.MarkFlagRequired(flags.SourceURLFlag); err != nil {
-		panic(err)
-	}
 	if err := cmd.MarkFlagRequired(flags.OutputImageFlag); err != nil {
 		panic(err)
 	}
