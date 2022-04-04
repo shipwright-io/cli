@@ -21,6 +21,22 @@ import (
 	"github.com/spf13/pflag"
 )
 
+var hiddenKubeFlags = []string{
+	"as",
+	"as-group",
+	"cache-dir",
+	"certificate-authority",
+	"client-certificate",
+	"client-key",
+	"cluster",
+	"context",
+	"insecure-skip-tls-verify",
+	"server",
+	"tls-server-name",
+	"token",
+	"user",
+}
+
 // Params is a place for Shipwright CLI to store its runtime parameters including configured dynamic
 // client and global flags.
 type Params struct {
@@ -36,6 +52,12 @@ type Params struct {
 // AddFlags accepts flags and adds program global flags to it
 func (p *Params) AddFlags(flags *pflag.FlagSet) {
 	p.configFlags.AddFlags(flags)
+
+	for _, flag := range hiddenKubeFlags {
+		if err := flags.MarkHidden(flag); err != nil {
+			panic(err)
+		}
+	}
 }
 
 // RESTConfig returns the rest configuration based on local flags.

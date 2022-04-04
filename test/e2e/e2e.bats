@@ -28,20 +28,21 @@ teardown() {
 	assert_line "  help        Help about any command"
 }
 
-@test "shp --help lists some common flags" {
+@test "shp --help lists some Kubernetes flags" {
 	run shp --help
 	assert_success
-	assert_line --regexp "-s, --server string    [ ]+The address and port of the Kubernetes API server"
-	assert_line --regexp "--user string          [ ]+The name of the kubeconfig user to use"
-	assert_line --regexp "--token string         [ ]+Bearer token for authentication to the API server"
-	assert_line --regexp "-n, --namespace string [ ]+If present, the namespace scope for this CLI request"
+	assert_line --regexp "--kubeconfig string      [ ]+Path to the kubeconfig file to use for CLI requests."
+	assert_line --regexp "-n, --namespace string   [ ]+If present, the namespace scope for this CLI request"
+	assert_line --regexp "--request-timeout string [ ]+The length of time to wait before giving up on a single server request. Non-zero"
+	refute_output --partial cache-dir
+	refute_output --partial tls-server-name
 }
 
-@test "shp --help lists also logging flags" {
+@test "shp --help lists no logging flags" {
 	run shp --help
 	assert_success
-	assert_line --regexp "-v, --v Level     [ ]+number for the log level verbosity"
-	assert_line --regexp "--log_file string [ ]+If non-empty, use this log file"
+	refute_output --partial log_dir
+	refute_output --partial log_file
 }
 
 @test "shp [build/buildrun] create should not error when a name is specified" {
