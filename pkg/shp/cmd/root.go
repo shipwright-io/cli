@@ -7,6 +7,7 @@ import (
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/build"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/buildrun"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/version"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/suggestion"
 )
@@ -22,7 +23,7 @@ var rootCmd = &cobra.Command{
 func NewCmdSHP(ioStreams *genericclioptions.IOStreams) *cobra.Command {
 	p := params.NewParams()
 	p.AddFlags(rootCmd.PersistentFlags())
-
+	rootCmd.AddCommand(version.Command())
 	rootCmd.AddCommand(build.Command(p, ioStreams))
 	rootCmd.AddCommand(buildrun.Command(p, ioStreams))
 
