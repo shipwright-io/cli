@@ -52,7 +52,7 @@ function assert_shp_upload_follow_output() {
 	#
 	# Test Cases
 	#
-	
+
 	run shp build upload ${build_name} "${repo_dir}"
 	assert_success
 	assert_shp_upload_output
@@ -92,8 +92,7 @@ function assert_shp_upload_follow_output() {
 	# local source copy approach.
 	#
 	# Note: This will only work if the registry used for the source bundle image is reachable
-	# from the local shp client. In case of the KinD based registry, this will only work if there
-	# is an entry in the /etc/hosts to resove the cluster local address into localhost.
+	# from the local shp client.
 	#
 	run shp build create ${build_name} \
 		--source-bundle-image="$(get_output_image source-bundle):latest" \
