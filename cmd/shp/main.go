@@ -18,6 +18,22 @@ import (
 // ApplicationName application name.
 const ApplicationName = "shp"
 
+var hiddenLogFlags = []string{
+	"add_dir_header",
+	"alsologtostderr",
+	"log_backtrace_at",
+	"log_dir",
+	"log_file",
+	"log_file_max_size",
+	"logtostderr",
+	"one_output",
+	"skip_headers",
+	"skip_log_headers",
+	"stderrthreshold",
+	"v",
+	"vmodule",
+}
+
 func main() {
 	initGoFlags()
 	initPFlags()
@@ -51,4 +67,10 @@ func initPFlags() {
 	flags := pflag.NewFlagSet(ApplicationName, pflag.ExitOnError)
 	flags.AddGoFlagSet(goflag.CommandLine)
 	pflag.CommandLine = flags
+
+	for _, flag := range hiddenLogFlags {
+		if err := flags.MarkHidden(flag); err != nil {
+			panic(err)
+		}
+	}
 }
