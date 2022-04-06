@@ -34,7 +34,7 @@ func (c *CreateCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills internal subcommand structure for future work with user input
-func (c *CreateCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *CreateCommand) Complete(p params.Interface, io *genericclioptions.IOStreams, args []string) error {
 	switch len(args) {
 	case 1:
 		c.name = args[0]
@@ -53,7 +53,7 @@ func (c *CreateCommand) Validate() error {
 }
 
 // Run executes the creation of a new Build instance using flags to fill up the details.
-func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
+func (c *CreateCommand) Run(p params.Interface, io *genericclioptions.IOStreams) error {
 	b := &buildv1alpha1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: c.name,
@@ -63,11 +63,11 @@ func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 
 	flags.SanitizeBuildSpec(&b.Spec)
 
-	clientset, err := params.ShipwrightClientSet()
+	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
 		return err
 	}
-	if _, err := clientset.ShipwrightV1alpha1().Builds(params.Namespace()).Create(c.cmd.Context(), b, metav1.CreateOptions{}); err != nil {
+	if _, err := clientset.ShipwrightV1alpha1().Builds(p.Namespace()).Create(c.cmd.Context(), b, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	fmt.Fprintf(io.Out, "Created build %q\n", c.name)

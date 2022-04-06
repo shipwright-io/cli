@@ -35,7 +35,7 @@ func (c *CreateCommand) Cmd() *cobra.Command {
 }
 
 // Complete checks if the arguments is informing the BuildRun name.
-func (c *CreateCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *CreateCommand) Complete(p params.Interface, io *genericclioptions.IOStreams, args []string) error {
 	switch len(args) {
 	case 1:
 		c.name = args[0]
@@ -54,7 +54,7 @@ func (c *CreateCommand) Validate() error {
 }
 
 // Run executes the creation of BuildRun object.
-func (c *CreateCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
+func (c *CreateCommand) Run(p params.Interface, ioStreams *genericclioptions.IOStreams) error {
 	br := &buildv1alpha1.BuildRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: c.name,
@@ -64,11 +64,11 @@ func (c *CreateCommand) Run(params *params.Params, ioStreams *genericclioptions.
 
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
-	clientset, err := params.ShipwrightClientSet()
+	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
 		return err
 	}
-	if _, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Create(c.cmd.Context(), br, metav1.CreateOptions{}); err != nil {
+	if _, err = clientset.ShipwrightV1alpha1().BuildRuns(p.Namespace()).Create(c.cmd.Context(), br, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	fmt.Fprintf(ioStreams.Out, "BuildRun created %q for Build %q\n", c.name, br.Spec.BuildRef.Name)

@@ -1,22 +1,17 @@
 package params
 
 import (
-	"context"
-	"math"
 	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubectl/pkg/scheme"
 
 	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
-	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
-	"github.com/shipwright-io/cli/pkg/shp/reactor"
 
 	"github.com/spf13/pflag"
 )
@@ -42,12 +37,12 @@ var hiddenKubeFlags = []string{
 type Params struct {
 	clientset      kubernetes.Interface     // kubernetes api-client, global instance
 	buildClientset buildclientset.Interface // shipwright api-client, global instance
-	pw             *reactor.PodWatcher      // pod-watcher global instance
-	follower       *follower.Follower       // follower global instance
 
 	configFlags *genericclioptions.ConfigFlags
 	namespace   string
 }
+
+var _ Interface = &Params{}
 
 // AddFlags accepts flags and adds program global flags to it
 func (p *Params) AddFlags(flags *pflag.FlagSet) {
@@ -100,13 +95,14 @@ func (p *Params) ClientSet() (kubernetes.Interface, error) {
 
 // RequestTimeout returns the setting from k8s --request-timeout param
 func (p *Params) RequestTimeout() (time.Duration, error) {
+	timeoutDefault := 45 * time.Second
 	if p.configFlags.Timeout == nil {
-		return math.MaxInt64, nil
+		return timeoutDefault, nil
 	}
 	// 0 or empty also mean no timeout
 	to := strings.TrimSpace(*p.configFlags.Timeout)
 	if len(to) == 0 || to == "0" || strings.HasPrefix(to, "0") {
-		return math.MaxInt64, nil
+		return timeoutDefault, nil
 	}
 	return time.ParseDuration(*p.configFlags.Timeout)
 }
@@ -142,45 +138,6 @@ func (p *Params) Namespace() string {
 
 	}
 	return p.namespace
-}
-
-// NewFollower instantiate a new PodWatcher based on the current instance.
-func (p *Params) NewPodWatcher(ctx context.Context) (*reactor.PodWatcher, error) {
-	if p.pw != nil {
-		return p.pw, nil
-	}
-
-	to, err := p.RequestTimeout()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := p.ClientSet()
-	if err != nil {
-		return nil, err
-	}
-	p.pw, err = reactor.NewPodWatcher(ctx, to, clientset, p.Namespace())
-	return p.pw, err
-}
-
-// NewFollower instantiate a new Follower based on the current instance.
-func (p *Params) NewFollower(
-	ctx context.Context,
-	br types.NamespacedName,
-	ioStreams *genericclioptions.IOStreams,
-) (*follower.Follower, error) {
-	pw, err := p.NewPodWatcher(ctx)
-	if err != nil {
-		return nil, err
-	}
-	clientset, _ := p.ClientSet()
-
-	buildClientset, err := p.ShipwrightClientSet()
-	if err != nil {
-		return nil, err
-	}
-
-	p.follower = follower.NewFollower(ctx, br, ioStreams, pw, clientset, buildClientset)
-	return p.follower, nil
 }
 
 // NewParams creates a new instance of ShipwrightParams and returns it as

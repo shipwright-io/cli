@@ -1,12 +1,13 @@
 package build
 
 import (
+	"errors"
 	"fmt"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
@@ -41,7 +42,10 @@ func (c *DeleteCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills DeleteSubCommand structure with data obtained from cobra command
-func (c *DeleteCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *DeleteCommand) Complete(p params.Interface, io *genericclioptions.IOStreams, args []string) error {
+	if len(args) != 1 {
+		return errors.New("build name is not informed")
+	}
 	c.name = args[0]
 
 	return nil
@@ -53,25 +57,25 @@ func (c *DeleteCommand) Validate() error {
 }
 
 // Run contains main logic of delete subcommand
-func (c *DeleteCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
-	clientset, err := params.ShipwrightClientSet()
+func (c *DeleteCommand) Run(p params.Interface, io *genericclioptions.IOStreams) error {
+	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
 		return err
 	}
-	if err := clientset.ShipwrightV1alpha1().Builds(params.Namespace()).Delete(c.Cmd().Context(), c.name, v1.DeleteOptions{}); err != nil {
+	if err := clientset.ShipwrightV1alpha1().Builds(p.Namespace()).Delete(c.Cmd().Context(), c.name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 
 	if c.deleteRuns {
 		var brList *buildv1alpha1.BuildRunList
-		if brList, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).List(c.cmd.Context(), v1.ListOptions{
+		if brList, err = clientset.ShipwrightV1alpha1().BuildRuns(p.Namespace()).List(c.cmd.Context(), metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("%v/name=%v", buildv1alpha1.BuildDomain, c.name),
 		}); err != nil {
 			return err
 		}
 
 		for _, buildrun := range brList.Items {
-			if err := clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Delete(c.cmd.Context(), buildrun.Name, v1.DeleteOptions{}); err != nil {
+			if err := clientset.ShipwrightV1alpha1().BuildRuns(p.Namespace()).Delete(c.cmd.Context(), buildrun.Name, metav1.DeleteOptions{}); err != nil {
 				fmt.Fprintf(io.ErrOut, "Error deleting BuildRun %q: %v\n", buildrun.Name, err)
 			}
 		}

@@ -39,7 +39,7 @@ func (c *ListCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills object with user input data
-func (c *ListCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *ListCommand) Complete(_ params.Interface, _ *genericclioptions.IOStreams, _ []string) error {
 	return nil
 }
 
@@ -49,7 +49,7 @@ func (c *ListCommand) Validate() error {
 }
 
 // Run contains main logic of List subcommand of Build
-func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
+func (c *ListCommand) Run(p params.Interface, io *genericclioptions.IOStreams) error {
 	// TODO: Support multiple output formats here, not only tabwriter
 	//       find out more in kubectl libraries and use them
 
@@ -59,11 +59,11 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	columnTemplate := "%s\t%s\t%s\n"
 
 	var buildList *buildv1alpha1.BuildList
-	clientset, err := params.ShipwrightClientSet()
+	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
 		return err
 	}
-	if buildList, err = clientset.ShipwrightV1alpha1().Builds(params.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
+	if buildList, err = clientset.ShipwrightV1alpha1().Builds(p.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
 		return err
 	}
 

@@ -9,14 +9,15 @@ import (
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/shipwright-io/build/pkg/reconciler/buildrun/resources/sources"
-
-	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
+	"github.com/shipwright-io/cli/pkg/shp/follower"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/shipwright-io/cli/pkg/shp/streamer"
+
 	"github.com/spf13/cobra"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,8 +34,8 @@ type UploadCommand struct {
 	dataStreamer    *streamer.Streamer // tar streamer instance
 	streamingIsDone bool               // marks the streaming is completed
 
-	pw       *reactor.PodWatcher // pod-watcher instance
-	follower *follower.Follower  // follower instance
+	pw              *reactor.PodWatcher       // pod-watcher instance
+	podLogsFollower *follower.PodLogsFollower // follower instance
 }
 
 const (
@@ -52,10 +53,6 @@ the file is found at the root of the directory uploaded.
 
 	// targetBaseDir directory where data will be uploaded.
 	targetBaseDir = "/workspace/source"
-	// buildNameAnnotation label to identify the Build name.
-	buildNameAnnotation = "build.shipwright.io/name"
-	// buildRunNameAnnotation label to identify the BuildRun name.
-	buildRunNameAnnotation = "buildrun.shipwright.io/name"
 )
 
 // Cmd exposes the Cobra command instance.
@@ -91,7 +88,7 @@ func (u *UploadCommand) extractArgs(args []string) error {
 }
 
 // Complete instantiate the dependencies for the log following and the data streaming.
-func (u *UploadCommand) Complete(p *params.Params, _ *genericclioptions.IOStreams, args []string) error {
+func (u *UploadCommand) Complete(p params.Interface, _ *genericclioptions.IOStreams, args []string) error {
 	// extracting the command-line arguments to store the build-name and the path to the directory
 	// to be uploaded, in subsequent steps
 	if err := u.extractArgs(args); err != nil {
@@ -108,7 +105,7 @@ func (u *UploadCommand) Complete(p *params.Params, _ *genericclioptions.IOStream
 	}
 
 	u.dataStreamer = streamer.NewStreamer(restConfig, clientset)
-	u.pw, err = p.NewPodWatcher(u.Cmd().Context())
+	u.pw, err = reactor.NewPodWatcherFromParams(u.Cmd().Context(), p)
 	return err
 }
 
@@ -126,7 +123,7 @@ func (u *UploadCommand) Validate() error {
 
 // createBuildRun creates the BuildRun instance to receive the data upload afterwards, it returns the
 // BuildRun name just created and error.
-func (u *UploadCommand) createBuildRun(p *params.Params) (*types.NamespacedName, error) {
+func (u *UploadCommand) createBuildRun(p params.Interface) (*types.NamespacedName, error) {
 	buildRefName := u.buildRunSpec.BuildRef.Name
 	u.buildRunSpec.Sources = &[]buildv1alpha1.BuildSource{{
 		Name: "local-copy",
@@ -189,8 +186,8 @@ func (u *UploadCommand) performDataStreaming(target *streamer.Target) error {
 
 // stop following logs and watch over pod.
 func (u *UploadCommand) stop() {
-	if u.follower != nil {
-		u.follower.Stop()
+	if u.podLogsFollower != nil {
+		u.podLogsFollower.Stop()
 	}
 	u.pw.Stop()
 }
@@ -217,16 +214,18 @@ func (u *UploadCommand) onPodModifiedEvent(pod *corev1.Pod) error {
 
 // Run executes the primary business logic of this subcommand, by starting to watch over the build
 // pod status and react accordingly.
-func (u *UploadCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStreams) error {
+func (u *UploadCommand) Run(p params.Interface, ioStreams *genericclioptions.IOStreams) error {
 	// creating a BuildRun with settings for the local source upload
 	br, err := u.createBuildRun(p)
 	if err != nil {
 		return err
 	}
 
+	// when follow flag is enabled, instantiating the "follower" to live tail logs
 	if u.follow {
-		// when follow flag is enabled, instantiating the "follower" to live tail logs
-		if u.follower, err = p.NewFollower(u.Cmd().Context(), *br, ioStreams); err != nil {
+		ctx := u.cmd.Context()
+		u.podLogsFollower, err = follower.NewPodLogsFollowerFromParams(ctx, p, u.pw, ioStreams)
+		if err != nil {
 			return err
 		}
 	}
@@ -238,8 +237,8 @@ func (u *UploadCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStr
 	// BuildRun we've just issued
 	labelSelector := fmt.Sprintf(
 		"%s=%s,%s=%s",
-		buildNameAnnotation, u.buildRunSpec.BuildRef.Name,
-		buildRunNameAnnotation, br.Name,
+		buildv1alpha1.LabelBuild, u.buildRunSpec.BuildRef.Name,
+		buildv1alpha1.LabelBuildRun, br.Name,
 	)
 	listOpts := metav1.ListOptions{LabelSelector: labelSelector}
 
