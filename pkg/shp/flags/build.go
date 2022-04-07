@@ -17,10 +17,11 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 			Credentials: &corev1.LocalObjectReference{},
 			Revision:    pointer.String(""),
 			ContextDir:  pointer.String(""),
+			URL:         pointer.String(""),
 		},
-		Strategy: &buildv1alpha1.Strategy{
+		Strategy: buildv1alpha1.Strategy{
 			Kind:       &clusterBuildStrategyKind,
-			APIVersion: buildv1alpha1.SchemeGroupVersion.Version,
+			APIVersion: &buildv1alpha1.SchemeGroupVersion.Version,
 		},
 		Dockerfile: pointer.String(""),
 		Builder: &buildv1alpha1.Image{
@@ -35,7 +36,7 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	}
 
 	sourceFlags(flags, &spec.Source)
-	strategyFlags(flags, spec.Strategy)
+	strategyFlags(flags, &spec.Strategy)
 	dockerfileFlags(flags, spec.Dockerfile)
 	imageFlags(flags, "builder", spec.Builder)
 	imageFlags(flags, "output", &spec.Output)

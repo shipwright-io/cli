@@ -20,12 +20,12 @@ func TestBuild(name, image, source string) *buildv1alpha1.Build {
 			Name: name,
 		},
 		Spec: buildv1alpha1.BuildSpec{
-			Strategy: &buildv1alpha1.Strategy{
+			Strategy: buildv1alpha1.Strategy{
 				Name: "buildah",
 				Kind: &strategyKind,
 			},
 			Source: buildv1alpha1.Source{
-				URL: source,
+				URL: &source,
 			},
 			Output: buildv1alpha1.Image{
 				Image: image,

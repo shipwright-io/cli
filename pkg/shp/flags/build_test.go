@@ -20,14 +20,14 @@ func TestBuildSpecFromFlags(t *testing.T) {
 	expected := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
 			Credentials: &credentials,
-			URL:         "https://some.url",
+			URL:         pointer.String("https://some.url"),
 			Revision:    pointer.String("some-rev"),
 			ContextDir:  pointer.String("some-contextdir"),
 		},
-		Strategy: &buildv1alpha1.Strategy{
+		Strategy: buildv1alpha1.Strategy{
 			Name:       "strategy-name",
 			Kind:       &buildStrategyKind,
-			APIVersion: buildv1alpha1.SchemeGroupVersion.Version,
+			APIVersion: &buildv1alpha1.SchemeGroupVersion.Version,
 		},
 		Dockerfile: pointer.String("some-dockerfile"),
 		Builder: &buildv1alpha1.Image{
@@ -50,7 +50,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 	spec := BuildSpecFromFlags(flags)
 
 	t.Run(".spec.source", func(t *testing.T) {
-		err := flags.Set(SourceURLFlag, expected.Source.URL)
+		err := flags.Set(SourceURLFlag, *expected.Source.URL)
 		g.Expect(err).To(BeNil())
 
 		err = flags.Set(SourceRevisionFlag, *expected.Source.Revision)
@@ -62,7 +62,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		err = flags.Set(SourceCredentialsSecretFlag, expected.Source.Credentials.Name)
 		g.Expect(err).To(BeNil())
 
-		err = flags.Set(StrategyAPIVersionFlag, expected.Strategy.APIVersion)
+		err = flags.Set(StrategyAPIVersionFlag, *expected.Strategy.APIVersion)
 		g.Expect(err).To(BeNil())
 
 		g.Expect(expected.Source).To(Equal(spec.Source), "spec.source")

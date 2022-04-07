@@ -1,7 +1,7 @@
 package flags
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 func TestBuildRunSpecFromFlags(t *testing.T) {
@@ -18,11 +19,12 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 	str := "something-random"
 	expected := &buildv1alpha1.BuildRunSpec{
 		BuildRef: &buildv1alpha1.BuildRef{
-			Name: str,
+			Name:       str,
+			APIVersion: pointer.String(""),
 		},
 		ServiceAccount: &buildv1alpha1.ServiceAccount{
 			Name:     &str,
-			Generate: false,
+			Generate: pointer.Bool(false),
 		},
 		Timeout: &metav1.Duration{
 			Duration: 1 * time.Second,
@@ -50,8 +52,7 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 		err := flags.Set(ServiceAccountNameFlag, *expected.ServiceAccount.Name)
 		g.Expect(err).To(BeNil())
 
-		generate := fmt.Sprintf("%v", expected.ServiceAccount.Generate)
-		err = flags.Set(ServiceAccountGenerateFlag, generate)
+		err = flags.Set(ServiceAccountGenerateFlag, strconv.FormatBool(*expected.ServiceAccount.Generate))
 		g.Expect(err).To(BeNil())
 
 		g.Expect(*expected.ServiceAccount).To(Equal(*spec.ServiceAccount), "spec.serviceAccount")
