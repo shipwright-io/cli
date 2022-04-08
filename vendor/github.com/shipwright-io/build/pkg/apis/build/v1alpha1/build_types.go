@@ -58,6 +58,16 @@ const (
 	AllValidationsSucceeded = "all validations succeeded"
 )
 
+// BuildReasonPtr returns a pointer to the passed BuildReason.
+func BuildReasonPtr(s BuildReason) *BuildReason {
+	return &s
+}
+
+// ConditionStatusPtr returns a pointer to the passed ConditionStatus.
+func ConditionStatusPtr(s corev1.ConditionStatus) *corev1.ConditionStatus {
+	return &s
+}
+
 const (
 	// BuildDomain is the domain used for all labels and annotations for this resource
 	BuildDomain = "build.shipwright.io"
@@ -91,11 +101,11 @@ type BuildSpec struct {
 	// (`.spec.source`) data.
 	//
 	// +optional
-	Sources *[]BuildSource `json:"sources,omitempty"`
+	Sources []BuildSource `json:"sources,omitempty"`
 
 	// Strategy references the BuildStrategy to use to build the container
 	// image.
-	Strategy *Strategy `json:"strategy"`
+	Strategy Strategy `json:"strategy"`
 
 	// Builder refers to the image containing the build tools inside which
 	// the source code would be built.
@@ -128,6 +138,11 @@ type BuildSpec struct {
 	// Env contains additional environment variables that should be passed to the build container
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
+
+	// Contains information about retention params
+	//
+	// +optional
+	Retention *BuildRetention `json:"retention,omitempty"`
 }
 
 // StrategyName returns the name of the configured strategy, or 'undefined' in
@@ -135,10 +150,6 @@ type BuildSpec struct {
 func (buildSpec *BuildSpec) StrategyName() string {
 	if buildSpec == nil {
 		return "undefined (nil buildSpec)"
-	}
-
-	if buildSpec.Strategy == nil {
-		return "undefined (nil strategy)"
 	}
 
 	return buildSpec.Strategy.Name
@@ -170,15 +181,15 @@ type Image struct {
 type BuildStatus struct {
 	// The Register status of the Build
 	// +optional
-	Registered corev1.ConditionStatus `json:"registered,omitempty"`
+	Registered *corev1.ConditionStatus `json:"registered,omitempty"`
 
 	// The reason of the registered Build, it's an one-word camelcase
 	// +optional
-	Reason BuildReason `json:"reason,omitempty"`
+	Reason *BuildReason `json:"reason,omitempty"`
 
 	// The message of the registered Build, either an error or succeed message
 	// +optional
-	Message string `json:"message,omitempty"`
+	Message *string `json:"message,omitempty"`
 }
 
 // +genclient
@@ -196,7 +207,7 @@ type Build struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BuildSpec   `json:"spec,omitempty"`
+	Spec   BuildSpec   `json:"spec"`
 	Status BuildStatus `json:"status,omitempty"`
 }
 
@@ -207,6 +218,30 @@ type BuildList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Build `json:"items"`
+}
+
+// BuildRetention struct for buildrun cleanup
+type BuildRetention struct {
+	// FailedLimit defines the maximum number of failed buildruns that should exist.
+	//
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	FailedLimit *uint `json:"failedLimit,omitempty"`
+	// SucceededLimit defines the maximum number of succeeded buildruns that should exist.
+	//
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	SucceededLimit *uint `json:"succeededLimit,omitempty"`
+	// TTLAfterFailed defines the maximum duration of time the failed buildrun should exist.
+	//
+	// +optional
+	// +kubebuilder:validation:Format=duration
+	TTLAfterFailed *metav1.Duration `json:"ttlAfterFailed,omitempty"`
+	// TTLAfterSucceeded defines the maximum duration of time the succeeded buildrun should exist.
+	//
+	// +optional
+	// +kubebuilder:validation:Format=duration
+	TTLAfterSucceeded *metav1.Duration `json:"ttlAfterSucceeded,omitempty"`
 }
 
 func init() {

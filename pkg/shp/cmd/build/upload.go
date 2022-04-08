@@ -128,7 +128,7 @@ func (u *UploadCommand) Validate() error {
 // BuildRun name just created and error.
 func (u *UploadCommand) createBuildRun(p *params.Params) (*types.NamespacedName, error) {
 	buildRefName := u.buildRunSpec.BuildRef.Name
-	u.buildRunSpec.Sources = &[]buildv1alpha1.BuildSource{{
+	u.buildRunSpec.Sources = []buildv1alpha1.BuildSource{{
 		Name: "local-copy",
 		Type: buildv1alpha1.LocalCopy,
 	}}

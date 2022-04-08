@@ -55,7 +55,7 @@ const (
 // sourceFlags flags for ".spec.source"
 func sourceFlags(flags *pflag.FlagSet, source *buildv1alpha1.Source) {
 	flags.StringVar(
-		&source.URL,
+		source.URL,
 		SourceURLFlag,
 		"",
 		"git repository source URL",
@@ -83,7 +83,7 @@ func sourceFlags(flags *pflag.FlagSet, source *buildv1alpha1.Source) {
 // strategyFlags flags for ".spec.strategy".
 func strategyFlags(flags *pflag.FlagSet, strategy *buildv1alpha1.Strategy) {
 	flags.StringVar(
-		&strategy.APIVersion,
+		strategy.APIVersion,
 		StrategyAPIVersionFlag,
 		buildv1alpha1.SchemeGroupVersion.Version,
 		"kubernetes api-version of the build-strategy resource",
@@ -146,7 +146,7 @@ func buildRefFlags(flags *pflag.FlagSet, buildRef *buildv1alpha1.BuildRef) {
 		"name of build resource to reference",
 	)
 	flags.StringVar(
-		&buildRef.APIVersion,
+		buildRef.APIVersion,
 		"buildref-apiversion",
 		"",
 		"API version of build resource to reference",
@@ -162,7 +162,7 @@ func serviceAccountFlags(flags *pflag.FlagSet, sa *buildv1alpha1.ServiceAccount)
 		"Kubernetes service-account name",
 	)
 	flags.BoolVar(
-		&sa.Generate,
+		sa.Generate,
 		ServiceAccountGenerateFlag,
 		false,
 		"generate a Kubernetes service-account for the build",

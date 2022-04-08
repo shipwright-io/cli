@@ -6,15 +6,18 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 // BuildRunSpecFromFlags creates a BuildRun spec from command-line flags.
 func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
-	empty := ""
 	spec := &buildv1alpha1.BuildRunSpec{
-		BuildRef: &buildv1alpha1.BuildRef{},
+		BuildRef: &buildv1alpha1.BuildRef{
+			APIVersion: pointer.String(""),
+		},
 		ServiceAccount: &buildv1alpha1.ServiceAccount{
-			Name: &empty,
+			Name:     pointer.String(""),
+			Generate: pointer.Bool(false),
 		},
 		Timeout: &metav1.Duration{},
 		Output: &buildv1alpha1.Image{
@@ -41,9 +44,14 @@ func SanitizeBuildRunSpec(br *buildv1alpha1.BuildRunSpec) {
 	if br == nil {
 		return
 	}
+	if br.BuildRef != nil {
+		if br.BuildRef.Name == "" && br.BuildRef.APIVersion != nil && *br.BuildRef.APIVersion == "" {
+			br.BuildRef = nil
+		}
+	}
 	if br.ServiceAccount != nil {
 		if (br.ServiceAccount.Name == nil || *br.ServiceAccount.Name == "") &&
-			!br.ServiceAccount.Generate {
+			(br.ServiceAccount.Generate == nil || !*br.ServiceAccount.Generate) {
 			br.ServiceAccount = nil
 		}
 	}

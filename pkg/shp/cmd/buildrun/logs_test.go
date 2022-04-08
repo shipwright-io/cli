@@ -186,7 +186,7 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 
 		switch {
 		case test.cancelled:
-			br.Spec.State = v1alpha1.BuildRunStateCancel
+			br.Spec.State = v1alpha1.BuildRunRequestedStatePtr(v1alpha1.BuildRunStateCancel)
 			br.Status.Conditions = []v1alpha1.Condition{
 				{
 					Type:   v1alpha1.Succeeded,

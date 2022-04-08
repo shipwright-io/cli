@@ -23,6 +23,7 @@ import (
 
 var hiddenKubeFlags = []string{
 	"as",
+	"as-uid",
 	"as-group",
 	"cache-dir",
 	"certificate-authority",
