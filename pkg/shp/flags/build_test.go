@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -42,6 +43,16 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		},
 		Timeout: &metav1.Duration{
 			Duration: 1 * time.Second,
+		},
+		Retention: &buildv1alpha1.BuildRetention{
+			FailedLimit:    pointerUInt(10),
+			SucceededLimit: pointerUInt(5),
+			TTLAfterFailed: &metav1.Duration{
+				Duration: 48 * time.Hour,
+			},
+			TTLAfterSucceeded: &metav1.Duration{
+				Duration: 30 * time.Minute,
+			},
 		},
 	}
 
@@ -112,6 +123,34 @@ func TestBuildSpecFromFlags(t *testing.T) {
 
 		g.Expect(*expected.Timeout).To(Equal(*spec.Timeout), "spec.timeout")
 	})
+
+	t.Run(".spec.retention.failedLimit", func(t *testing.T) {
+		err := flags.Set(RetentionFailedLimitFlag, strconv.FormatUint(uint64(*expected.Retention.FailedLimit), 10))
+		g.Expect(err).To(BeNil())
+
+		g.Expect(*expected.Retention.FailedLimit).To(Equal(*spec.Retention.FailedLimit), "spec.retention.failedLimit")
+	})
+
+	t.Run(".spec.retention.succeededLimit", func(t *testing.T) {
+		err := flags.Set(RetentionSucceededLimitFlag, strconv.FormatUint(uint64(*expected.Retention.SucceededLimit), 10))
+		g.Expect(err).To(BeNil())
+
+		g.Expect(*expected.Retention.SucceededLimit).To(Equal(*spec.Retention.SucceededLimit), "spec.retention.succeededLimit")
+	})
+
+	t.Run(".spec.retention.ttlAfterFailed", func(t *testing.T) {
+		err := flags.Set(RetentionTTLAfterFailedFlag, expected.Retention.TTLAfterFailed.Duration.String())
+		g.Expect(err).To(BeNil())
+
+		g.Expect(*expected.Retention.TTLAfterFailed).To(Equal(*spec.Retention.TTLAfterFailed), "spec.retention.ttlAfterFailed")
+	})
+
+	t.Run(".spec.retention.ttlAfterSucceeded", func(t *testing.T) {
+		err := flags.Set(RetentionTTLAfterSucceededFlag, expected.Retention.TTLAfterSucceeded.Duration.String())
+		g.Expect(err).To(BeNil())
+
+		g.Expect(*expected.Retention.TTLAfterSucceeded).To(Equal(*spec.Retention.TTLAfterSucceeded), "spec.retention.ttlAfterSucceeded")
+	})
 }
 
 func TestSanitizeBuildSpec(t *testing.T) {
@@ -175,6 +214,32 @@ func TestSanitizeBuildSpec(t *testing.T) {
 		out: buildv1alpha1.BuildSpec{Source: buildv1alpha1.Source{
 			Revision: nil,
 		}},
+	}, {
+		name: "should clean-up an empty retention",
+		in: buildv1alpha1.BuildSpec{
+			Retention: &buildv1alpha1.BuildRetention{},
+		},
+		out: buildv1alpha1.BuildSpec{},
+	}, {
+		name: "should clean-up an empty source contextDir",
+		in: buildv1alpha1.BuildSpec{
+			Source: buildv1alpha1.Source{
+				ContextDir: pointer.String(""),
+			},
+		},
+		out: buildv1alpha1.BuildSpec{
+			Source: buildv1alpha1.Source{},
+		},
+	}, {
+		name: "should clean-up an empty source URL",
+		in: buildv1alpha1.BuildSpec{
+			Source: buildv1alpha1.Source{
+				URL: pointer.String(""),
+			},
+		},
+		out: buildv1alpha1.BuildSpec{
+			Source: buildv1alpha1.Source{},
+		},
 	}}
 
 	for _, tt := range testCases {

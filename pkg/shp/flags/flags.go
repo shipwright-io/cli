@@ -50,6 +50,14 @@ const (
 	OutputImageLabelsFlag = "output-image-label"
 	// OutputImageAnnotationsFlag command-line flag.
 	OutputImageAnnotationsFlag = "output-image-annotation"
+	// RetentionFailedLimitFlag command-line flag.
+	RetentionFailedLimitFlag = "retention-failed-limit"
+	// RetentionSucceededLimitFlag command-line flag.
+	RetentionSucceededLimitFlag = "retention-succeeded-limit"
+	// RetentionTTLAfterFailedFlag command-line flag.
+	RetentionTTLAfterFailedFlag = "retention-ttl-after-failed"
+	// RetentionTTLAfterSucceededFlag command-line flag.
+	RetentionTTLAfterSucceededFlag = "retention-ttl-after-succeeded"
 )
 
 // sourceFlags flags for ".spec.source"
@@ -196,5 +204,47 @@ func imageAnnotationsFlags(flags *pflag.FlagSet, annotations map[string]string) 
 		OutputImageAnnotationsFlag,
 		"",
 		"specify a set of key-value pairs that correspond to annotations to set on the output image",
+	)
+}
+
+func buildRetentionFlags(flags *pflag.FlagSet, buildRetention *buildv1alpha1.BuildRetention) {
+	flags.UintVar(
+		buildRetention.FailedLimit,
+		RetentionFailedLimitFlag,
+		65535,
+		"number of failed BuildRuns to be kept",
+	)
+	flags.UintVar(
+		buildRetention.SucceededLimit,
+		RetentionSucceededLimitFlag,
+		65535,
+		"number of succeeded BuildRuns to be kept",
+	)
+	flags.DurationVar(
+		&buildRetention.TTLAfterFailed.Duration,
+		RetentionTTLAfterFailedFlag,
+		time.Duration(0),
+		"duration to delete a failed BuildRun after completion",
+	)
+	flags.DurationVar(
+		&buildRetention.TTLAfterSucceeded.Duration,
+		RetentionTTLAfterSucceededFlag,
+		time.Duration(0),
+		"duration to delete a succeeded BuildRun after completion",
+	)
+}
+
+func buildRunRetentionFlags(flags *pflag.FlagSet, buildRunRetention *buildv1alpha1.BuildRunRetention) {
+	flags.DurationVar(
+		&buildRunRetention.TTLAfterFailed.Duration,
+		RetentionTTLAfterFailedFlag,
+		time.Duration(0),
+		"duration to delete the BuildRun after it failed",
+	)
+	flags.DurationVar(
+		&buildRunRetention.TTLAfterSucceeded.Duration,
+		RetentionTTLAfterSucceededFlag,
+		time.Duration(0),
+		"duration to delete the BuildRun after it succeeded",
 	)
 }

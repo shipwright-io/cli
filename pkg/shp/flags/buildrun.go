@@ -26,6 +26,10 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 			Annotations: map[string]string{},
 		},
 		Env: []corev1.EnvVar{},
+		Retention: &buildv1alpha1.BuildRunRetention{
+			TTLAfterFailed:    &metav1.Duration{},
+			TTLAfterSucceeded: &metav1.Duration{},
+		},
 	}
 
 	buildRefFlags(flags, spec.BuildRef)
@@ -35,6 +39,7 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 	envFlags(flags, &spec.Env)
 	imageLabelsFlags(flags, spec.Output.Labels)
 	imageAnnotationsFlags(flags, spec.Output.Annotations)
+	buildRunRetentionFlags(flags, spec.Retention)
 
 	return spec
 }
@@ -45,7 +50,11 @@ func SanitizeBuildRunSpec(br *buildv1alpha1.BuildRunSpec) {
 		return
 	}
 	if br.BuildRef != nil {
-		if br.BuildRef.Name == "" && br.BuildRef.APIVersion != nil && *br.BuildRef.APIVersion == "" {
+		if br.BuildRef.APIVersion != nil && *br.BuildRef.APIVersion == "" {
+			br.BuildRef.APIVersion = nil
+		}
+
+		if br.BuildRef.Name == "" && br.BuildRef.APIVersion == nil {
 			br.BuildRef = nil
 		}
 	}
@@ -69,5 +78,16 @@ func SanitizeBuildRunSpec(br *buildv1alpha1.BuildRunSpec) {
 
 	if len(br.Env) == 0 {
 		br.Env = nil
+	}
+	if br.Retention != nil {
+		if br.Retention.TTLAfterFailed != nil && br.Retention.TTLAfterFailed.Duration == 0 {
+			br.Retention.TTLAfterFailed = nil
+		}
+		if br.Retention.TTLAfterSucceeded != nil && br.Retention.TTLAfterSucceeded.Duration == 0 {
+			br.Retention.TTLAfterSucceeded = nil
+		}
+		if br.Retention.TTLAfterFailed == nil && br.Retention.TTLAfterSucceeded == nil {
+			br.Retention = nil
+		}
 	}
 }

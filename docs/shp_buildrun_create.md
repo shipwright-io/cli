@@ -18,17 +18,19 @@ shp buildrun create <name> [flags]
 ### Options
 
 ```
-      --buildref-apiversion string            API version of build resource to reference
-      --buildref-name string                  name of build resource to reference
-  -e, --env stringArray                       specify a key-value pair for an environment variable to set for the build container (default [])
-  -h, --help                                  help for create
-      --output-credentials-secret string      name of the secret with builder-image pull credentials
-      --output-image string                   image employed during the building process
-      --output-image-annotation stringArray   specify a set of key-value pairs that correspond to annotations to set on the output image (default [])
-      --output-image-label stringArray        specify a set of key-value pairs that correspond to labels to set on the output image (default [])
-      --sa-generate                           generate a Kubernetes service-account for the build
-      --sa-name string                        Kubernetes service-account name
-      --timeout duration                      build process timeout
+      --buildref-apiversion string               API version of build resource to reference
+      --buildref-name string                     name of build resource to reference
+  -e, --env stringArray                          specify a key-value pair for an environment variable to set for the build container (default [])
+  -h, --help                                     help for create
+      --output-credentials-secret string         name of the secret with builder-image pull credentials
+      --output-image string                      image employed during the building process
+      --output-image-annotation stringArray      specify a set of key-value pairs that correspond to annotations to set on the output image (default [])
+      --output-image-label stringArray           specify a set of key-value pairs that correspond to labels to set on the output image (default [])
+      --retention-ttl-after-failed duration      duration to delete the BuildRun after it failed
+      --retention-ttl-after-succeeded duration   duration to delete the BuildRun after it succeeded
+      --sa-generate                              generate a Kubernetes service-account for the build
+      --sa-name string                           Kubernetes service-account name
+      --timeout duration                         build process timeout
 ```
 
 ### Options inherited from parent commands
