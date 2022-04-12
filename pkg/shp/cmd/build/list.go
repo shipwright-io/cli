@@ -72,7 +72,11 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	}
 
 	for _, b := range buildList.Items {
-		fmt.Fprintf(writer, columnTemplate, b.Name, b.Spec.Output.Image, b.Status.Message)
+		message := ""
+		if b.Status.Message != nil {
+			message = *b.Status.Message
+		}
+		fmt.Fprintf(writer, columnTemplate, b.Name, b.Spec.Output.Image, message)
 	}
 
 	writer.Flush()

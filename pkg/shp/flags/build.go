@@ -9,6 +9,10 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+func pointerUInt(value uint) *uint {
+	return &value
+}
+
 // BuildSpecFromFlags creates a BuildSpec instance based on command-line flags.
 func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	clusterBuildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
@@ -33,6 +37,12 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 			Annotations: map[string]string{},
 		},
 		Timeout: &metav1.Duration{},
+		Retention: &buildv1alpha1.BuildRetention{
+			FailedLimit:       pointerUInt(65535),
+			SucceededLimit:    pointerUInt(65535),
+			TTLAfterFailed:    &metav1.Duration{},
+			TTLAfterSucceeded: &metav1.Duration{},
+		},
 	}
 
 	sourceFlags(flags, &spec.Source)
@@ -44,6 +54,7 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	envFlags(flags, &spec.Env)
 	imageLabelsFlags(flags, spec.Output.Labels)
 	imageAnnotationsFlags(flags, spec.Output.Annotations)
+	buildRetentionFlags(flags, spec.Retention)
 
 	return spec
 }
@@ -56,8 +67,14 @@ func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
 	if b.Source.Credentials != nil && b.Source.Credentials.Name == "" {
 		b.Source.Credentials = nil
 	}
+	if b.Source.ContextDir != nil && *b.Source.ContextDir == "" {
+		b.Source.ContextDir = nil
+	}
 	if b.Source.Revision != nil && *b.Source.Revision == "" {
 		b.Source.Revision = nil
+	}
+	if b.Source.URL != nil && *b.Source.URL == "" {
+		b.Source.URL = nil
 	}
 	if b.Builder != nil {
 		if b.Builder.Credentials != nil && b.Builder.Credentials.Name == "" {
@@ -75,5 +92,25 @@ func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
 	}
 	if b.Dockerfile != nil && *b.Dockerfile == "" {
 		b.Dockerfile = nil
+	}
+	if b.Output.Credentials != nil && b.Output.Credentials.Name == "" {
+		b.Output.Credentials = nil
+	}
+	if b.Retention != nil {
+		if b.Retention.FailedLimit != nil && *b.Retention.FailedLimit == 65535 {
+			b.Retention.FailedLimit = nil
+		}
+		if b.Retention.SucceededLimit != nil && *b.Retention.SucceededLimit == 65535 {
+			b.Retention.SucceededLimit = nil
+		}
+		if b.Retention.TTLAfterFailed != nil && b.Retention.TTLAfterFailed.Duration == 0 {
+			b.Retention.TTLAfterFailed = nil
+		}
+		if b.Retention.TTLAfterSucceeded != nil && b.Retention.TTLAfterSucceeded.Duration == 0 {
+			b.Retention.TTLAfterSucceeded = nil
+		}
+		if b.Retention.FailedLimit == nil && b.Retention.SucceededLimit == nil && b.Retention.TTLAfterFailed == nil && b.Retention.TTLAfterSucceeded == nil {
+			b.Retention = nil
+		}
 	}
 }

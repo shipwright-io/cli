@@ -35,6 +35,14 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},
+		Retention: &buildv1alpha1.BuildRunRetention{
+			TTLAfterFailed: &metav1.Duration{
+				Duration: 48 * time.Hour,
+			},
+			TTLAfterSucceeded: &metav1.Duration{
+				Duration: 30 * time.Minute,
+			},
+		},
 	}
 
 	cmd := &cobra.Command{}
@@ -73,6 +81,20 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		g.Expect(*expected.Output).To(Equal(*spec.Output), "spec.output")
+	})
+
+	t.Run(".spec.retention.ttlAfterFailed", func(t *testing.T) {
+		err := flags.Set(RetentionTTLAfterFailedFlag, expected.Retention.TTLAfterFailed.Duration.String())
+		g.Expect(err).To(BeNil())
+
+		g.Expect(*expected.Retention.TTLAfterFailed).To(Equal(*spec.Retention.TTLAfterFailed), "spec.retention.ttlAfterFailed")
+	})
+
+	t.Run(".spec.retention.ttlAfterSucceeded", func(t *testing.T) {
+		err := flags.Set(RetentionTTLAfterSucceededFlag, expected.Retention.TTLAfterSucceeded.Duration.String())
+		g.Expect(err).To(BeNil())
+
+		g.Expect(*expected.Retention.TTLAfterSucceeded).To(Equal(*spec.Retention.TTLAfterSucceeded), "spec.retention.ttlAfterSucceeded")
 	})
 }
 
@@ -114,6 +136,12 @@ func TestSanitizeBuildRunSpec(t *testing.T) {
 			Duration: time.Duration(0),
 		}},
 		out: buildv1alpha1.BuildRunSpec{Timeout: nil},
+	}, {
+		name: "should clean-up an empty retention",
+		in: buildv1alpha1.BuildRunSpec{
+			Retention: &buildv1alpha1.BuildRunRetention{},
+		},
+		out: buildv1alpha1.BuildRunSpec{},
 	}}
 
 	for _, tt := range testCases {
