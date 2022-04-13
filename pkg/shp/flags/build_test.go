@@ -18,12 +18,14 @@ func TestBuildSpecFromFlags(t *testing.T) {
 
 	credentials := corev1.LocalObjectReference{Name: "name"}
 	buildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
+	bundlePruneOption := buildv1alpha1.PruneNever
 	expected := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
-			Credentials: &credentials,
-			URL:         pointer.String("https://some.url"),
-			Revision:    pointer.String("some-rev"),
-			ContextDir:  pointer.String("some-contextdir"),
+			Credentials:     &credentials,
+			URL:             pointer.String("https://some.url"),
+			Revision:        pointer.String("some-rev"),
+			ContextDir:      pointer.String("some-contextdir"),
+			BundleContainer: &buildv1alpha1.BundleContainer{Prune: &bundlePruneOption},
 		},
 		Strategy: buildv1alpha1.Strategy{
 			Name:       "strategy-name",

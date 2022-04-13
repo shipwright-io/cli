@@ -10,6 +10,7 @@ import (
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/shipwright-io/build/pkg/reconciler/buildrun/resources/sources"
 
+	"github.com/shipwright-io/cli/pkg/shp/bundle"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
@@ -27,11 +28,15 @@ import (
 type UploadCommand struct {
 	cmd          *cobra.Command              // cobra command instance
 	buildRunSpec *buildv1alpha1.BuildRunSpec // command-line flags stored directly on the BuildRun
-	sourceDir    string                      // local directory to be streamed
 	follow       bool                        // flag to tail pod logs
+
+	buildRefName string // build name
+	sourceDir    string // local directory to be streamed
 
 	dataStreamer    *streamer.Streamer // tar streamer instance
 	streamingIsDone bool               // marks the streaming is completed
+
+	sourceBundleImage string // image to be used as the source bundle
 
 	pw       *reactor.PodWatcher // pod-watcher instance
 	follower *follower.Follower  // follower instance
@@ -39,12 +44,17 @@ type UploadCommand struct {
 
 const (
 	buildRunUploadLongDesc = `
-Creates a new BuildRun instance and instructs the Build Controller to wait for the data streamed,
-instead of executing "git clone". Therefore, you can employ Shipwright Builds from a local repository
-clone.
+Creates a new BuildRun instance and instructs the Build Controller to use data from a local directory
+to be used for the Build. Two options are supported: streaming and bundling. With these, you can
+employ Shipwright Builds from a local repository clone.
 
-The upload skips the ".git" directory completely, and it follows the ".gitignore" directives, when
-the file is found at the root of the directory uploaded.
+When streaming is used, the Build Controller waits for the data being streamed to the build pod,
+instead of executing "git clone". The upload skips the ".git" directory completely, and it follows
+the ".gitignore" directives, when the file is found at the root of the directory uploaded.
+
+In case a source bundle image is defined, the bundling feature is used, which will bundle the local
+source code into a bundle container and upload it to the specified container registry. Instead of
+executing using Git in the source step, it will use the container registry to obtain the source code.
 
 	$ shp buildrun upload <build-name>
 	$ shp buildrun upload <build-name> /path/to/repository
@@ -65,13 +75,12 @@ func (u *UploadCommand) Cmd() *cobra.Command {
 
 // extractArgs inspect the command-line arguments to extract the name and source directory path.
 func (u *UploadCommand) extractArgs(args []string) error {
-	var buildRefName string
 	switch len(args) {
 	case 1:
-		buildRefName = args[0]
+		u.buildRefName = args[0]
 		u.sourceDir = "."
 	case 2:
-		buildRefName = args[0]
+		u.buildRefName = args[0]
 		u.sourceDir = args[1]
 	default:
 		return fmt.Errorf("wrong amount of arguments, expected one or two")
@@ -87,7 +96,7 @@ func (u *UploadCommand) extractArgs(args []string) error {
 	u.sourceDir = path.Clean(u.sourceDir)
 
 	// overwriting build-ref name to use what's on arguments
-	return u.Cmd().Flags().Set(flags.BuildrefNameFlag, buildRefName)
+	return u.Cmd().Flags().Set(flags.BuildrefNameFlag, u.buildRefName)
 }
 
 // Complete instantiate the dependencies for the log following and the data streaming.
@@ -106,8 +115,26 @@ func (u *UploadCommand) Complete(p *params.Params, _ *genericclioptions.IOStream
 	if err != nil {
 		return err
 	}
+	shpClientSet, err := p.ShipwrightClientSet()
+	if err != nil {
+		return err
+	}
 
-	u.dataStreamer = streamer.NewStreamer(restConfig, clientset)
+	// check that the cluster actually contains a build with this name
+	build, err := shpClientSet.ShipwrightV1alpha1().Builds(p.Namespace()).Get(u.cmd.Context(), u.buildRefName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// detect upload method, if build has bundle container image set, it
+	// is assumed that the source bundle upload via registry is used
+	if build.Spec.Source.BundleContainer != nil && build.Spec.Source.BundleContainer.Image != "" {
+		u.sourceBundleImage = build.Spec.Source.BundleContainer.Image
+
+	} else {
+		u.dataStreamer = streamer.NewStreamer(restConfig, clientset)
+	}
+
 	u.pw, err = p.NewPodWatcher(u.Cmd().Context())
 	return err
 }
@@ -126,23 +153,36 @@ func (u *UploadCommand) Validate() error {
 
 // createBuildRun creates the BuildRun instance to receive the data upload afterwards, it returns the
 // BuildRun name just created and error.
-func (u *UploadCommand) createBuildRun(p *params.Params) (*types.NamespacedName, error) {
-	buildRefName := u.buildRunSpec.BuildRef.Name
-	u.buildRunSpec.Sources = []buildv1alpha1.BuildSource{{
-		Name: "local-copy",
-		Type: buildv1alpha1.LocalCopy,
-	}}
-	br := &buildv1alpha1.BuildRun{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-", buildRefName),
-		},
-		Spec: *u.buildRunSpec,
+func (u *UploadCommand) createBuildRun(p *params.Params) (*buildv1alpha1.BuildRun, error) {
+	var br *buildv1alpha1.BuildRun
+	switch {
+	// Use bundle feature for source upload and build
+	case u.sourceBundleImage != "":
+		br = &buildv1alpha1.BuildRun{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: fmt.Sprintf("%s-", u.buildRefName),
+			},
+			Spec: *u.buildRunSpec,
+		}
+
+	// Use local copy streaming feature for source upload and build
+	default:
+		u.buildRunSpec.Sources = []buildv1alpha1.BuildSource{{
+			Name: "local-copy",
+			Type: buildv1alpha1.LocalCopy,
+		}}
+		br = &buildv1alpha1.BuildRun{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: fmt.Sprintf("%s-", u.buildRefName),
+			},
+			Spec: *u.buildRunSpec,
+		}
 	}
+
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
 	ns := p.Namespace()
-	log.Printf("Creating a BuildRun for '%s/%s' Build...", ns, buildRefName)
-
+	log.Printf("Creating a BuildRun for '%s/%s' Build...", ns, u.buildRefName)
 	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
 		return nil, err
@@ -154,7 +194,7 @@ func (u *UploadCommand) createBuildRun(p *params.Params) (*types.NamespacedName,
 		return nil, err
 	}
 	log.Printf("BuildRun '%s' created!", br.GetName())
-	return &types.NamespacedName{Namespace: ns, Name: br.GetName()}, nil
+	return br, nil
 }
 
 // performDataStreaming execute the data transfer process end-to-end.
@@ -195,9 +235,9 @@ func (u *UploadCommand) stop() {
 	u.pw.Stop()
 }
 
-// onPodModifiedEvent is invoked everytime the pod running the actual build process changes, thus it
+// onPodModifiedEventStreaming is invoked everytime the pod running the actual build process changes, thus it
 // can react upon the state changes in order to orchestrate the data upload.
-func (u *UploadCommand) onPodModifiedEvent(pod *corev1.Pod) error {
+func (u *UploadCommand) onPodModifiedEventStreaming(pod *corev1.Pod) error {
 	switch pod.Status.Phase {
 	case corev1.PodRunning:
 		return u.performDataStreaming(&streamer.Target{
@@ -215,6 +255,19 @@ func (u *UploadCommand) onPodModifiedEvent(pod *corev1.Pod) error {
 	return nil
 }
 
+func (u *UploadCommand) onPodModifiedEventBundling(pod *corev1.Pod) error {
+	switch pod.Status.Phase {
+	case corev1.PodFailed:
+		u.stop()
+		return fmt.Errorf("build pod '%s' has failed", pod.GetName())
+
+	case corev1.PodSucceeded:
+		u.stop()
+	}
+
+	return nil
+}
+
 // Run executes the primary business logic of this subcommand, by starting to watch over the build
 // pod status and react accordingly.
 func (u *UploadCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStreams) error {
@@ -226,13 +279,26 @@ func (u *UploadCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStr
 
 	if u.follow {
 		// when follow flag is enabled, instantiating the "follower" to live tail logs
-		if u.follower, err = p.NewFollower(u.Cmd().Context(), *br, ioStreams); err != nil {
+		if u.follower, err = p.NewFollower(u.Cmd().Context(), types.NamespacedName{Namespace: br.Namespace, Name: br.Name}, ioStreams); err != nil {
 			return err
 		}
 	}
 
-	// registering the routine that will react upon build pod state changes
-	u.pw.WithOnPodModifiedFn(u.onPodModifiedEvent)
+	switch {
+	// Using bundling to upload local source code
+	case u.sourceBundleImage != "":
+		_, err = bundle.Push(u.cmd.Context(), ioStreams, u.sourceDir, u.sourceBundleImage)
+		if err != nil {
+			return err
+		}
+
+		u.pw.WithOnPodModifiedFn(u.onPodModifiedEventBundling)
+
+	// Using streaming to upload local source code
+	default:
+		// registering the routine that will react upon build pod state changes
+		u.pw.WithOnPodModifiedFn(u.onPodModifiedEventStreaming)
+	}
 
 	// preparing a label-selector with annotations that can pinpoint the exact pod created for the
 	// BuildRun we've just issued

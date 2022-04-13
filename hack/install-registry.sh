@@ -39,6 +39,9 @@ spec:
         - image: registry:2
           name: registry
           imagePullPolicy: IfNotPresent
+          env:
+            - name: REGISTRY_STORAGE_DELETE_ENABLED
+              value: "true"
           ports:
             - containerPort: 5000
           resources:
