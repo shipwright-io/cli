@@ -205,6 +205,7 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 	br, err := brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
 	if err != nil {
 		f.Log(fmt.Sprintf("error accessing BuildRun %q: %s", f.buildRun.Name, err.Error()))
+		f.Stop()
 		return
 	}
 
@@ -225,7 +226,7 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 		giveUp = true
 		msg = fmt.Sprintf("BuildRun '%s' has been deleted.\n", br.Name)
 	case !br.HasStarted():
-		f.Log(fmt.Sprintf("BuildRun '%s' has been marked as failed.\n", br.Name))
+		f.Log(fmt.Sprintf("BuildRun '%s' has not been marked as started yet.\n", br.Name))
 	}
 	if giveUp {
 		f.Log(msg)
