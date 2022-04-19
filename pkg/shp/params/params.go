@@ -48,6 +48,9 @@ type Params struct {
 
 	configFlags *genericclioptions.ConfigFlags
 	namespace   string
+
+	failPollInterval *time.Duration
+	failPollTimeout  *time.Duration
 }
 
 // AddFlags accepts flags and adds program global flags to it
@@ -181,6 +184,12 @@ func (p *Params) NewFollower(
 	}
 
 	p.follower = follower.NewFollower(ctx, br, ioStreams, pw, clientset, buildClientset)
+	if p.failPollTimeout != nil {
+		p.follower.SetFailPollTimeout(*p.failPollTimeout)
+	}
+	if p.failPollInterval != nil {
+		p.follower.SetFailPollInterval(*p.failPollInterval)
+	}
 	return p.follower, nil
 }
 
@@ -198,11 +207,16 @@ func NewParamsForTest(clientset kubernetes.Interface,
 	shpClientset buildclientset.Interface,
 	configFlags *genericclioptions.ConfigFlags,
 	namespace string,
+	failPollInterval *time.Duration,
+	failPollTimeout *time.Duration,
+
 ) *Params {
 	return &Params{
-		clientset:      clientset,
-		buildClientset: shpClientset,
-		configFlags:    configFlags,
-		namespace:      namespace,
+		clientset:        clientset,
+		buildClientset:   shpClientset,
+		configFlags:      configFlags,
+		namespace:        namespace,
+		failPollInterval: failPollInterval,
+		failPollTimeout:  failPollTimeout,
 	}
 }

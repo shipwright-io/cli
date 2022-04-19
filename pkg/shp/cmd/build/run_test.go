@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	shpfake "github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
@@ -15,7 +16,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes/fake"
 	fakekubetesting "k8s.io/client-go/testing"
@@ -80,7 +80,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		},
 		{
 			name:    "timeout",
-			to:      "1s",
+			to:      "1ms",
 			logText: reactor.RequestTimeoutMessage,
 		},
 		{
@@ -146,18 +146,10 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		if len(test.to) > 0 {
 			pm.Timeout = &test.to
 		}
-		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault)
+		failureDuration := 1 * time.Millisecond
+		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault, &failureDuration, &failureDuration)
 
 		ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
-		var err error
-		cmd.follower, err = param.NewFollower(
-			cmd.Cmd().Context(),
-			types.NamespacedName{Namespace: br.GetNamespace(), Name: br.GetName()},
-			&ioStreams,
-		)
-		if err != nil {
-			t.Fatalf("error instantiating follower: %q", err)
-		}
 
 		switch {
 		case test.cancelled:
@@ -184,6 +176,12 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 					Status: corev1.ConditionFalse,
 				},
 			}
+		case test.phase == corev1.PodRunning:
+			pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, corev1.ContainerStatus{
+				State: corev1.ContainerState{
+					Running: &corev1.ContainerStateRunning{StartedAt: metav1.Now()},
+				},
+			})
 		}
 
 		cmd.Complete(param, &ioStreams, []string{name})
@@ -199,6 +197,14 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 				t.Errorf("%s", err.Error())
 			}
 		}()
+
+		// when employing the Run() method in a multi-threaded capacity, we must make sure
+		// the underlying Follower/PodWatcher watches are sync'ed and ready for use before
+		// we start populating the event queue
+		ready := cmd.FollowerReady()
+		if !ready {
+			t.Errorf("%s follower no ready", test.name)
+		}
 
 		if !test.noPodYet {
 			// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
