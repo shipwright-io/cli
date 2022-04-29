@@ -37,6 +37,9 @@ type Follower struct {
 
 	logLock             sync.Mutex // avoiding race condition to print logs
 	enteredRunningState bool       // target pod is running
+
+	failPollInterval time.Duration // for use in the PollInterval call when processing failed pods
+	failPollTimeout  time.Duration // for use in the PollInterval call when processing failed pods
 }
 
 // NewFollower returns a Follower instance.
@@ -56,9 +59,11 @@ func NewFollower(
 		clientset:      clientset,
 		buildClientset: buildClientset,
 
-		logTail:         tail.NewTail(ctx, clientset),
-		logLock:         sync.Mutex{},
-		tailLogsStarted: map[string]bool{},
+		logTail:          tail.NewTail(ctx, clientset),
+		logLock:          sync.Mutex{},
+		tailLogsStarted:  map[string]bool{},
+		failPollInterval: 1 * time.Second,
+		failPollTimeout:  15 * time.Second,
 	}
 
 	f.pw.WithOnPodModifiedFn(f.OnEvent)
@@ -66,6 +71,23 @@ func NewFollower(
 	f.pw.WithNoPodEventsYetFn(f.OnNoPodEventsYet)
 
 	return f
+}
+
+// SetBuildRunName allows for setting of the BuildRun name after to call to NewFollower.  This help service
+// auto generation of the BuildRun name from the Build.  NOTE, if the BuildRun name
+// is not set prior to the call to WaitForCompletion, the Follower will not function fully once events arrive.
+func (f *Follower) SetBuildRunName(brName types.NamespacedName) {
+	f.buildRun = brName
+}
+
+// SetFailPollInterval overrides the default value used in polling calls
+func (f *Follower) SetFailPollInterval(t time.Duration) {
+	f.failPollInterval = t
+}
+
+// SetFailPollTimeout overrides the default value used in polling calls
+func (f *Follower) SetFailPollTimeout(t time.Duration) {
+	f.failPollTimeout = t
 }
 
 // GetLogLock returns the mutex used for coordinating access to log buffers.
@@ -106,16 +128,20 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 	case corev1.PodRunning:
 		if !f.enteredRunningState {
 			f.Log(fmt.Sprintf("Pod %q in %q state, starting up log tail", pod.GetName(), corev1.PodRunning))
-			f.enteredRunningState = true
-			// graceful time to wait for container start
-			time.Sleep(3 * time.Second)
-			// start tailing container logs
-			f.tailLogs(pod)
+			for _, c := range pod.Status.ContainerStatuses {
+				if c.State.Running != nil && !c.State.Running.StartedAt.IsZero() {
+					f.enteredRunningState = true
+					break
+				}
+			}
+			if f.enteredRunningState {
+				f.tailLogs(pod)
+			}
 		}
 	case corev1.PodFailed:
 		msg := ""
 		var br *buildv1alpha1.BuildRun
-		err := wait.PollImmediate(1*time.Second, 15*time.Second, func() (done bool, err error) {
+		err := wait.PollImmediate(f.failPollInterval, f.failPollTimeout, func() (done bool, err error) {
 			brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(pod.Namespace)
 			br, err = brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
 			if err != nil {
@@ -205,6 +231,7 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 	br, err := brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
 	if err != nil {
 		f.Log(fmt.Sprintf("error accessing BuildRun %q: %s", f.buildRun.Name, err.Error()))
+		f.Stop()
 		return
 	}
 
@@ -225,7 +252,7 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 		giveUp = true
 		msg = fmt.Sprintf("BuildRun '%s' has been deleted.\n", br.Name)
 	case !br.HasStarted():
-		f.Log(fmt.Sprintf("BuildRun '%s' has been marked as failed.\n", br.Name))
+		f.Log(fmt.Sprintf("BuildRun '%s' has not been marked as started yet.\n", br.Name))
 	}
 	if giveUp {
 		f.Log(msg)
@@ -234,7 +261,20 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 	}
 }
 
-// Start initiates the log following for the referenced BuildRun's Pod
-func (f *Follower) Start(lo metav1.ListOptions) (*corev1.Pod, error) {
-	return f.pw.Start(lo)
+func (f *Follower) Connect(lo metav1.ListOptions) error {
+	return f.pw.Connect(lo)
+}
+
+// WaitForCompletion initiates the log following for the referenced BuildRun's Pod
+func (f *Follower) WaitForCompletion() (*corev1.Pod, error) {
+	return f.pw.WaitForCompletion()
+}
+
+// Start is a convenience method for capturing the use of both Connect and WaitForCompletion
+func (f *Follower) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
+	err := f.Connect(listOpts)
+	if err != nil {
+		return nil, err
+	}
+	return f.WaitForCompletion()
 }

@@ -20,7 +20,7 @@ func Test_PodWatcher_RequestTimeout(t *testing.T) {
 
 	clientset := fake.NewSimpleClientset()
 
-	pw, err := NewPodWatcher(ctx, time.Second, clientset, metav1.NamespaceDefault)
+	pw, err := NewPodWatcher(ctx, time.Millisecond, clientset, metav1.NamespaceDefault)
 	g.Expect(err).To(BeNil())
 	called := false
 
@@ -35,7 +35,7 @@ func Test_PodWatcher_RequestTimeout(t *testing.T) {
 func Test_PodWatcher_ContextTimeout(t *testing.T) {
 	g := NewWithT(t)
 	ctx := context.TODO()
-	ctxWithDeadline, cancel := context.WithDeadline(ctx, time.Now().Add(time.Second))
+	ctxWithDeadline, cancel := context.WithDeadline(ctx, time.Now().Add(time.Millisecond))
 	defer cancel()
 
 	clientset := fake.NewSimpleClientset()
@@ -157,7 +157,6 @@ func Test_PodWatcherEvents(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	eventsCh := make(chan string, 5)
-	eventsDoneCh := make(chan bool, 1)
 
 	skipPODFn := "SkipPodFn"
 	onPodAddedFn := "OnPodAddedFn"
@@ -180,13 +179,17 @@ func Test_PodWatcherEvents(t *testing.T) {
 		return nil
 	})
 
+	// with the multi-threaded nature of this test, and the lack of thread safety and reliability of the k8s fake watch clients,
+	// we cannot use pw.Start directly, and must call what it calls separately
+	err = pw.Connect(metav1.ListOptions{})
+	g.Expect(err).To(BeNil())
+
 	// executing the event loop in the background, and waiting for the stop channel before inspecting
 	// for errors
 	go func() {
-		_, err := pw.Start(metav1.ListOptions{})
+		_, err := pw.WaitForCompletion()
 		<-pw.stopCh
 		g.Expect(err).To(BeNil())
-		eventsDoneCh <- true
 	}()
 
 	pod := &corev1.Pod{
@@ -197,39 +200,46 @@ func Test_PodWatcherEvents(t *testing.T) {
 	}
 
 	// making modifications in the pod, making sure all events are exercised, thus the events channel
-	// should be populated
+	// should be populated; also, we send and receive events in a single threaded fashion given observed fragility
+	// with the k8s fake client watch implementation, as well as guidance on the limited scope of its intent
 	podClient := clientset.CoreV1().Pods(metav1.NamespaceDefault)
 
-	t.Run("pod-is-added", func(t *testing.T) {
-		var err error
-		pod, err = podClient.Create(ctx, pod, metav1.CreateOptions{})
-		g.Expect(err).To(BeNil())
-	})
+	pod, err = podClient.Create(ctx, pod, metav1.CreateOptions{})
+	g.Expect(err).To(BeNil())
 
-	t.Run("pod-is-modified", func(t *testing.T) {
-		pod.SetLabels(map[string]string{"label": "value"})
+	val, ok := <-eventsCh
+	validateEventChannelData(val, skipPODFn, "add", ok, t)
+	val, ok = <-eventsCh
+	validateEventChannelData(val, onPodAddedFn, "add", ok, t)
 
-		var err error
-		pod, err = podClient.Update(ctx, pod, metav1.UpdateOptions{})
-		g.Expect(err).To(BeNil())
-	})
+	pod.SetLabels(map[string]string{"label": "value"})
 
-	t.Run("pod-is-deleted", func(t *testing.T) {
-		err := podClient.Delete(ctx, pod.GetName(), metav1.DeleteOptions{})
-		g.Expect(err).To(BeNil())
-	})
+	pod, err = podClient.Update(ctx, pod, metav1.UpdateOptions{})
+	g.Expect(err).To(BeNil())
 
-	// stopping event-loop running in the background, after waiting for events to arrive on events
-	// channel, and before running assertions, it waits for eventsDoneCh as well
-	<-eventsCh
+	val, ok = <-eventsCh
+	validateEventChannelData(val, skipPODFn, "mod", ok, t)
+	val, ok = <-eventsCh
+	validateEventChannelData(val, onPodModifiedFn, "mod", ok, t)
+
+	err = podClient.Delete(ctx, pod.GetName(), metav1.DeleteOptions{})
+	g.Expect(err).To(BeNil())
+
+	val, ok = <-eventsCh
+	validateEventChannelData(val, skipPODFn, "del", ok, t)
+	val, ok = <-eventsCh
+	validateEventChannelData(val, onPodDeletedFn, "del", ok, t)
+
+	close(eventsCh)
 	pw.Stop()
-	<-eventsDoneCh
 
-	// asserting that all events have been exercised, by inspecting the function names sent over the
-	// events channel
-	g.Eventually(eventsCh).Should(Receive(&skipPODFn))
-	g.Eventually(eventsCh).Should(Receive(&onPodAddedFn))
-	g.Eventually(eventsCh).Should(Receive(&onPodModifiedFn))
-	// sometimes it is slow to get these when running go test with race detection
-	g.Eventually(eventsCh, 10*time.Second).Should(Receive(&onPodDeletedFn))
+}
+
+func validateEventChannelData(got, expected, verb string, ok bool, t *testing.T) {
+	if !ok {
+		t.Fatalf("test channel closed unexpectedly on %s", verb)
+	}
+	if got != expected {
+		t.Fatalf("test channel %s value was %s instead of %s", verb, got, expected)
+	}
 }

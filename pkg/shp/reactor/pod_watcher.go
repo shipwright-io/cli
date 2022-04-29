@@ -120,15 +120,22 @@ func (p *PodWatcher) handleEvent(pod *corev1.Pod, event watch.Event) error {
 	return nil
 }
 
-// Start runs the event loop based on a watch instantiated against informed pod. In case of errors
-// the loop is interrupted.
-func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
+// Connect is the first of two methods called by Start, and it handles the creation of the watch based on the list options provided.
+// Separating out Connect from Start helps deal with the fake k8s clients, which are used by the unit tests, and the capabilities of their Watch implementation.
+func (p *PodWatcher) Connect(listOpts metav1.ListOptions) error {
 	p.listOpts = listOpts
 	w, err := p.clientset.CoreV1().Pods(p.ns).Watch(p.ctx, listOpts)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	p.watcher = w
+	return nil
+}
+
+// WaitForCompletion is the second of two methods called by Start, and it runs the event loop based on the watch instantiated (by Connect) against informed pod. In case of errors
+// the loop is interrupted.  Separating out WaitForCompletion from Start helps deal with the fake k8s clients, which are used by the unit tests,
+// and the capabilities of their Watch implementation.
+func (p *PodWatcher) WaitForCompletion() (*corev1.Pod, error) {
 	for {
 		select {
 		// handling the regular pod modification events, which should trigger calling event functions
@@ -197,6 +204,15 @@ func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
 			return nil, nil
 		}
 	}
+}
+
+// Start is a convenience method for capturing the use of both Connect and WaitForCompletion
+func (p *PodWatcher) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
+	err := p.Connect(listOpts)
+	if err != nil {
+		return nil, err
+	}
+	return p.WaitForCompletion()
 }
 
 // Stop closes the stop channel, and stops the execution loop.

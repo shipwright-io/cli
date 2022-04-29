@@ -42,7 +42,7 @@ func TestStreamBuildLogs(t *testing.T) {
 
 	clientset := fake.NewSimpleClientset(pod)
 	ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
-	param := params.NewParamsForTest(clientset, nil, nil, metav1.NamespaceDefault)
+	param := params.NewParamsForTest(clientset, nil, nil, metav1.NamespaceDefault, nil, nil)
 	err := cmd.Run(param, &ioStreams)
 	if err != nil {
 		t.Fatalf("%s", err.Error())
@@ -180,7 +180,7 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 		if len(test.to) > 0 {
 			pm.Timeout = &test.to
 		}
-		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault)
+		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault, nil, nil)
 
 		ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
 

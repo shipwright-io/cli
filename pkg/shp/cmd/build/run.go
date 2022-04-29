@@ -22,11 +22,12 @@ import (
 type RunCommand struct {
 	cmd *cobra.Command // cobra command instance
 
-	buildName    string
-	namespace    string
-	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
-	follow       bool                        // flag to tail pod logs
-	follower     *follower.Follower
+	buildName     string
+	namespace     string
+	buildRunSpec  *buildv1alpha1.BuildRunSpec // stores command-line flags
+	follow        bool                        // flag to tail pod logs
+	follower      *follower.Follower
+	followerReady chan bool
 }
 
 const buildRunLongDesc = `
@@ -52,6 +53,15 @@ func (r *RunCommand) Complete(params *params.Params, ioStreams *genericclioption
 
 	r.namespace = params.Namespace()
 
+	if r.follow {
+		var err error
+		// provide empty build run name; will be set in Run()
+		r.follower, err = params.NewFollower(r.cmd.Context(), types.NamespacedName{}, ioStreams)
+		if err != nil {
+			return err
+		}
+		r.followerReady = make(chan bool, 1)
+	}
 	// overwriting build-ref name to use what's on arguments
 	return r.Cmd().Flags().Set(flags.BuildrefNameFlag, r.buildName)
 }
@@ -62,6 +72,16 @@ func (r *RunCommand) Validate() error {
 		return fmt.Errorf("name is not informed")
 	}
 	return nil
+}
+
+// FollowerReady blocks until the any log following connections are established in the Run call.
+// Useful if you have code that calls Run on a separate thread and coordination is needed.
+func (r *RunCommand) FollowerReady() bool {
+	if !r.follow {
+		return false
+	}
+	_, closed := <-r.followerReady
+	return !closed
 }
 
 // Run creates a BuildRun resource based on Build's name informed on arguments.
@@ -90,15 +110,8 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		return nil
 	}
 
-	// during unit-testing the follower instance will be injected directly, which makes possible to
-	// simulate the pod events without creating a race condition
-	if r.follower == nil {
-		buildRun := types.NamespacedName{Namespace: r.namespace, Name: br.GetName()}
-		r.follower, err = params.NewFollower(ctx, buildRun, ioStreams)
-		if err != nil {
-			return err
-		}
-	}
+	buildRun := types.NamespacedName{Namespace: r.namespace, Name: br.GetName()}
+	r.follower.SetBuildRunName(buildRun)
 
 	// instantiating a pod watcher with a specific label-selector to find the indented pod where the
 	// actual build started by this subcommand is being executed, including the randomized buildrun
@@ -108,7 +121,12 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		r.buildName,
 		br.GetName(),
 	)}
-	_, err = r.follower.Start(listOpts)
+	err = r.follower.Connect(listOpts)
+	if err != nil {
+		return err
+	}
+	close(r.followerReady)
+	_, err = r.follower.WaitForCompletion()
 	return err
 }
 
