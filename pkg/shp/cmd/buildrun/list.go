@@ -85,7 +85,7 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 				break
 			}
 		}
-		age := duration.ShortHumanDuration(time.Since((br.Status.StartTime).Time))
+		age := duration.ShortHumanDuration(time.Since((br.ObjectMeta.CreationTimestamp).Time))
 
 		fmt.Fprintf(writer, columnTemplate, name, status, age)
 	}
