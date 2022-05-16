@@ -1,6 +1,6 @@
 module github.com/shipwright-io/cli
 
-go 1.17
+go 1.18
 
 require (
 	github.com/google/go-containerregistry v0.8.1-0.20220216220642-00c59d91847c
