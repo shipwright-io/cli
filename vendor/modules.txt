@@ -1,4 +1,4 @@
-# cloud.google.com/go/compute v1.6.1
+# cloud.google.com/go/compute v1.7.0
 ## explicit; go 1.15
 cloud.google.com/go/compute/metadata
 # contrib.go.opencensus.io/exporter/ocagent v0.7.1-0.20200907061046-05415f1de66d
@@ -59,7 +59,7 @@ github.com/chai2010/gettext-go/gettext
 github.com/chai2010/gettext-go/gettext/mo
 github.com/chai2010/gettext-go/gettext/plural
 github.com/chai2010/gettext-go/gettext/po
-# github.com/containerd/stargz-snapshotter/estargz v0.11.4
+# github.com/containerd/stargz-snapshotter/estargz v0.12.0
 ## explicit; go 1.16
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
@@ -69,7 +69,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/docker/cli v20.10.16+incompatible
+# github.com/docker/cli v20.10.17+incompatible
 ## explicit
 github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
@@ -78,7 +78,7 @@ github.com/docker/cli/cli/config/types
 # github.com/docker/distribution v2.8.1+incompatible
 ## explicit
 github.com/docker/distribution/registry/client/auth/challenge
-# github.com/docker/docker v20.10.16+incompatible
+# github.com/docker/docker v20.10.17+incompatible
 ## explicit
 github.com/docker/docker/pkg/homedir
 # github.com/docker/docker-credential-helpers v0.6.4
@@ -172,7 +172,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.10.0
+# github.com/google/go-containerregistry v0.11.0
 ## explicit; go 1.17
 github.com/google/go-containerregistry/internal/and
 github.com/google/go-containerregistry/internal/estargz
@@ -240,7 +240,7 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.15.5
+# github.com/klauspost/compress v1.15.8
 ## explicit; go 1.16
 github.com/klauspost/compress
 github.com/klauspost/compress/fse
@@ -366,7 +366,7 @@ github.com/shipwright-io/build/pkg/client/clientset/versioned/typed/build/v1alph
 github.com/shipwright-io/build/pkg/client/clientset/versioned/typed/build/v1alpha1/fake
 github.com/shipwright-io/build/pkg/config
 github.com/shipwright-io/build/pkg/reconciler/buildrun/resources/sources
-# github.com/sirupsen/logrus v1.8.1
+# github.com/sirupsen/logrus v1.9.0
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 # github.com/spf13/cobra v1.5.0
@@ -446,7 +446,7 @@ go.uber.org/zap/zapcore
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20220524220425-1d687d428aca
+# golang.org/x/net v0.0.0-20220708220712-1185a9018129
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -459,8 +459,8 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
-## explicit; go 1.11
+# golang.org/x/oauth2 v0.0.0-20220718184931-c8730f7fcb92
+## explicit; go 1.17
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
 golang.org/x/oauth2/google
@@ -468,11 +468,11 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
+# golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
+# golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
 ## explicit; go 1.17
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
@@ -510,7 +510,7 @@ golang.org/x/time/rate
 # gomodules.xyz/jsonpatch/v2 v2.2.0
 ## explicit; go 1.12
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/api v0.81.0
+# google.golang.org/api v0.84.0
 ## explicit; go 1.15
 google.golang.org/api/support/bundler
 # google.golang.org/appengine v1.6.7
@@ -525,12 +525,12 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20220519153652-3a47de7e79bd
+# google.golang.org/genproto v0.0.0-20220616135557-88e70c0c3a90
 ## explicit; go 1.15
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.46.2
+# google.golang.org/grpc v1.47.0
 ## explicit; go 1.14
 google.golang.org/grpc
 google.golang.org/grpc/attributes
