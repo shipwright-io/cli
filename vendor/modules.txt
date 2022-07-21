@@ -172,7 +172,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.10.0
+# github.com/google/go-containerregistry v0.8.1-0.20220216220642-00c59d91847c
 ## explicit; go 1.17
 github.com/google/go-containerregistry/internal/and
 github.com/google/go-containerregistry/internal/estargz
@@ -289,7 +289,7 @@ github.com/modern-go/reflect2
 # github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
 ## explicit
 github.com/monochromegane/go-gitignore
-# github.com/onsi/gomega v1.19.0
+# github.com/onsi/gomega v1.20.0
 ## explicit; go 1.18
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -355,8 +355,8 @@ github.com/sabhiram/go-gitignore
 # github.com/schollz/progressbar/v3 v3.8.7
 ## explicit; go 1.13
 github.com/schollz/progressbar/v3
-# github.com/shipwright-io/build v0.10.0
-## explicit; go 1.18
+# github.com/shipwright-io/build v0.9.0
+## explicit; go 1.17
 github.com/shipwright-io/build/pkg/apis/build/v1alpha1
 github.com/shipwright-io/build/pkg/bundle
 github.com/shipwright-io/build/pkg/client/clientset/versioned

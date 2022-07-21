@@ -3,11 +3,11 @@ module github.com/shipwright-io/cli
 go 1.18
 
 require (
-	github.com/google/go-containerregistry v0.10.0
-	github.com/onsi/gomega v1.19.0
+	github.com/google/go-containerregistry v0.8.1-0.20220216220642-00c59d91847c
+	github.com/onsi/gomega v1.20.0
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/schollz/progressbar/v3 v3.8.7
-	github.com/shipwright-io/build v0.10.0
+	github.com/shipwright-io/build v0.9.0
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
