@@ -7,7 +7,7 @@ set -eu
 
 SHIPWRIGHT_HOST="github.com"
 SHIPWRIGHT_HOST_PATH="shipwright-io/build/releases/download"
-SHIPWRIGHT_VERSION="${SHIPWRIGHT_VERSION:-v0.9.0}"
+SHIPWRIGHT_VERSION="${SHIPWRIGHT_VERSION:-v0.10.0}"
 
 DEPLOYMENT_TIMEOUT="${DEPLOYMENT_TIMEOUT:-3m}"
 
@@ -24,4 +24,8 @@ kubectl --namespace="shipwright-build" rollout status deployment shipwright-buil
 
 echo "# Installing upstream Build-Strategies..."
 
-kubectl apply -f "https://${SHIPWRIGHT_HOST}/${SHIPWRIGHT_HOST_PATH}/nightly/default_strategies.yaml"
+if [[ ${SHIPWRIGHT_VERSION} == nightly-* ]]; then
+	kubectl apply -f "https://${SHIPWRIGHT_HOST}/${SHIPWRIGHT_HOST_PATH}/nightly/${SHIPWRIGHT_VERSION}-sample-strategies.yaml"
+else
+	kubectl apply -f "https://${SHIPWRIGHT_HOST}/${SHIPWRIGHT_HOST_PATH}/${SHIPWRIGHT_VERSION}/sample-strategies.yaml"
+fi

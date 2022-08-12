@@ -35,7 +35,6 @@ teardown() {
 
     # confirm output that would only exist if following BuildRun logs
     assert_output --partial "[source-default]"
-    assert_output --partial "[place-tools]"
     assert_output --partial "[build-and-push]"
     assert_output --partial "has succeeded!"
 }

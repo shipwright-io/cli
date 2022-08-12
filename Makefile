@@ -23,8 +23,8 @@ OUTPUT_HOSTNAME ?= registry.registry.svc.cluster.local:32222
 OUTPUT_NAMESPACE ?= shipwright-io
 
 # Tekton and Shipwright Build Controller versions for CI
-TEKTON_VERSION ?= v0.34.1
-SHIPWRIGHT_VERSION ?= v0.9.0
+TEKTON_VERSION ?= v0.38.3
+SHIPWRIGHT_VERSION ?= v0.10.0
 
 .EXPORT_ALL_VARIABLES:
 
