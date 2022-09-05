@@ -2,7 +2,7 @@ package mock
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +44,7 @@ func (f *FakeClientset) Clientset() *kubernetes.Clientset {
 func (f *FakeClientset) roundTripperFn(req *http.Request) (*http.Response, error) {
 	switch method := req.Method; {
 	case method == "GET":
-		body := ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(f.codec, f.pod))))
+		body := io.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(f.codec, f.pod))))
 		return &http.Response{
 			StatusCode: http.StatusOK,
 			Body:       body,

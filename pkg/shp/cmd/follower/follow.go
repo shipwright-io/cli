@@ -169,12 +169,8 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 		case pod.DeletionTimestamp != nil:
 			msg = fmt.Sprintf("Pod %q has been deleted.\n", pod.GetName())
 		default:
-			msg = fmt.Sprintf("Pod %q has failed!\n", pod.GetName())
-			podBytes, err2 := json.MarshalIndent(pod, "", "    ")
-			if err2 == nil {
-				msg = fmt.Sprintf("Pod %q has failed!\nPod JSON:\n%s\n", pod.GetName(), string(podBytes))
-			}
-			err = fmt.Errorf("build pod %q has failed", pod.GetName())
+			msg = buildErrorMessage(br, pod)
+			err = fmt.Errorf("buildrun pod %q has failed", pod.GetName())
 		}
 		// see if because of deletion or cancelation
 		f.Log(msg)
@@ -277,4 +273,53 @@ func (f *Follower) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
 		return nil, err
 	}
 	return f.WaitForCompletion()
+}
+
+func buildErrorMessage(br *buildv1alpha1.BuildRun, pod *corev1.Pod) string {
+	failureDetails := br.Status.FailureDetails
+	if failureDetails == nil {
+		if podBytes, err := json.MarshalIndent(pod, "  ", "  "); err == nil {
+			return fmt.Sprintf("BuildRun %q has failed.\nPod details:\n  %s\n", br.Name, string(podBytes))
+		}
+
+		return fmt.Sprintf("BuildRun %q has failed.\n", br.Name)
+	}
+
+	if failureDetails.Location == nil || failureDetails.Location.Container == "" {
+		var msg string
+		if failureDetails.Reason != "" && failureDetails.Message != "" {
+			msg = fmt.Sprintf("BuildRun %q has failed because of %s: %s\n", br.Name, failureDetails.Reason, failureDetails.Message)
+		} else {
+			msg = fmt.Sprintf("BuildRun %q has failed.\n", br.Name)
+		}
+
+		if podBytes, err := json.MarshalIndent(pod, "  ", "  "); err == nil {
+			return fmt.Sprintf("%sPod details:\n  %s\n", msg, string(podBytes))
+		}
+
+		return msg
+	}
+
+	// get the container status
+	var containerDetails []byte
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		if containerStatus.Name == failureDetails.Location.Container {
+			// error intentionally ignored
+			containerDetails, _ = json.MarshalIndent(containerStatus, "  ", "  ")
+			break
+		}
+	}
+
+	var msg string
+	if failureDetails.Reason != "" && failureDetails.Message != "" {
+		msg = fmt.Sprintf("BuildRun %q has failed at step %q because of %s: %s\n", br.Name, failureDetails.Location.Container, failureDetails.Reason, failureDetails.Message)
+	} else {
+		msg = fmt.Sprintf("BuildRun %q has failed at step %q.\n", br.Name, failureDetails.Location.Container)
+	}
+
+	if len(containerDetails) > 0 {
+		return fmt.Sprintf("%sStep details:\n  %s\n", msg, string(containerDetails))
+	}
+
+	return msg
 }

@@ -68,7 +68,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		{
 			name:    "failed-something-else",
 			phase:   corev1.PodFailed,
-			logText: "Pod \"testpod\" has failed!",
+			logText: "BuildRun \"testpod\" has failed.",
 		},
 		{
 			name:  "running",
