@@ -18,11 +18,13 @@ jobs:
     name: Verify
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - name: Check out code
+      uses: actions/checkout@v3
+
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v2
+      uses: golangci/golangci-lint-action@v3
       with:
         args: --timeout=10m
+
     - name: Verify docs
       run: make verify-docs
