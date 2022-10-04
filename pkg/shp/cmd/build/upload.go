@@ -203,16 +203,21 @@ func (u *UploadCommand) performDataStreaming(target *streamer.Target) error {
 		return nil
 	}
 
-	log.Printf("Streaming '%s' to the Build POD '%s'...", u.sourceDir, target.Pod)
+	fmt.Fprintf(os.Stdout, "Streaming %q to the Build POD %q ...\n", u.sourceDir, target.Pod)
 	// creates an in-memory tarball with source directory data, and ready to start data streaming
 	tarball, err := streamer.NewTar(u.sourceDir)
 	if err != nil {
 		return err
 	}
 
+	tarsize, err := streamer.GetTarSize(u.sourceDir)
+	if err != nil {
+		return err
+	}
+
 	// start writing the data using the tarball format, and streaming it via STDIN, which is
 	// redirected to the correct container
-	if err = u.dataStreamer.Stream(target, tarball.Create); err != nil {
+	if err = u.dataStreamer.Stream(target, tarball.Create, tarsize.Size); err != nil {
 		return err
 	}
 
