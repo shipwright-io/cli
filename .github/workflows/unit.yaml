@@ -16,16 +16,15 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-    - name: Setup Go
-      uses: actions/setup-go@v2
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Install Go
+      uses: actions/setup-go@v3
       with:
-        go-version: 1.18.x
-    
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-    
-    - name: Install Tools
-      run: sudo apt-get update && sudo apt-get install -y make gcc
+        go-version: '1.18.x'
+        cache: true
+        check-latest: true
 
     - name: Run Unit Tests
       run: make test-unit
