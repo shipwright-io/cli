@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/google/go-containerregistry v0.12.0
-	github.com/onsi/gomega v1.23.0
+	github.com/onsi/gomega v1.24.0
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/schollz/progressbar/v3 v3.11.0
 	github.com/shipwright-io/build v0.11.0
