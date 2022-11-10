@@ -592,8 +592,8 @@ github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQD
 github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
 github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 h1:OkMGxebDjyw0ULyrTYWeN0UNCCkmCWfjPnIA2W6oviI=
 github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06/go.mod h1:+ePHsJ1keEjQtpvf9HHw0f4ZeJ0TLRsxhunSI2hYJSs=
-github.com/schollz/progressbar/v3 v3.12.0 h1:BVFNM+V/l20JUYkJ5fO/CnOYPV3Et3tON8FmJepkdq4=
-github.com/schollz/progressbar/v3 v3.12.0/go.mod h1:g7QSuwyGpqCjVQPFZXA31MSxtrhka9Y9LMdF+XT77/Y=
+github.com/schollz/progressbar/v3 v3.12.1 h1:JAhtIrLWAn6/p7i82SrpSG3fgAwlAxi+Sy12r4AzBvQ=
+github.com/schollz/progressbar/v3 v3.12.1/go.mod h1:g7QSuwyGpqCjVQPFZXA31MSxtrhka9Y9LMdF+XT77/Y=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/sergi/go-diff v1.1.0/go.mod h1:STckp+ISIX8hZLjrqAeVduY0gWCT9IjLuqbuNXdaHfM=
 github.com/sergi/go-diff v1.2.0 h1:XU+rvMAioB0UC3q1MFrIQy4Vo5/4VsRDQQXHsEya6xQ=
