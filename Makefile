@@ -63,18 +63,10 @@ test-unit:
 test-e2e:
 	./test/e2e/bats/core/bin/bats --recursive test/e2e/*.bats
 
-# wait for KinD cluster to be on ready state, so tests can be performed
-verify-kind:
-	./hack/verify-kind.sh
-
-# deploys a Container Registry instance, for the end-to-end tests
-install-registry:
-	./hack/install-registry.sh
-
-# deploys Tekton and Shipwright Build Controller following the versions exported
-install-shipwright:
-	./hack/install-tekton.sh
-	./hack/install-shipwright.sh
+# runs act, with optional arguments
+.PHONY: act
+act:
+	@act --secret="GITHUB_TOKEN=${GITHUB_TOKEN}" $(ARGS)
 
 # Install golangci-lint via: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 .PHONY: sanity-check

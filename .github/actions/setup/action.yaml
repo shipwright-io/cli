@@ -1,0 +1,12 @@
+---
+name: setup
+description: set up the stage for building and testing
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v3
+      with:
+        go-version: 1.18.x
+        cache: true
+        check-latest: true
+    - uses: imjasonh/setup-ko@v0.6
