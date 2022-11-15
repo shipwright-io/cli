@@ -127,7 +127,7 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 	switch pod.Status.Phase {
 	case corev1.PodRunning:
 		if !f.enteredRunningState {
-			f.Log(fmt.Sprintf("Pod %q in %q state, starting up log tail", pod.GetName(), corev1.PodRunning))
+			f.Log(fmt.Sprintf("Pod %q in %q state, starting up log tail\n", pod.GetName(), corev1.PodRunning))
 			for _, c := range pod.Status.ContainerStatuses {
 				if c.State.Running != nil && !c.State.Running.StartedAt.IsZero() {
 					f.enteredRunningState = true
@@ -157,7 +157,7 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 			return false, nil
 		})
 		if err != nil {
-			f.Log(fmt.Sprintf("gave up trying to get a buildrun %q in a terminal state for pod %q, proceeding with pod failure processing", f.buildRun.Name, pod.GetName()))
+			f.Log(fmt.Sprintf("gave up trying to get a buildrun %q in a terminal state for pod %q, proceeding with pod failure processing\n", f.buildRun.Name, pod.GetName()))
 		}
 		switch {
 		case br == nil:
@@ -180,12 +180,12 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 		// encountered scenarios where the build run quickly enough that the pod effectively skips the running state,
 		// or the events come in reverse order, and we never enter the tail
 		if !f.enteredRunningState {
-			f.Log(fmt.Sprintf("succeeded event for pod %q arrived before or in place of running event so dumping logs now", pod.GetName()))
+			f.Log(fmt.Sprintf("succeeded event for pod %q arrived before or in place of running event so dumping logs now\n", pod.GetName()))
 			var b strings.Builder
 			for _, c := range pod.Spec.Containers {
 				logs, err := util.GetPodLogs(f.ctx, f.clientset, *pod, c.Name)
 				if err != nil {
-					f.Log(fmt.Sprintf("could not get logs for container %q: %s", c.Name, err.Error()))
+					f.Log(fmt.Sprintf("could not get logs for container %q: %s\n", c.Name, err.Error()))
 					continue
 				}
 				fmt.Fprintf(&b, "*** Pod %q, container %q: ***\n\n", pod.Name, c.Name)
@@ -226,7 +226,7 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 	brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(f.buildRun.Namespace)
 	br, err := brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
 	if err != nil {
-		f.Log(fmt.Sprintf("error accessing BuildRun %q: %s", f.buildRun.Name, err.Error()))
+		f.Log(fmt.Sprintf("error accessing BuildRun %q: %s\n", f.buildRun.Name, err.Error()))
 		f.Stop()
 		return
 	}
@@ -237,22 +237,22 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 	switch {
 	case c != nil && c.Status == corev1.ConditionTrue:
 		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been marked as successful.\n", br.Name)
+		msg = fmt.Sprintf("BuildRun %q has been marked as successful.\n", br.Name)
 	case c != nil && c.Status == corev1.ConditionFalse:
 		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been marked as failed.\n", br.Name)
+		msg = fmt.Sprintf("BuildRun %q has been marked as failed.\n", br.Name)
 	case br.IsCanceled():
 		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been canceled.\n", br.Name)
+		msg = fmt.Sprintf("BuildRun %q has been canceled.\n", br.Name)
 	case br.DeletionTimestamp != nil:
 		giveUp = true
-		msg = fmt.Sprintf("BuildRun '%s' has been deleted.\n", br.Name)
+		msg = fmt.Sprintf("BuildRun %q has been deleted.\n", br.Name)
 	case !br.HasStarted():
-		f.Log(fmt.Sprintf("BuildRun '%s' has not been marked as started yet.\n", br.Name))
+		f.Log(fmt.Sprintf("BuildRun %q has not been marked as started yet.\n", br.Name))
 	}
 	if giveUp {
 		f.Log(msg)
-		f.Log(fmt.Sprintf("exiting 'shp build run --follow' for BuildRun %q", br.Name))
+		f.Log(fmt.Sprintf("exiting 'shp build run --follow' for BuildRun %q\n", br.Name))
 		f.Stop()
 	}
 }
