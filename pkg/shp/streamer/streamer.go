@@ -1,6 +1,7 @@
 package streamer
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -8,6 +9,8 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	progressbar "github.com/schollz/progressbar/v3"
 	"k8s.io/kubectl/pkg/cmd/exec"
 	"k8s.io/kubectl/pkg/util/interrupt"
 )
@@ -40,7 +43,7 @@ func (s *Streamer) execute(opts *exec.ExecOptions) error {
 
 // Stream the data onto the informed target, and it uses the BaseDir as the path to store the data on
 // the running POD. The writerFn is employed to expose the writer interface to callers.
-func (s *Streamer) Stream(target *Target, writerFn WriterFn) error {
+func (s *Streamer) Stream(target *Target, writerFn WriterFn, size int64) error {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -57,6 +60,25 @@ func (s *Streamer) Stream(target *Target, writerFn WriterFn) error {
 		wg.Done()
 	}()
 
+	progress := progressbar.NewOptions(int(size),
+		progressbar.OptionSetWriter(os.Stderr),
+		progressbar.OptionEnableColorCodes(true),
+		progressbar.OptionShowBytes(true),
+		progressbar.OptionSetWidth(15),
+		progressbar.OptionSetPredictTime(false),
+		progressbar.OptionSetDescription("Uploading local source..."),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "[green]=[reset]",
+			SaucerHead:    "[green]>[reset]",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]"}),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Fprintln(os.Stdout)
+		}),
+	)
+	defer progress.Close()
+
 	// defines the target pod using namespace and pod name, and wires up the local stdin with the
 	// pipe reader interface, therefore all data written on the writer interface will be redirected
 	// to the pod
@@ -66,8 +88,8 @@ func (s *Streamer) Stream(target *Target, writerFn WriterFn) error {
 		ContainerName: target.Container,
 		Stdin:         true,
 		IOStreams: genericclioptions.IOStreams{
-			In:     reader,
-			Out:    os.Stdout,
+			In:     io.TeeReader(reader, progress),
+			Out:    io.Discard,
 			ErrOut: os.Stderr,
 		},
 	}
@@ -97,7 +119,7 @@ func (s *Streamer) Done(target *Target) error {
 		ContainerName:   target.Container,
 		InterruptParent: &interrupt.Handler{},
 		IOStreams: genericclioptions.IOStreams{
-			Out:    os.Stdout,
+			Out:    io.Discard,
 			ErrOut: os.Stderr,
 		},
 	}

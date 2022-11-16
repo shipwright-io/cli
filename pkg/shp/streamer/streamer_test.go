@@ -38,13 +38,15 @@ func Test_Streamer(t *testing.T) {
 		BaseDir:   "/",
 	}
 
+	var size int64 = 1000
+
 	// streaming mocked standard input data, and asserting both command informed is expected, and
 	// stdin is preserved
 	stdin := "standard input"
 	err := s.Stream(targetPod, func(w io.Writer) error {
 		_, err := w.Write([]byte(stdin))
 		return err
-	})
+	}, size)
 	g.Expect(err).To(o.BeNil())
 	g.Expect(re.Command()).To(o.Equal([]string{"tar", "xfv", "-", "-C", "/"}))
 	g.Expect(re.Stdin()).To(o.Equal(stdin))
