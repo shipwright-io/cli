@@ -7,8 +7,7 @@ on:
       - main
 
 jobs:
-  verify:
-    name: Release Note Linter
+  release-notes-linter:
     runs-on: ubuntu-latest
     steps:
       - name: Sanity Check Release Notes

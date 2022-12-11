@@ -3,13 +3,7 @@
 All testing tooling is managed by the `Makefile` on this project, therefore all you'll have to do is
 invoke one of those targets to test current changes.
 
-To run all projet tests, execute:
-
-```sh
-make test
-```
-
-## Unit-Testing
+## Unit
 
 To execute unit-testing present on this project, run:
 
@@ -17,9 +11,9 @@ To execute unit-testing present on this project, run:
 make test-unit
 ```
 
-## End-to-End (E2E)
+## E2E
 
-End-to-End tests aim to mimic the real world usage of this CLI against the
+End-to-End (E2E) tests aim to mimic the real world usage of this CLI against the
 [Shipwright Build Controller][shipwrightBuild]. To run end-to-end tests, make sure you have the
 latest changes compiled (`make build`), and then run the tests (`make test-e2e`), in short:
 
@@ -29,25 +23,25 @@ make build test-e2e
 
 ### Requirements
 
-The following componets are required to run end-to-end tests.
+The CLI will interact with [Shipwright Build][shipwrightBuild] in the Kubernetes instance. Before running the end-to-end tests make sure [Shipwright Build][shipwrightBuild] and its dependencies is installed.
 
-#### Kubernetes
+### GitHub Action
 
-Before testing a [KinD][kindSig] instance is created, running a predefined version of Kubernetes.
-Please consider [GitHub Action files](../.github/workflows/e2e.yaml) for more details. Additionally,
-`kubectl` is required to intereact with the Kubernetes Cluster, you need to install it before running
-scripts on the [`./hack` directory](../hack).
+Continuous integration (CI) tests are managed by GitHub Actions, to run these jobs locally please consider [this documentation section][shpSetupContributing] which describes the dependencies and settings required.
 
-#### Shipwright Build Controller
+After you're all set, run the following target to execute all jobs:
 
-The [Shipwright Build Controller][shipwrightBuild] must be up and running as well. To install the
-controller and its dependencies, run:
-
-```sh
-make install-shipwright
+```bash
+make act
 ```
 
-The install script waits for the Controller instance to be running.
+ The CI jobs will exercise [unit](#unit) and [end-to-end](#e2e) tests sequentially, alternatively you may want to run a single suite at the time, that can be achieved using `ARGS` (on `act` target).
+
+ Using `ARGS` you can run a single `job` passing flags to [act][nektosAct] command-line. For instance, in order to only run [unit tests](#unit) (`make test-unit`):
+
+```bash
+make act ARGS="--job=test-unit"
+```
 
 #### BATS
 
@@ -100,3 +94,5 @@ is overwritten to use executable compiled in the project folder.
 [kindSig]: https://kind.sigs.k8s.io/
 [batsCore]: https://github.com/bats-core/bats-core
 [shipwrightBuild]: https://github.com/shipwright-io/build
+[shpSetupContributing]: https://github.com/shipwright-io/setup/blob/main/README.md#contributing
+[nektosAct]: https://github.com/nektos/act
