@@ -352,7 +352,7 @@ github.com/russross/blackfriday/v2
 # github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 ## explicit; go 1.13
 github.com/sabhiram/go-gitignore
-# github.com/schollz/progressbar/v3 v3.12.2
+# github.com/schollz/progressbar/v3 v3.13.0
 ## explicit; go 1.13
 github.com/schollz/progressbar/v3
 # github.com/shipwright-io/build v0.11.0
@@ -473,14 +473,14 @@ golang.org/x/oauth2/jwt
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.3.0
+# golang.org/x/sys v0.4.0
 ## explicit; go 1.17
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.3.0
+# golang.org/x/term v0.4.0
 ## explicit; go 1.17
 golang.org/x/term
 # golang.org/x/text v0.5.0
