@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/google/go-containerregistry v0.13.0
-	github.com/onsi/gomega v1.24.2
+	github.com/onsi/gomega v1.26.0
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/schollz/progressbar/v3 v3.13.0
 	github.com/shipwright-io/build v0.11.0
@@ -117,12 +117,12 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/crypto v0.4.0 // indirect
-	golang.org/x/net v0.4.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/oauth2 v0.3.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/term v0.4.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/api v0.96.0 // indirect
