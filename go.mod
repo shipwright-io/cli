@@ -3,7 +3,7 @@ module github.com/shipwright-io/cli
 go 1.19
 
 require (
-	github.com/google/go-containerregistry v0.12.1
+	github.com/google/go-containerregistry v0.13.0
 	github.com/onsi/gomega v1.24.2
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/schollz/progressbar/v3 v3.13.0
