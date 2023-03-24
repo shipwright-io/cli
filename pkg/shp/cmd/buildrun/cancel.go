@@ -38,7 +38,7 @@ func (c *CancelCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills in data provided by user
-func (c *CancelCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *CancelCommand) Complete(_ *params.Params, _ *genericclioptions.IOStreams, args []string) error {
 	c.name = args[0]
 
 	return nil

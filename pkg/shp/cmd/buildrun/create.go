@@ -35,7 +35,7 @@ func (c *CreateCommand) Cmd() *cobra.Command {
 }
 
 // Complete checks if the arguments is informing the BuildRun name.
-func (c *CreateCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *CreateCommand) Complete(_ *params.Params, _ *genericclioptions.IOStreams, args []string) error {
 	switch len(args) {
 	case 1:
 		c.name = args[0]
