@@ -44,7 +44,7 @@ func (c *ListCommand) Cmd() *cobra.Command {
 }
 
 // Complete fills in data provided by user
-func (c *ListCommand) Complete(params *params.Params, io *genericclioptions.IOStreams, args []string) error {
+func (c *ListCommand) Complete(_ *params.Params, _ *genericclioptions.IOStreams, _ []string) error {
 	return nil
 }
 
@@ -54,7 +54,7 @@ func (c *ListCommand) Validate() error {
 }
 
 // Run executes list sub-command logic
-func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
+func (c *ListCommand) Run(params *params.Params, _ *genericclioptions.IOStreams) error {
 	// TODO: Support multiple output formats here, not only tabwriter
 	//       find out more in kubectl libraries and use them
 

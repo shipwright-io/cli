@@ -246,9 +246,9 @@ func TestSanitizeBuildSpec(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			copy := tt.in.DeepCopy()
-			SanitizeBuildSpec(copy)
-			g.Expect(tt.out).To(Equal(*copy))
+			aCopy := tt.in.DeepCopy()
+			SanitizeBuildSpec(aCopy)
+			g.Expect(tt.out).To(Equal(*aCopy))
 		})
 	}
 }

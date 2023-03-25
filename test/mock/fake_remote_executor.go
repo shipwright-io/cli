@@ -34,7 +34,7 @@ func (f *FakeRemoteExecutor) Execute(
 	reqURL *url.URL,
 	_ *rest.Config,
 	stdin io.Reader,
-	stdout, stderr io.Writer,
+	_, _ io.Writer,
 	_ bool,
 	_ remotecommand.TerminalSizeQueue,
 ) error {
