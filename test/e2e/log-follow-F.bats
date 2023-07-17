@@ -13,7 +13,7 @@ teardown() {
 	run kubectl delete buildruns.shipwright.io --all
 }
 
-@test "shp buildrun logs follow verification" {
+@test "shp buildrun logs follow verification -F" {
   	# generate random names for our build and buildrun
   	build_name=$(random_name)
   	buildrun_name=$(random_name)
@@ -28,10 +28,11 @@ teardown() {
 
     # initiate a BuildRun
     run shp buildrun create --buildref-name ${build_name} ${buildrun_name}
+    assert_success
+
     # tail logs with -F
     run shp buildrun logs -F ${buildrun_name}
     assert_success
-
 
     # confirm output that would only exist if following BuildRun logs
     assert_output --partial "[source-default]"

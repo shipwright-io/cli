@@ -13,7 +13,7 @@ teardown() {
 	run kubectl delete buildruns.shipwright.io --all
 }
 
-@test "shp buildrun logs follow verification" {
+@test "shp buildrun logs follow verification --follow" {
   	# generate random names for our build and buildrun
   	build_name=$(random_name)
   	buildrun_name=$(random_name)
