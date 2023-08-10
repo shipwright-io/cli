@@ -15,9 +15,11 @@ reviewers:
 - SaschaSchwarze0
 - adambkaplan
 - HeavyWombat
-- ImJasonH
 
 emeritus_approvers:
 - alicerum #2022-08-15
 - gabemontero # 2022-08-15
 - sbose78 # 2022-08-15
+
+emeritus_reviewers:
+- ImJasonH
