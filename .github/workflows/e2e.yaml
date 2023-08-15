@@ -23,9 +23,9 @@ jobs:
       - name: Setup Bats and libs
         uses: brokenpip3/setup-bats-libs@1.5.0
         with:
-          assert-path: ${{ github.workspace }}/bats/assert
-          file-path: ${{ github.workspace }}/bats/file
-          support-path: ${{ github.workspace }}/bats/support
+          assert-path: ${{ github.workspace }}/test/e2e/bats/assert
+          file-path: ${{ github.workspace }}/test/e2e/bats/file
+          support-path: ${{ github.workspace }}/test/e2e/bats/support
 
       - name: Setup Go and ko
         uses: ./.github/actions/setup
