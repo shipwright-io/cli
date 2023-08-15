@@ -20,8 +20,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
+      - name: Setup BATS testing framework
+        uses: mig4/setup-bats@v1.2.0
+
       - name: Setup Go and ko
         uses: ./.github/actions/setup
 
@@ -32,6 +33,7 @@ jobs:
           cluster_name: kind
           config: test/kind/config.yaml
           wait: 120s
+
       - uses: shipwright-io/setup@v1
         with:
           tekton-version: v0.38.3

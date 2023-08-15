@@ -61,7 +61,7 @@ test-unit:
 
 # looks for *.bats files in the test/e2e directory and runs them
 test-e2e:
-	./test/e2e/bats/core/bin/bats --recursive test/e2e/*.bats
+	bats --recursive test/e2e/*.bats
 
 # runs act, with optional arguments
 .PHONY: act
