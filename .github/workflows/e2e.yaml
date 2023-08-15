@@ -34,8 +34,8 @@ jobs:
           wait: 120s
       - uses: shipwright-io/setup@v1
         with:
-          tekton-version: v0.38.3
-          shipwright-ref: v0.11.0
+          tekton-version: v0.44.0
+          shipwright-ref: main
           cli-ref: _ignore
 
       - name: CLI Build (shp)
