@@ -14,7 +14,8 @@ jobs:
       fail-fast: true
       matrix:
         kubernetes:
-          - v1.23.10
+          - v1.24.15
+          - v1.25.11
       max-parallel: 2
     runs-on: ubuntu-latest
 
@@ -25,9 +26,9 @@ jobs:
       - name: Setup Go and ko
         uses: ./.github/actions/setup
 
-      - uses: helm/kind-action@v1.4.0
+      - uses: helm/kind-action@v1
         with:
-          version: v0.15.0
+          version: v0.20.0
           node_image: kindest/node:${{ matrix.kubernetes }}
           cluster_name: kind
           config: test/kind/config.yaml
