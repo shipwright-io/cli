@@ -27,6 +27,7 @@ const (
 
 // ClusterBuildStrategy is the Schema representing a strategy in the cluster scope to build images from source code.
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:path=clusterbuildstrategies,scope=Cluster,shortName=cbs;cbss
 type ClusterBuildStrategy struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -78,6 +79,11 @@ func (s ClusterBuildStrategy) GetBuildSteps() []BuildStep {
 // GetParameters returns the parameters defined by the build strategy
 func (s ClusterBuildStrategy) GetParameters() []Parameter {
 	return s.Spec.Parameters
+}
+
+// GetSecurityContext returns the security context defined by the build strategy
+func (s ClusterBuildStrategy) GetSecurityContext() *BuildStrategySecurityContext {
+	return s.Spec.SecurityContext
 }
 
 // GetVolumes returns the volumes defined by the build strategy
