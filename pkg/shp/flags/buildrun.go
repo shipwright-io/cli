@@ -22,6 +22,7 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 		Timeout: &metav1.Duration{},
 		Output: &buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{},
+			Insecure:    pointer.Bool(false),
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},
@@ -67,6 +68,9 @@ func SanitizeBuildRunSpec(br *buildv1alpha1.BuildRunSpec) {
 	if br.Output != nil {
 		if br.Output.Credentials != nil && br.Output.Credentials.Name == "" {
 			br.Output.Credentials = nil
+		}
+		if br.Output.Insecure != nil && !*br.Output.Insecure {
+			br.Output.Insecure = nil
 		}
 		if br.Output.Image == "" && br.Output.Credentials == nil {
 			br.Output = nil

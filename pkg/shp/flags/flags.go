@@ -42,6 +42,8 @@ const (
 	StrategyNameFlag = "strategy-name"
 	// OutputImageFlag command-line flag.
 	OutputImageFlag = "output-image"
+	// OutputInsecure command-line flag.
+	OutputInsecureFlag = "output-insecure"
 	// OutputCredentialsSecretFlag command-line flag.
 	OutputCredentialsSecretFlag = "output-credentials-secret"
 	// ServiceAccountNameFlag command-line flag.
@@ -138,6 +140,14 @@ func imageFlags(flags *pflag.FlagSet, prefix string, image *buildv1alpha1.Image)
 		"",
 		"name of the secret with builder-image pull credentials",
 	)
+	if prefix == "output" {
+		flags.BoolVar(
+			image.Insecure,
+			fmt.Sprintf("%s-insecure", prefix),
+			false,
+			"flag to indicate an insecure container registry",
+		)
+	}
 }
 
 // dockerfileFlags register dockerfile flag as pointer to string.

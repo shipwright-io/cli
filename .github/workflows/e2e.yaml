@@ -11,7 +11,7 @@ name: End-to-End (E2E) Tests
 jobs:
   test-e2e:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         kubernetes:
           - v1.24.15
@@ -44,3 +44,9 @@ jobs:
 
       - name: End-to-End Tests
         run: make test-e2e
+
+      - name: Pods
+        if: ${{ failure() }}
+        run: |
+          echo "# Pods:"
+          kubectl get pod -A -o yaml
