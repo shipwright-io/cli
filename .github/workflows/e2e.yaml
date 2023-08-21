@@ -11,10 +11,11 @@ name: End-to-End (E2E) Tests
 jobs:
   test-e2e:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         kubernetes:
-          - v1.23.10
+          - v1.24.15
+          - v1.25.11
       max-parallel: 2
     runs-on: ubuntu-latest
 
@@ -25,17 +26,17 @@ jobs:
       - name: Setup Go and ko
         uses: ./.github/actions/setup
 
-      - uses: helm/kind-action@v1.4.0
+      - uses: helm/kind-action@v1
         with:
-          version: v0.15.0
+          version: v0.20.0
           node_image: kindest/node:${{ matrix.kubernetes }}
           cluster_name: kind
           config: test/kind/config.yaml
           wait: 120s
       - uses: shipwright-io/setup@v1
         with:
-          tekton-version: v0.38.3
-          shipwright-ref: v0.11.0
+          tekton-version: v0.44.0
+          shipwright-ref: main
           cli-ref: _ignore
 
       - name: CLI Build (shp)
@@ -43,3 +44,9 @@ jobs:
 
       - name: End-to-End Tests
         run: make test-e2e
+
+      - name: Pods
+        if: ${{ failure() }}
+        run: |
+          echo "# Pods:"
+          kubectl get pod -A -o yaml

@@ -26,6 +26,7 @@ const (
 
 // BuildStrategy is the Schema representing a strategy in the namespace scope to build images from source code.
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:path=buildstrategies,scope=Namespaced,shortName=bs;bss
 type BuildStrategy struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -77,6 +78,11 @@ func (s BuildStrategy) GetBuildSteps() []BuildStep {
 // GetParameters returns the parameters defined by the build strategy
 func (s BuildStrategy) GetParameters() []Parameter {
 	return s.Spec.Parameters
+}
+
+// GetSecurityContext returns the security context defined by the build strategy
+func (s BuildStrategy) GetSecurityContext() *BuildStrategySecurityContext {
+	return s.Spec.SecurityContext
 }
 
 // GetVolumes returns the volumes defined by the build strategy

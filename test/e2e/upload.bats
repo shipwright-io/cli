@@ -100,7 +100,8 @@ function assert_shp_upload_follow_output() {
 		--source-context-dir="docker-build" \
 		--dockerfile=Dockerfile \
 		--strategy-name=kaniko \
-		--output-image="${output_image}"
+		--output-image="${output_image}" \
+		--output-insecure=true
 	assert_success
 
 	# Sample repository to be used for the test

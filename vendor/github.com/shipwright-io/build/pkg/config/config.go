@@ -33,9 +33,9 @@ const (
 	gitImageEnvVar             = "GIT_CONTAINER_IMAGE"
 	gitContainerTemplateEnvVar = "GIT_CONTAINER_TEMPLATE"
 
-	mutateImageDefaultImage            = "ghcr.io/shipwright-io/build/mutate-image:latest"
-	mutateImageEnvVar                  = "MUTATE_IMAGE_CONTAINER_IMAGE"
-	mutateImageContainerTemplateEnvVar = "MUTATE_IMAGE_CONTAINER_TEMPLATE"
+	imageProcessingDefaultImage            = "ghcr.io/shipwright-io/build/image-processing:latest"
+	imageProcessingImageEnvVar             = "IMAGE_PROCESSING_CONTAINER_IMAGE"
+	imageProcessingContainerTemplateEnvVar = "IMAGE_PROCESSING_CONTAINER_TEMPLATE"
 
 	// Analog to the Git image, the bundle image is also created by ko
 	bundleDefaultImage            = "ghcr.io/shipwright-io/build/bundle:latest"
@@ -92,18 +92,18 @@ var (
 // Config hosts different parameters that
 // can be set to use on the Build controllers
 type Config struct {
-	CtxTimeOut                    time.Duration
-	GitContainerTemplate          pipeline.Step
-	MutateImageContainerTemplate  pipeline.Step
-	BundleContainerTemplate       pipeline.Step
-	WaiterContainerTemplate       pipeline.Step
-	RemoteArtifactsContainerImage string
-	TerminationLogPath            string
-	Prometheus                    PrometheusConfig
-	ManagerOptions                ManagerOptions
-	Controllers                   Controllers
-	KubeAPIOptions                KubeAPIOptions
-	GitRewriteRule                bool
+	CtxTimeOut                       time.Duration
+	GitContainerTemplate             pipeline.Step
+	ImageProcessingContainerTemplate pipeline.Step
+	BundleContainerTemplate          pipeline.Step
+	WaiterContainerTemplate          pipeline.Step
+	RemoteArtifactsContainerImage    string
+	TerminationLogPath               string
+	Prometheus                       PrometheusConfig
+	ManagerOptions                   ManagerOptions
+	Controllers                      Controllers
+	KubeAPIOptions                   KubeAPIOptions
+	GitRewriteRule                   bool
 }
 
 // PrometheusConfig contains the specific configuration for the
@@ -144,55 +144,90 @@ type KubeAPIOptions struct {
 // NewDefaultConfig returns a new Config, with context timeout and default Kaniko image.
 func NewDefaultConfig() *Config {
 	return &Config{
-		CtxTimeOut: contextTimeout,
+		CtxTimeOut:                    contextTimeout,
+		RemoteArtifactsContainerImage: remoteArtifactsDefaultImage,
+		TerminationLogPath:            terminationLogPathDefault,
+		GitRewriteRule:                false,
+
 		GitContainerTemplate: pipeline.Step{
 			Image: gitDefaultImage,
 			Command: []string{
 				"/ko-app/git",
 			},
+			Env: []corev1.EnvVar{
+				// This directory is created in the base image as writable for everybody
+				{
+					Name:  "HOME",
+					Value: "/shared-home",
+				},
+			},
 			SecurityContext: &corev1.SecurityContext{
+				AllowPrivilegeEscalation: pointer.Bool(false),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{
+						"ALL",
+					},
+				},
 				RunAsUser:  nonRoot,
 				RunAsGroup: nonRoot,
 			},
 		},
+
 		BundleContainerTemplate: pipeline.Step{
 			Image: bundleDefaultImage,
 			Command: []string{
 				"/ko-app/bundle",
 			},
+			// This directory is created in the base image as writable for everybody
+			Env: []corev1.EnvVar{
+				{
+					Name:  "HOME",
+					Value: "/shared-home",
+				},
+			},
 			SecurityContext: &corev1.SecurityContext{
+				AllowPrivilegeEscalation: pointer.Bool(false),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{
+						"ALL",
+					},
+				},
 				RunAsUser:  nonRoot,
 				RunAsGroup: nonRoot,
 			},
 		},
-		RemoteArtifactsContainerImage: remoteArtifactsDefaultImage,
-		MutateImageContainerTemplate: pipeline.Step{
-			Image: mutateImageDefaultImage,
+		ImageProcessingContainerTemplate: pipeline.Step{
+			Image: imageProcessingDefaultImage,
 			Command: []string{
-				"/ko-app/mutate-image",
+				"/ko-app/image-processing",
 			},
-			// We explicitly define HOME=/tekton/home because this was always set in the
-			// default configuration of Tekton until v0.24.0, see https://github.com/tektoncd/pipeline/pull/3878
+			// This directory is created in the base image as writable for everybody
 			Env: []corev1.EnvVar{
 				{
 					Name:  "HOME",
-					Value: "/tekton/home",
+					Value: "/shared-home",
 				},
 			},
-			// The mutate image step runs after the build strategy steps where an arbitrary
+			// The image processing step runs after the build strategy steps where an arbitrary
 			// user could have been used to write the result files for the image digest. The
-			// mutate image step will overwrite the image digest file. To be able to do this
+			// image processing step will overwrite the image digest file. To be able to do this
 			// in all possible scenarios, we run this step as root with DAC_OVERRIDE
 			// capability.
 			SecurityContext: &corev1.SecurityContext{
-				RunAsUser: root,
+				AllowPrivilegeEscalation: pointer.Bool(false),
+				RunAsUser:                root,
+				RunAsGroup:               root,
 				Capabilities: &corev1.Capabilities{
 					Add: []corev1.Capability{
 						"DAC_OVERRIDE",
 					},
+					Drop: []corev1.Capability{
+						"ALL",
+					},
 				},
 			},
 		},
+
 		WaiterContainerTemplate: pipeline.Step{
 			Image: waiterDefaultImage,
 			Command: []string{
@@ -201,19 +236,35 @@ func NewDefaultConfig() *Config {
 			Args: []string{
 				"start",
 			},
+			// This directory is created in the base image as writable for everybody
+			Env: []corev1.EnvVar{
+				{
+					Name:  "HOME",
+					Value: "/shared-home",
+				},
+			},
 			SecurityContext: &corev1.SecurityContext{
+				AllowPrivilegeEscalation: pointer.Bool(false),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{
+						"ALL",
+					},
+				},
 				RunAsUser:  nonRoot,
 				RunAsGroup: nonRoot,
 			},
 		},
+
 		Prometheus: PrometheusConfig{
 			BuildRunCompletionDurationBuckets: metricBuildRunCompletionDurationBuckets,
 			BuildRunEstablishDurationBuckets:  metricBuildRunEstablishDurationBuckets,
 			BuildRunRampUpDurationBuckets:     metricBuildRunRampUpDurationBuckets,
 		},
+
 		ManagerOptions: ManagerOptions{
 			LeaderElectionNamespace: leaderElectionNamespaceDefault,
 		},
+
 		Controllers: Controllers{
 			Build: ControllerOptions{
 				MaxConcurrentReconciles: 0,
@@ -228,12 +279,11 @@ func NewDefaultConfig() *Config {
 				MaxConcurrentReconciles: 0,
 			},
 		},
+
 		KubeAPIOptions: KubeAPIOptions{
 			QPS:   0,
 			Burst: 0,
 		},
-		TerminationLogPath: terminationLogPathDefault,
-		GitRewriteRule:     false,
 	}
 }
 
@@ -262,20 +312,20 @@ func (c *Config) SetConfigFromEnv() error {
 		c.GitContainerTemplate.Image = gitImage
 	}
 
-	if mutateImageContainerTemplate := os.Getenv(mutateImageContainerTemplateEnvVar); mutateImageContainerTemplate != "" {
-		c.MutateImageContainerTemplate = pipeline.Step{}
-		if err := json.Unmarshal([]byte(mutateImageContainerTemplate), &c.MutateImageContainerTemplate); err != nil {
+	if imageProcessingContainerTemplate := os.Getenv(imageProcessingContainerTemplateEnvVar); imageProcessingContainerTemplate != "" {
+		c.ImageProcessingContainerTemplate = pipeline.Step{}
+		if err := json.Unmarshal([]byte(imageProcessingContainerTemplate), &c.ImageProcessingContainerTemplate); err != nil {
 			return err
 		}
-		if c.MutateImageContainerTemplate.Image == "" {
-			c.MutateImageContainerTemplate.Image = mutateImageDefaultImage
+		if c.ImageProcessingContainerTemplate.Image == "" {
+			c.ImageProcessingContainerTemplate.Image = imageProcessingDefaultImage
 		}
 	}
 
 	// the dedicated environment variable for the image overwrites
-	// what is defined in the mutate image container template
-	if mutateImage := os.Getenv(mutateImageEnvVar); mutateImage != "" {
-		c.MutateImageContainerTemplate.Image = mutateImage
+	// what is defined in the image processing container template
+	if imageProcessingImage := os.Getenv(imageProcessingImageEnvVar); imageProcessingImage != "" {
+		c.ImageProcessingContainerTemplate.Image = imageProcessingImage
 	}
 
 	// Mark that the Git wrapper is suppose to use Git rewrite rule

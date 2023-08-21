@@ -35,6 +35,7 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 		},
 		Output: buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{},
+			Insecure:    pointer.Bool(false),
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},
@@ -100,6 +101,9 @@ func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
 	}
 	if b.Output.Credentials != nil && b.Output.Credentials.Name == "" {
 		b.Output.Credentials = nil
+	}
+	if b.Output.Insecure != nil && !*b.Output.Insecure {
+		b.Output.Insecure = nil
 	}
 	if b.Retention != nil {
 		if b.Retention.FailedLimit != nil && *b.Retention.FailedLimit == 65535 {

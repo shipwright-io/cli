@@ -40,6 +40,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		Output: buildv1alpha1.Image{
 			Credentials: &credentials,
 			Image:       "output-image",
+			Insecure:    pointer.Bool(false),
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},
@@ -114,6 +115,9 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		err = flags.Set(OutputCredentialsSecretFlag, expected.Output.Credentials.Name)
+		g.Expect(err).To(BeNil())
+
+		err = flags.Set(OutputInsecureFlag, strconv.FormatBool(*expected.Output.Insecure))
 		g.Expect(err).To(BeNil())
 
 		g.Expect(expected.Output).To(Equal(spec.Output), "spec.output")
@@ -241,6 +245,33 @@ func TestSanitizeBuildSpec(t *testing.T) {
 		},
 		out: buildv1alpha1.BuildSpec{
 			Source: buildv1alpha1.Source{},
+		},
+	}, {
+		name: "should clean-up a false output insecure",
+		in: buildv1alpha1.BuildSpec{
+			Output: buildv1alpha1.Image{
+				Image:    "some",
+				Insecure: pointer.Bool(false),
+			},
+		},
+		out: buildv1alpha1.BuildSpec{
+			Output: buildv1alpha1.Image{
+				Image: "some",
+			},
+		},
+	}, {
+		name: "should not clean-up a true output insecure",
+		in: buildv1alpha1.BuildSpec{
+			Output: buildv1alpha1.Image{
+				Image:    "some",
+				Insecure: pointer.Bool(true),
+			},
+		},
+		out: buildv1alpha1.BuildSpec{
+			Output: buildv1alpha1.Image{
+				Image:    "some",
+				Insecure: pointer.Bool(true),
+			},
 		},
 	}}
 

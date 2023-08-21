@@ -26,6 +26,7 @@ shp build create <name> [flags]
       --output-image string                      image employed during the building process
       --output-image-annotation stringArray      specify a set of key-value pairs that correspond to annotations to set on the output image (default [])
       --output-image-label stringArray           specify a set of key-value pairs that correspond to labels to set on the output image (default [])
+      --output-insecure                          flag to indicate an insecure container registry
       --retention-failed-limit uint              number of failed BuildRuns to be kept (default 65535)
       --retention-succeeded-limit uint           number of succeeded BuildRuns to be kept (default 65535)
       --retention-ttl-after-failed duration      duration to delete a failed BuildRun after completion
