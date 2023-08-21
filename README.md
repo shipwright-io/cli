@@ -25,7 +25,7 @@ usage documentation will come in the near future.
 To install it run:
 
 ```sh
-go get -u github.com/shipwright-io/cli/cmd/shp
+go install github.com/shipwright-io/cli/cmd/shp
 ```
 
 Or clone the repository, and run `make` to build the binary at `_output` directory:
