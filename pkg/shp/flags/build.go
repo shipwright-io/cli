@@ -6,7 +6,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func pointerUInt(value uint) *uint {
@@ -20,22 +20,22 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	spec := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
 			Credentials:     &corev1.LocalObjectReference{},
-			Revision:        pointer.String(""),
-			ContextDir:      pointer.String(""),
-			URL:             pointer.String(""),
+			Revision:        ptr.To[string](""),
+			ContextDir:      ptr.To[string](""),
+			URL:             ptr.To[string](""),
 			BundleContainer: &buildv1alpha1.BundleContainer{Prune: &bundlePruneOption},
 		},
 		Strategy: buildv1alpha1.Strategy{
 			Kind:       &clusterBuildStrategyKind,
 			APIVersion: &buildv1alpha1.SchemeGroupVersion.Version,
 		},
-		Dockerfile: pointer.String(""),
+		Dockerfile: ptr.To[string](""),
 		Builder: &buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{},
 		},
 		Output: buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{},
-			Insecure:    pointer.Bool(false),
+			Insecure:    ptr.To[bool](false),
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},

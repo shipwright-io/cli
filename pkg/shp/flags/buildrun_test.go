@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestBuildRunSpecFromFlags(t *testing.T) {
@@ -20,11 +20,11 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 	expected := &buildv1alpha1.BuildRunSpec{
 		BuildRef: &buildv1alpha1.BuildRef{
 			Name:       str,
-			APIVersion: pointer.String(""),
+			APIVersion: ptr.To[string](""),
 		},
 		ServiceAccount: &buildv1alpha1.ServiceAccount{
 			Name:     &str,
-			Generate: pointer.Bool(false),
+			Generate: ptr.To[bool](false),
 		},
 		Timeout: &metav1.Duration{
 			Duration: 1 * time.Second,
@@ -32,7 +32,7 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 		Output: &buildv1alpha1.Image{
 			Credentials: &corev1.LocalObjectReference{Name: "name"},
 			Image:       str,
-			Insecure:    pointer.Bool(false),
+			Insecure:    ptr.To[bool](false),
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},

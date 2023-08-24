@@ -141,7 +141,8 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 	case corev1.PodFailed:
 		msg := ""
 		var br *buildv1alpha1.BuildRun
-		err := wait.PollImmediate(f.failPollInterval, f.failPollTimeout, func() (done bool, err error) {
+		ctx := context.Background()
+		err := wait.PollUntilContextTimeout(ctx, f.failPollInterval, f.failPollTimeout, true, func(context.Context) (done bool, err error) {
 			brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(pod.Namespace)
 			br, err = brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
 			if err != nil {

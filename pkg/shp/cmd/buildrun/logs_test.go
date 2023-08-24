@@ -178,7 +178,7 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 		cmd.Cmd().ExecuteC()
 		pm := genericclioptions.NewConfigFlags(true)
 		if len(test.to) > 0 {
-			pm.Timeout = &test.to
+			*pm.Timeout = test.to
 		}
 		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault, nil, nil)
 

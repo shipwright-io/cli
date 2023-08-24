@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestBuildSpecFromFlags(t *testing.T) {
@@ -22,9 +22,9 @@ func TestBuildSpecFromFlags(t *testing.T) {
 	expected := &buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
 			Credentials:     &credentials,
-			URL:             pointer.String("https://some.url"),
-			Revision:        pointer.String("some-rev"),
-			ContextDir:      pointer.String("some-contextdir"),
+			URL:             ptr.To[string]("https://some.url"),
+			Revision:        ptr.To[string]("some-rev"),
+			ContextDir:      ptr.To[string]("some-contextdir"),
 			BundleContainer: &buildv1alpha1.BundleContainer{Prune: &bundlePruneOption},
 		},
 		Strategy: buildv1alpha1.Strategy{
@@ -32,7 +32,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 			Kind:       &buildStrategyKind,
 			APIVersion: &buildv1alpha1.SchemeGroupVersion.Version,
 		},
-		Dockerfile: pointer.String("some-dockerfile"),
+		Dockerfile: ptr.To[string]("some-dockerfile"),
 		Builder: &buildv1alpha1.Image{
 			Credentials: &credentials,
 			Image:       "builder-image",
@@ -40,7 +40,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		Output: buildv1alpha1.Image{
 			Credentials: &credentials,
 			Image:       "output-image",
-			Insecure:    pointer.Bool(false),
+			Insecure:    ptr.To[bool](false),
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},
@@ -230,7 +230,7 @@ func TestSanitizeBuildSpec(t *testing.T) {
 		name: "should clean-up an empty source contextDir",
 		in: buildv1alpha1.BuildSpec{
 			Source: buildv1alpha1.Source{
-				ContextDir: pointer.String(""),
+				ContextDir: ptr.To[string](""),
 			},
 		},
 		out: buildv1alpha1.BuildSpec{
@@ -240,7 +240,7 @@ func TestSanitizeBuildSpec(t *testing.T) {
 		name: "should clean-up an empty source URL",
 		in: buildv1alpha1.BuildSpec{
 			Source: buildv1alpha1.Source{
-				URL: pointer.String(""),
+				URL: ptr.To[string](""),
 			},
 		},
 		out: buildv1alpha1.BuildSpec{
@@ -251,7 +251,7 @@ func TestSanitizeBuildSpec(t *testing.T) {
 		in: buildv1alpha1.BuildSpec{
 			Output: buildv1alpha1.Image{
 				Image:    "some",
-				Insecure: pointer.Bool(false),
+				Insecure: ptr.To[bool](false),
 			},
 		},
 		out: buildv1alpha1.BuildSpec{
@@ -264,13 +264,13 @@ func TestSanitizeBuildSpec(t *testing.T) {
 		in: buildv1alpha1.BuildSpec{
 			Output: buildv1alpha1.Image{
 				Image:    "some",
-				Insecure: pointer.Bool(true),
+				Insecure: ptr.To[bool](true),
 			},
 		},
 		out: buildv1alpha1.BuildSpec{
 			Output: buildv1alpha1.Image{
 				Image:    "some",
-				Insecure: pointer.Bool(true),
+				Insecure: ptr.To[bool](true),
 			},
 		},
 	}}
