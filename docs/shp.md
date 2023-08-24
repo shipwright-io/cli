@@ -9,6 +9,7 @@ shp [command] [resource] [flags]
 ### Options
 
 ```
+      --disable-compression      If true, opt-out of response compression for all requests to the server
   -h, --help                     help for shp
       --kubeconfig string        Path to the kubeconfig file to use for CLI requests.
   -n, --namespace string         If present, the namespace scope for this CLI request
