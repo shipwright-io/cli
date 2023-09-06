@@ -86,8 +86,7 @@ func (c *LogsCommand) Run(params *params.Params, ioStreams *genericclioptions.IO
 	// is invoked.
 	justGetLogs := false
 	var pods *corev1.PodList
-	ctx := context.Background()
-	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(context.Context) (done bool, err error) {
+	err = wait.PollUntilContextTimeout(c.cmd.Context(), 1*time.Second, 10*time.Second, true, func(context.Context) (done bool, err error) {
 		if pods, err = clientset.CoreV1().Pods(params.Namespace()).List(c.cmd.Context(), lo); err != nil {
 			fmt.Fprintf(ioStreams.ErrOut, "error listing Pods for BuildRun %q: %s\n", c.name, err.Error())
 			return false, nil
