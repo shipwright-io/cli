@@ -79,7 +79,5 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 		fmt.Fprintf(writer, columnTemplate, b.Name, b.Spec.Output.Image, message)
 	}
 
-	writer.Flush()
-
-	return nil
+	return writer.Flush()
 }

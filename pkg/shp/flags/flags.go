@@ -29,7 +29,7 @@ const (
 	// SourceContextDirFlag command-line flag.
 	SourceContextDirFlag = "source-context-dir"
 	// SourceCredentialsSecretFlag command-line flag.
-	SourceCredentialsSecretFlag = "source-credentials-secret"
+	SourceCredentialsSecretFlag = "source-credentials-secret" // #nosec G101
 	// SourceBundleImageFlag command-line flag
 	SourceBundleImageFlag = "source-bundle-image"
 	// SourceBundlePruneFlag command-line flag
@@ -45,7 +45,7 @@ const (
 	// OutputInsecure command-line flag.
 	OutputInsecureFlag = "output-insecure"
 	// OutputCredentialsSecretFlag command-line flag.
-	OutputCredentialsSecretFlag = "output-credentials-secret"
+	OutputCredentialsSecretFlag = "output-credentials-secret" // #nosec G101
 	// ServiceAccountNameFlag command-line flag.
 	ServiceAccountNameFlag = "sa-name"
 	// ServiceAccountGenerateFlag command-line flag.

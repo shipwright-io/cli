@@ -24,6 +24,7 @@ func writeFileToTar(tw *tar.Writer, src, fpath string, stat fs.FileInfo) error {
 		return err
 	}
 
+	// #nosec G304 intentionally opening file from variable
 	f, err := os.Open(fpath)
 	if err != nil {
 		return err

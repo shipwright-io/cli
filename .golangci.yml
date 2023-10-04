@@ -5,8 +5,3 @@ linters:
     - misspell
   disable:
     - errcheck
-
-linters-settings:
-  gosec:
-    excludes:
-      - G101 # Potential hardcoded credentials
