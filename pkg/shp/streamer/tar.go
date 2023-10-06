@@ -37,7 +37,7 @@ func (t *Tar) skipPath(fpath string, stat fs.FileInfo) bool {
 // Create the actual tar by inspecting all files in source path, skipping some.
 func (t *Tar) Create(w io.Writer) error {
 	tw := tar.NewWriter(w)
-	filepath.Walk(t.src, func(fpath string, stat fs.FileInfo, err error) error {
+	if err := filepath.Walk(t.src, func(fpath string, stat fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -45,7 +45,9 @@ func (t *Tar) Create(w io.Writer) error {
 			return nil
 		}
 		return writeFileToTar(tw, t.src, fpath, stat)
-	})
+	}); err != nil {
+		return err
+	}
 	return tw.Close()
 }
 
@@ -99,6 +101,6 @@ func (t *Tar) tarSize() error {
 		return nil
 	})
 
-	t.Size = size+size*1/100
+	t.Size = size + size*1/100
 	return err
 }

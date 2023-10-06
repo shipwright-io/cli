@@ -90,7 +90,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		name := "testpod"
 		containerName := "container"
 		pod := &corev1.Pod{
@@ -144,7 +144,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		cmd.Cmd().ExecuteC()
 		pm := genericclioptions.NewConfigFlags(true)
 		if len(test.to) > 0 {
-			pm.Timeout = &test.to
+			pm.Timeout = &tests[i].to
 		}
 		failureDuration := 1 * time.Millisecond
 		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault, &failureDuration, &failureDuration)

@@ -1,6 +1,8 @@
 package stub
 
 import (
+	"log"
+
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -11,6 +13,8 @@ import (
 // NewFakeClient creates a fake client with Shipwright's Build scheme.
 func NewFakeClient() dynamic.Interface {
 	scheme := runtime.NewScheme()
-	buildv1alpha1.SchemeBuilder.AddToScheme(scheme)
+	if err := buildv1alpha1.SchemeBuilder.AddToScheme(scheme); err != nil {
+		log.Fatal(err)
+	}
 	return fake.NewSimpleDynamicClient(scheme)
 }

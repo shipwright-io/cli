@@ -220,7 +220,7 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 	f.Log(fmt.Sprintf("BuildRun %q log following has not observed any pod events yet.\n", f.buildRun.Name))
 	if podList != nil && len(podList.Items) > 0 {
 		f.Log(fmt.Sprintf("BuildRun %q's Pod completed before the log following's watch was established.\n", f.buildRun.Name))
-		f.OnEvent(&podList.Items[0])
+		f.OnEvent(&podList.Items[0]) // #nosec G104 there is nothing we must handle here, the error is logged in the function already
 		return
 	}
 	brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(f.buildRun.Namespace)

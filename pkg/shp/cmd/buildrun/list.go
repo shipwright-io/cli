@@ -90,7 +90,5 @@ func (c *ListCommand) Run(params *params.Params, _ *genericclioptions.IOStreams)
 		fmt.Fprintf(writer, columnTemplate, name, status, age)
 	}
 
-	writer.Flush()
-
-	return nil
+	return writer.Flush()
 }

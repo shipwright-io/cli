@@ -3,6 +3,7 @@ package mock
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 
 	corev1 "k8s.io/api/core/v1"
@@ -58,7 +59,9 @@ func (f *FakeClientset) roundTripperFn(req *http.Request) (*http.Response, error
 // bootstrap instantiate the basic elements of the clientset.
 func (f *FakeClientset) bootstrap() {
 	f.scheme = runtime.NewScheme()
-	f.scheme.AddIgnoredConversionType(&metav1.TypeMeta{}, &metav1.TypeMeta{})
+	if err := f.scheme.AddIgnoredConversionType(&metav1.TypeMeta{}, &metav1.TypeMeta{}); err != nil {
+		log.Fatal(err)
+	}
 	f.scheme.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Pod{}, &metav1.Status{})
 
 	f.codecs = serializer.NewCodecFactory(f.scheme)

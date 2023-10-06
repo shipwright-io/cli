@@ -48,11 +48,17 @@ func (t *Tail) Start(ns, podName, container string) {
 			fmt.Fprintln(t.stderr, err)
 			return
 		}
-		defer stream.Close()
+		defer func() {
+			if err := stream.Close(); err != nil {
+				fmt.Fprintf(t.stderr, "Failed to close stream: %v", err)
+			}
+		}()
 
 		go func() {
 			<-t.stopCh
-			stream.Close()
+			if err := stream.Close(); err != nil {
+				fmt.Fprintf(t.stderr, "Failed to close stream: %v", err)
+			}
 		}()
 
 		containerName := strings.TrimPrefix(container, "step-")

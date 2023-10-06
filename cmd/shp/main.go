@@ -35,7 +35,10 @@ var hiddenLogFlags = []string{
 }
 
 func main() {
-	initGoFlags()
+	if err := initGoFlags(); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+		os.Exit(1)
+	}
 	initPFlags()
 
 	streams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
@@ -48,7 +51,7 @@ func main() {
 
 // initGoFlags initializes the flag sets for klog.
 // Any flags for "-h" or "--help" are ignored because pflag will show the usage later with all subcommands.
-func initGoFlags() {
+func initGoFlags() error {
 	flagset := goflag.NewFlagSet(ApplicationName, goflag.ContinueOnError)
 	goflag.CommandLine = flagset
 	klog.InitFlags(flagset)
@@ -59,7 +62,7 @@ func initGoFlags() {
 			args = append(args, arg)
 		}
 	}
-	flagset.Parse(args)
+	return flagset.Parse(args)
 }
 
 // initPFlags initializes the pflags used by Cobra subcommands.
