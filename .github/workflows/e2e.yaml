@@ -14,8 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         kubernetes:
-          - v1.24.15
           - v1.25.11
+          - v1.28.0
       max-parallel: 2
     runs-on: ubuntu-latest
 
@@ -35,7 +35,7 @@ jobs:
           wait: 120s
       - uses: shipwright-io/setup@v1
         with:
-          tekton-version: v0.44.0
+          tekton-version: v0.47.4
           shipwright-ref: main
           cli-ref: _ignore
 
