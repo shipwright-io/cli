@@ -31,6 +31,7 @@ var hiddenKubeFlags = []string{
 	"client-key",
 	"cluster",
 	"context",
+	"disable-compression",
 	"insecure-skip-tls-verify",
 	"server",
 	"tls-server-name",

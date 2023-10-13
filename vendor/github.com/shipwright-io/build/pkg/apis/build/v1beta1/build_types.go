@@ -177,6 +177,11 @@ type Image struct {
 	// Image is the reference of the image.
 	Image string `json:"image"`
 
+	// Insecure defines whether the registry is not secure
+	//
+	// +optional
+	Insecure *bool `json:"insecure,omitempty"`
+
 	// Describes the secret name for pushing a container image.
 	//
 	// +optional
@@ -215,7 +220,6 @@ type BuildStatus struct {
 
 // Build is the Schema representing a Build definition
 // +kubebuilder:subresource:status
-// +kubebuilder:unservedversion
 // +kubebuilder:resource:path=builds,scope=Namespaced
 // +kubebuilder:printcolumn:name="Registered",type="string",JSONPath=".status.registered",description="The register status of the Build"
 // +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".status.reason",description="The reason of the registered Build, either an error or succeed message"
@@ -264,7 +268,7 @@ type BuildRetention struct {
 	// AtBuildDeletion defines if related BuildRuns should be deleted when deleting the Build.
 	//
 	// +optional
-	AtBuildDeletion bool `json:"atBuildDeletion,omitempty"`
+	AtBuildDeletion *bool `json:"atBuildDeletion,omitempty"`
 }
 
 func init() {
