@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 )
 
 // ensure v1beta1 implements the Conversion interface
@@ -35,15 +36,32 @@ func (src *BuildRun) ConvertTo(ctx context.Context, obj *unstructured.Unstructur
 			return err
 		}
 		alphaBuildRun.Spec.BuildSpec = &newBuildSpec
-	} else {
+	} else if src.Spec.Build.Name != nil {
 		alphaBuildRun.Spec.BuildRef = &v1alpha1.BuildRef{
-			Name: src.Spec.Build.Name,
+			Name: *src.Spec.Build.Name,
 		}
 	}
 
+	// BuildRunSpec Sources
+	if src.Spec.Source != nil && src.Spec.Source.Type == LocalType && src.Spec.Source.LocalSource != nil {
+		alphaBuildRun.Spec.Sources = append(alphaBuildRun.Spec.Sources, v1alpha1.BuildSource{
+			Name:    src.Spec.Source.LocalSource.Name,
+			Type:    v1alpha1.LocalCopy,
+			Timeout: src.Spec.Source.LocalSource.Timeout,
+		})
+	}
+
 	// BuildRunSpec ServiceAccount
-	alphaBuildRun.Spec.ServiceAccount = &v1alpha1.ServiceAccount{
-		Name: src.Spec.ServiceAccount,
+	// With the deprecation of serviceAccount.Generate, serviceAccount is set to ".generate" to have the SA created on fly.
+	if src.Spec.ServiceAccount != nil && *src.Spec.ServiceAccount == ".generate" {
+		alphaBuildRun.Spec.ServiceAccount = &v1alpha1.ServiceAccount{
+			Name:     &src.ObjectMeta.Name,
+			Generate: pointer.Bool(true),
+		}
+	} else {
+		alphaBuildRun.Spec.ServiceAccount = &v1alpha1.ServiceAccount{
+			Name: src.Spec.ServiceAccount,
+		}
 	}
 
 	// BuildRunSpec Timeout
@@ -119,14 +137,12 @@ func (src *BuildRun) ConvertFrom(ctx context.Context, obj *unstructured.Unstruct
 
 	src.Spec.ConvertFrom(&alphaBuildRun.Spec)
 
-	sources := []SourceResult{}
+	var sourceStatus *SourceResult
 	for _, s := range alphaBuildRun.Status.Sources {
-		sr := SourceResult{
-			Name:        s.Name,
+		sourceStatus = &SourceResult{
 			Git:         (*GitSourceResult)(s.Git),
 			OciArtifact: (*OciArtifactSourceResult)(s.Bundle),
 		}
-		sources = append(sources, sr)
 	}
 
 	conditions := []Condition{}
@@ -142,8 +158,16 @@ func (src *BuildRun) ConvertFrom(ctx context.Context, obj *unstructured.Unstruct
 		conditions = append(conditions, ct)
 	}
 
+	if alphaBuildRun.Status.FailureDetails != nil {
+		src.Status.FailureDetails = &FailureDetails{
+			Reason:   alphaBuildRun.Status.FailureDetails.Reason,
+			Message:  alphaBuildRun.Status.FailureDetails.Message,
+			Location: (*Location)(alphaBuildRun.Status.FailureDetails.Location),
+		}
+	}
+
 	src.Status = BuildRunStatus{
-		Sources:        sources,
+		Source:         sourceStatus,
 		Output:         (*Output)(alphaBuildRun.Status.Output),
 		Conditions:     conditions,
 		TaskRunName:    alphaBuildRun.Status.LatestTaskRunRef,
@@ -164,14 +188,25 @@ func (src *BuildRun) ConvertFrom(ctx context.Context, obj *unstructured.Unstruct
 func (dest *BuildRunSpec) ConvertFrom(orig *v1alpha1.BuildRunSpec) error {
 
 	// BuildRunSpec BuildSpec
-	dest.Build = &ReferencedBuild{}
 	if orig.BuildSpec != nil {
-		if dest.Build.Build != nil {
-			dest.Build.Build.ConvertFrom(orig.BuildSpec)
-		}
+		dest.Build.Build = &BuildSpec{}
+		dest.Build.Build.ConvertFrom(orig.BuildSpec)
 	}
 	if orig.BuildRef != nil {
-		dest.Build.Name = orig.BuildRef.Name
+		dest.Build.Name = &orig.BuildRef.Name
+	}
+
+	// only interested on spec.sources as long as an item of the list
+	// is of the type LocalCopy. Otherwise, we move into bundle or git types.
+	index, isLocal := v1alpha1.IsLocalCopyType(orig.Sources)
+	if isLocal {
+		dest.Source = &BuildRunSource{
+			Type: LocalType,
+			LocalSource: &Local{
+				Name:    orig.Sources[index].Name,
+				Timeout: orig.Sources[index].Timeout,
+			},
+		}
 	}
 
 	if orig.ServiceAccount != nil {
@@ -187,16 +222,17 @@ func (dest *BuildRunSpec) ConvertFrom(orig *v1alpha1.BuildRunSpec) error {
 		dest.ParamValues = append(dest.ParamValues, param)
 	}
 
-	// Handle BuildSpec Output
-	dest.Output = &Image{}
+	// Handle BuildRunSpec Output
 	if orig.Output != nil {
-		dest.Output.Image = orig.Output.Image
-		dest.Output.Annotations = orig.Output.Annotations
-		dest.Output.Labels = orig.Output.Labels
-	}
+		dest.Output = &Image{
+			Image:       orig.Output.Image,
+			Annotations: orig.Output.Annotations,
+			Labels:      orig.Output.Labels,
+		}
 
-	if orig.Output != nil && orig.Output.Credentials != nil {
-		dest.Output.PushSecret = &orig.Output.Credentials.Name
+		if orig.Output.Credentials != nil {
+			dest.Output.PushSecret = &orig.Output.Credentials.Name
+		}
 	}
 
 	// BuildRunSpec State

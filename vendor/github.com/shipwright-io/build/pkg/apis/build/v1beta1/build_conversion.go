@@ -48,6 +48,14 @@ func (src *Build) ConvertTo(ctx context.Context, obj *unstructured.Unstructured)
 		alphaBuild.ObjectMeta.Annotations[v1alpha1.AnnotationBuildRunDeletion] = strconv.FormatBool(*src.Spec.Retention.AtBuildDeletion)
 	}
 
+	// convert OCIArtifact to Bundle
+	if src.Spec.Source.OCIArtifact != nil {
+		alphaBuild.Spec.Source.BundleContainer = &v1alpha1.BundleContainer{
+			Image: src.Spec.Source.OCIArtifact.Image,
+			Prune: (*v1alpha1.PruneOption)(src.Spec.Source.OCIArtifact.Prune),
+		}
+	}
+
 	mapito, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&alphaBuild)
 	if err != nil {
 		ctxlog.Error(ctx, err, "failed structuring the newObject")
@@ -98,23 +106,35 @@ func (src *Build) ConvertFrom(ctx context.Context, obj *unstructured.Unstructure
 func (dest *BuildSpec) ConvertFrom(orig *v1alpha1.BuildSpec) error {
 	// Handle BuildSpec Source
 	specSource := Source{}
-	if orig.Source.BundleContainer != nil {
-		specSource.Type = OCIArtifactType
-		specSource.OCIArtifact = &OCIArtifact{
-			Image: orig.Source.BundleContainer.Image,
-			Prune: (*PruneOption)(orig.Source.BundleContainer.Prune),
-		}
-		if orig.Source.Credentials != nil {
-			specSource.OCIArtifact.PullSecret = &orig.Source.Credentials.Name
+
+	// only interested on spec.sources as long as an item of the list
+	// is of the type LocalCopy. Otherwise, we move into bundle or git types.
+	index, isLocal := v1alpha1.IsLocalCopyType(orig.Sources)
+	if isLocal {
+		specSource.Type = LocalType
+		specSource.LocalSource = &Local{
+			Name:    orig.Sources[index].Name,
+			Timeout: orig.Sources[index].Timeout,
 		}
 	} else {
-		specSource.Type = GitType
-		specSource.GitSource = &Git{
-			URL:      orig.Source.URL,
-			Revision: orig.Source.Revision,
-		}
-		if orig.Source.Credentials != nil {
-			specSource.GitSource.CloneSecret = &orig.Source.Credentials.Name
+		if orig.Source.BundleContainer != nil {
+			specSource.Type = OCIArtifactType
+			specSource.OCIArtifact = &OCIArtifact{
+				Image: orig.Source.BundleContainer.Image,
+				Prune: (*PruneOption)(orig.Source.BundleContainer.Prune),
+			}
+			if orig.Source.Credentials != nil {
+				specSource.OCIArtifact.PullSecret = &orig.Source.Credentials.Name
+			}
+		} else {
+			specSource.Type = GitType
+			specSource.GitSource = &Git{
+				URL:      orig.Source.URL,
+				Revision: orig.Source.Revision,
+			}
+			if orig.Source.Credentials != nil {
+				specSource.GitSource.CloneSecret = &orig.Source.Credentials.Name
+			}
 		}
 	}
 	specSource.ContextDir = orig.Source.ContextDir
@@ -133,9 +153,8 @@ func (dest *BuildSpec) ConvertFrom(orig *v1alpha1.BuildSpec) error {
 
 	// Handle BuildSpec Strategy
 	dest.Strategy = Strategy{
-		Name:       orig.StrategyName(),
-		Kind:       (*BuildStrategyKind)(orig.Strategy.Kind),
-		APIVersion: orig.Strategy.APIVersion,
+		Name: orig.StrategyName(),
+		Kind: (*BuildStrategyKind)(orig.Strategy.Kind),
 	}
 
 	// Handle BuildSpec ParamValues
@@ -153,6 +172,17 @@ func (dest *BuildSpec) ConvertFrom(orig *v1alpha1.BuildSpec) error {
 			},
 		}
 		dest.ParamValues = append(dest.ParamValues, dockerfileParam)
+	}
+
+	// handle spec.Builder migration
+	if orig.Builder != nil {
+		builderParam := ParamValue{
+			Name: "builder-image",
+			SingleValue: &SingleValue{
+				Value: &orig.Builder.Image,
+			},
+		}
+		dest.ParamValues = append(dest.ParamValues, builderParam)
 	}
 
 	// Handle BuildSpec Output
@@ -195,8 +225,16 @@ func (dest *BuildSpec) ConvertFrom(orig *v1alpha1.BuildSpec) error {
 }
 
 func (dest *BuildSpec) ConvertTo(bs *v1alpha1.BuildSpec) error {
-	// Handle BuildSpec Source
-	bs.Source = getAlphaBuildSource(*dest)
+	// Handle BuildSpec Sources or Source
+	if dest.Source.Type == LocalType && dest.Source.LocalSource != nil {
+		bs.Sources = append(bs.Sources, v1alpha1.BuildSource{
+			Name:    dest.Source.LocalSource.Name,
+			Type:    v1alpha1.LocalCopy,
+			Timeout: dest.Source.LocalSource.Timeout,
+		})
+	} else {
+		bs.Source = getAlphaBuildSource(*dest)
+	}
 
 	// Handle BuildSpec Trigger
 	if dest.Trigger != nil {
@@ -213,9 +251,8 @@ func (dest *BuildSpec) ConvertTo(bs *v1alpha1.BuildSpec) error {
 
 	// Handle BuildSpec Strategy
 	bs.Strategy = v1alpha1.Strategy{
-		Name:       dest.StrategyName(),
-		Kind:       (*v1alpha1.BuildStrategyKind)(dest.Strategy.Kind),
-		APIVersion: dest.Strategy.APIVersion,
+		Name: dest.StrategyName(),
+		Kind: (*v1alpha1.BuildStrategyKind)(dest.Strategy.Kind),
 	}
 
 	// Handle BuildSpec Builder, TODO
@@ -229,6 +266,12 @@ func (dest *BuildSpec) ConvertTo(bs *v1alpha1.BuildSpec) error {
 			continue
 		}
 
+		if p.Name == "builder-image" && p.SingleValue != nil {
+			bs.Builder = &v1alpha1.Image{
+				Image: *p.SingleValue.Value,
+			}
+			continue
+		}
 		param := v1alpha1.ParamValue{}
 		p.convertToAlpha(&param)
 		bs.ParamValues = append(bs.ParamValues, param)
@@ -273,6 +316,7 @@ func (dest *BuildSpec) ConvertTo(bs *v1alpha1.BuildSpec) error {
 		}
 		bs.Volumes = append(bs.Volumes, aux)
 	}
+
 	return nil
 }
 
@@ -284,11 +328,15 @@ func (p ParamValue) convertToAlpha(dest *v1alpha1.ParamValue) {
 	}
 
 	if p.ConfigMapValue != nil {
-		dest.ConfigMapValue = &v1alpha1.ObjectKeyRef{}
-		dest.ConfigMapValue = (*v1alpha1.ObjectKeyRef)(p.ConfigMapValue)
+		dest.SingleValue = &v1alpha1.SingleValue{
+			ConfigMapValue: (*v1alpha1.ObjectKeyRef)(p.ConfigMapValue),
+		}
 	}
+
 	if p.SecretValue != nil {
-		dest.SecretValue = (*v1alpha1.ObjectKeyRef)(p.SecretValue)
+		dest.SingleValue = &v1alpha1.SingleValue{
+			SecretValue: (*v1alpha1.ObjectKeyRef)(p.SecretValue),
+		}
 	}
 
 	dest.Name = p.Name
@@ -325,9 +373,11 @@ func convertBetaParamValue(orig v1alpha1.ParamValue) ParamValue {
 	}
 
 	if orig.ConfigMapValue != nil {
+		p.SingleValue = &SingleValue{}
 		p.ConfigMapValue = (*ObjectKeyRef)(orig.ConfigMapValue)
 	}
 	if orig.SecretValue != nil {
+		p.SingleValue = &SingleValue{}
 		p.SecretValue = (*ObjectKeyRef)(orig.SecretValue)
 	}
 
