@@ -29,15 +29,21 @@ type ReferencedBuild struct {
 	// Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
 	//
 	// +optional
-	Name string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty"`
 }
 
 // BuildRunSpec defines the desired state of BuildRun
 type BuildRunSpec struct {
 	// Build refers to an embedded build specification
+	// This field is mandatory
+	//
+	Build ReferencedBuild `json:"build"`
+
+	// Source refers to the location where the source code is,
+	// this could only be a local source
 	//
 	// +optional
-	Build *ReferencedBuild `json:"build,omitempty"`
+	Source *BuildRunSource `json:"source,omitempty"`
 
 	// ServiceAccount refers to the kubernetes serviceaccount
 	// which is used for resource control.
@@ -104,8 +110,6 @@ const (
 
 // SourceResult holds the results emitted from the different sources
 type SourceResult struct {
-	// Name is the name of source
-	Name string `json:"name"`
 
 	// Git holds the results emitted from the
 	// source step of type git
@@ -156,11 +160,10 @@ type Output struct {
 
 // BuildRunStatus defines the observed state of BuildRun
 type BuildRunStatus struct {
-	// Sources holds the results emitted from the step definition
-	// of different sources
+	// Source holds the results emitted from the source step
 	//
 	// +optional
-	Sources []SourceResult `json:"sources,omitempty"`
+	Source *SourceResult `json:"source,omitempty"`
 
 	// Output holds the results emitted from step definition of an output
 	//
@@ -373,8 +376,8 @@ func (brs *BuildRunStatus) SetCondition(condition *Condition) {
 // BuildName returns the name of the associated build, which can be a referenced
 // build resource or an embedded build specification
 func (buildrunSpec *BuildRunSpec) BuildName() string {
-	if buildrunSpec.Build != nil {
-		return buildrunSpec.Build.Name
+	if buildrunSpec.Build.Name != nil {
+		return *buildrunSpec.Build.Name
 	}
 
 	// Only BuildRuns with a ReferencedBuild can actually return a proper Build name

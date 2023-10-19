@@ -383,8 +383,8 @@ github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06/go.mod h1:+e
 github.com/schollz/progressbar/v3 v3.13.1 h1:o8rySDYiQ59Mwzy2FELeHY5ZARXZTVJC7iHD6PEFUiE=
 github.com/schollz/progressbar/v3 v3.13.1/go.mod h1:xvrbki8kfT1fzWzBT/UZd9L6GA+jdL7HAgq2RFnO6fQ=
 github.com/sergi/go-diff v1.2.0 h1:XU+rvMAioB0UC3q1MFrIQy4Vo5/4VsRDQQXHsEya6xQ=
-github.com/shipwright-io/build v0.11.1-0.20231012075424-0fa3ffa49266 h1:vnHHjfCFndLWciuuRhvbQ4stEBnGXwGb7blAh9svLUQ=
-github.com/shipwright-io/build v0.11.1-0.20231012075424-0fa3ffa49266/go.mod h1:VtpWnqEi98H6GHRiPh2DK5f6uzZnPuYRhTm6AO1cuTo=
+github.com/shipwright-io/build v0.12.0 h1:uK3nLHfyMMJzsId3B0Ta4frufYRnlHDcm/BNurt2DvI=
+github.com/shipwright-io/build v0.12.0/go.mod h1:VtpWnqEi98H6GHRiPh2DK5f6uzZnPuYRhTm6AO1cuTo=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
