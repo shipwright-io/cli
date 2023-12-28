@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/gomega"
+	o "github.com/onsi/gomega"
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -14,7 +14,7 @@ import (
 )
 
 func TestBuildRunSpecFromFlags(t *testing.T) {
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 
 	str := "something-random"
 	expected := &buildv1alpha1.BuildRunSpec{
@@ -52,55 +52,55 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 
 	t.Run(".spec.buildRef", func(t *testing.T) {
 		err := flags.Set(BuildrefNameFlag, expected.BuildRef.Name)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.BuildRef).To(Equal(*spec.BuildRef), "spec.buildRef")
+		g.Expect(*expected.BuildRef).To(o.Equal(*spec.BuildRef), "spec.buildRef")
 	})
 
 	t.Run(".spec.serviceAccount", func(t *testing.T) {
 		err := flags.Set(ServiceAccountNameFlag, *expected.ServiceAccount.Name)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(ServiceAccountGenerateFlag, strconv.FormatBool(*expected.ServiceAccount.Generate))
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.ServiceAccount).To(Equal(*spec.ServiceAccount), "spec.serviceAccount")
+		g.Expect(*expected.ServiceAccount).To(o.Equal(*spec.ServiceAccount), "spec.serviceAccount")
 	})
 
 	t.Run(".spec.timeout", func(t *testing.T) {
 		err := flags.Set(TimeoutFlag, expected.Timeout.Duration.String())
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Timeout).To(Equal(*spec.Timeout), "spec.timeout")
+		g.Expect(*expected.Timeout).To(o.Equal(*spec.Timeout), "spec.timeout")
 	})
 
 	t.Run(".spec.output", func(t *testing.T) {
 		err := flags.Set(OutputImageFlag, expected.Output.Image)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(OutputCredentialsSecretFlag, expected.Output.Credentials.Name)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Output).To(Equal(*spec.Output), "spec.output")
+		g.Expect(*expected.Output).To(o.Equal(*spec.Output), "spec.output")
 	})
 
 	t.Run(".spec.retention.ttlAfterFailed", func(t *testing.T) {
 		err := flags.Set(RetentionTTLAfterFailedFlag, expected.Retention.TTLAfterFailed.Duration.String())
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Retention.TTLAfterFailed).To(Equal(*spec.Retention.TTLAfterFailed), "spec.retention.ttlAfterFailed")
+		g.Expect(*expected.Retention.TTLAfterFailed).To(o.Equal(*spec.Retention.TTLAfterFailed), "spec.retention.ttlAfterFailed")
 	})
 
 	t.Run(".spec.retention.ttlAfterSucceeded", func(t *testing.T) {
 		err := flags.Set(RetentionTTLAfterSucceededFlag, expected.Retention.TTLAfterSucceeded.Duration.String())
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Retention.TTLAfterSucceeded).To(Equal(*spec.Retention.TTLAfterSucceeded), "spec.retention.ttlAfterSucceeded")
+		g.Expect(*expected.Retention.TTLAfterSucceeded).To(o.Equal(*spec.Retention.TTLAfterSucceeded), "spec.retention.ttlAfterSucceeded")
 	})
 }
 
 func TestSanitizeBuildRunSpec(t *testing.T) {
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 
 	name := "name"
 	completeBuildRunSpec := buildv1alpha1.BuildRunSpec{
@@ -149,7 +149,7 @@ func TestSanitizeBuildRunSpec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			aCopy := tt.in.DeepCopy()
 			SanitizeBuildRunSpec(aCopy)
-			g.Expect(tt.out).To(Equal(*aCopy))
+			g.Expect(tt.out).To(o.Equal(*aCopy))
 		})
 	}
 }

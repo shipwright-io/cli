@@ -2,26 +2,27 @@ package reactor
 
 import (
 	"context"
-	kruntime "k8s.io/apimachinery/pkg/runtime"
-	fakekubetesting "k8s.io/client-go/testing"
 	"math"
 	"testing"
 	"time"
 
-	. "github.com/onsi/gomega"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
+	fakekubetesting "k8s.io/client-go/testing"
+
+	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
 func Test_PodWatcher_RequestTimeout(t *testing.T) {
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 	ctx := context.TODO()
 
 	clientset := fake.NewSimpleClientset()
 
 	pw, err := NewPodWatcher(ctx, time.Millisecond, clientset, metav1.NamespaceDefault)
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 	called := false
 
 	pw.WithTimeoutPodFn(func(msg string) {
@@ -29,11 +30,11 @@ func Test_PodWatcher_RequestTimeout(t *testing.T) {
 	})
 
 	pw.Start(metav1.ListOptions{})
-	g.Expect(called).To(BeTrue())
+	g.Expect(called).To(o.BeTrue())
 }
 
 func Test_PodWatcher_ContextTimeout(t *testing.T) {
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 	ctx := context.TODO()
 	ctxWithDeadline, cancel := context.WithDeadline(ctx, time.Now().Add(time.Millisecond))
 	defer cancel()
@@ -41,7 +42,7 @@ func Test_PodWatcher_ContextTimeout(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 
 	pw, err := NewPodWatcher(ctxWithDeadline, math.MaxInt64, clientset, metav1.NamespaceDefault)
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 	called := false
 
 	pw.WithTimeoutPodFn(func(msg string) {
@@ -49,19 +50,19 @@ func Test_PodWatcher_ContextTimeout(t *testing.T) {
 	})
 
 	pw.Start(metav1.ListOptions{})
-	g.Expect(called).To(BeTrue())
+	g.Expect(called).To(o.BeTrue())
 }
 
 func Test_PodWatcher_NotCalledYet(t *testing.T) {
 	// we separate this test out from the other events given the
 	// lazy check we have for not getting pod events
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 	ctx := context.TODO()
 
 	clientset := fake.NewSimpleClientset()
 
 	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.NamespaceDefault)
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 
 	eventsCh := make(chan bool, 1)
 	eventsDoneCh := make(chan bool, 1)
@@ -77,7 +78,7 @@ func Test_PodWatcher_NotCalledYet(t *testing.T) {
 	go func() {
 		_, err := pw.Start(metav1.ListOptions{})
 		<-pw.stopCh
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 		eventsDoneCh <- true
 	}()
 
@@ -93,7 +94,7 @@ func Test_PodWatcher_NotCalledYet(t *testing.T) {
 func Test_PodWatcher_NotCalledYet_AllEventsBeforeWatchStart(t *testing.T) {
 	// we separate this test out from the other events given the
 	// lazy check we have for not getting pod events
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 	ctx := context.TODO()
 
 	clientset := fake.NewSimpleClientset()
@@ -111,7 +112,7 @@ func Test_PodWatcher_NotCalledYet_AllEventsBeforeWatchStart(t *testing.T) {
 	clientset.PrependReactor("list", "pods", listReactorFunc)
 
 	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.NamespaceDefault)
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 
 	eventsCh := make(chan bool, 1)
 	eventsDoneCh := make(chan bool, 1)
@@ -131,7 +132,7 @@ func Test_PodWatcher_NotCalledYet_AllEventsBeforeWatchStart(t *testing.T) {
 	go func() {
 		_, err := pw.Start(metav1.ListOptions{})
 		<-pw.stopCh
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 		eventsDoneCh <- true
 	}()
 
@@ -148,13 +149,13 @@ func Test_PodWatcher_NotCalledYet_AllEventsBeforeWatchStart(t *testing.T) {
 }
 
 func Test_PodWatcherEvents(t *testing.T) {
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 	ctx := context.TODO()
 
 	clientset := fake.NewSimpleClientset()
 
 	pw, err := NewPodWatcher(ctx, math.MaxInt64, clientset, metav1.NamespaceDefault)
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 
 	eventsCh := make(chan string, 5)
 
@@ -182,14 +183,14 @@ func Test_PodWatcherEvents(t *testing.T) {
 	// with the multi-threaded nature of this test, and the lack of thread safety and reliability of the k8s fake watch clients,
 	// we cannot use pw.Start directly, and must call what it calls separately
 	err = pw.Connect(metav1.ListOptions{})
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 
 	// executing the event loop in the background, and waiting for the stop channel before inspecting
 	// for errors
 	go func() {
 		_, err := pw.WaitForCompletion()
 		<-pw.stopCh
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 	}()
 
 	pod := &corev1.Pod{
@@ -205,7 +206,7 @@ func Test_PodWatcherEvents(t *testing.T) {
 	podClient := clientset.CoreV1().Pods(metav1.NamespaceDefault)
 
 	pod, err = podClient.Create(ctx, pod, metav1.CreateOptions{})
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 
 	val, ok := <-eventsCh
 	validateEventChannelData(val, skipPODFn, "add", ok, t)
@@ -215,7 +216,7 @@ func Test_PodWatcherEvents(t *testing.T) {
 	pod.SetLabels(map[string]string{"label": "value"})
 
 	pod, err = podClient.Update(ctx, pod, metav1.UpdateOptions{})
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 
 	val, ok = <-eventsCh
 	validateEventChannelData(val, skipPODFn, "mod", ok, t)
@@ -223,7 +224,7 @@ func Test_PodWatcherEvents(t *testing.T) {
 	validateEventChannelData(val, onPodModifiedFn, "mod", ok, t)
 
 	err = podClient.Delete(ctx, pod.GetName(), metav1.DeleteOptions{})
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 
 	val, ok = <-eventsCh
 	validateEventChannelData(val, skipPODFn, "del", ok, t)
