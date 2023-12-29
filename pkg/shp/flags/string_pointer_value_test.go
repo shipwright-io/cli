@@ -3,12 +3,12 @@ package flags
 import (
 	"testing"
 
-	. "github.com/onsi/gomega"
+	o "github.com/onsi/gomega"
 	"github.com/spf13/cobra"
 )
 
 func TestStringPointerValue(t *testing.T) {
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 
 	flagName := "flag"
 	value := "value"
@@ -19,9 +19,9 @@ func TestStringPointerValue(t *testing.T) {
 	flags.Var(NewStringPointerValue(&targetStr), flagName, "")
 
 	err := flags.Set(flagName, value)
-	g.Expect(err).To(BeNil())
+	g.Expect(err).To(o.BeNil())
 
 	v, err := flags.GetString(flagName)
-	g.Expect(err).To(BeNil())
-	g.Expect(value).To(Equal(v))
+	g.Expect(err).To(o.BeNil())
+	g.Expect(value).To(o.Equal(v))
 }

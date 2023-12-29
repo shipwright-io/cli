@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/gomega"
+	o "github.com/onsi/gomega"
 	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -14,7 +14,7 @@ import (
 )
 
 func TestBuildSpecFromFlags(t *testing.T) {
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 
 	credentials := corev1.LocalObjectReference{Name: "name"}
 	buildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
@@ -65,102 +65,102 @@ func TestBuildSpecFromFlags(t *testing.T) {
 
 	t.Run(".spec.source", func(t *testing.T) {
 		err := flags.Set(SourceURLFlag, *expected.Source.URL)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(SourceRevisionFlag, *expected.Source.Revision)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(SourceContextDirFlag, *expected.Source.ContextDir)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(SourceCredentialsSecretFlag, expected.Source.Credentials.Name)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(StrategyAPIVersionFlag, *expected.Strategy.APIVersion)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(expected.Source).To(Equal(spec.Source), "spec.source")
+		g.Expect(expected.Source).To(o.Equal(spec.Source), "spec.source")
 	})
 
 	t.Run(".spec.strategy", func(t *testing.T) {
 		err := flags.Set(StrategyKindFlag, string(buildv1alpha1.ClusterBuildStrategyKind))
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(StrategyNameFlag, expected.Strategy.Name)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(expected.Strategy).To(Equal(spec.Strategy), "spec.strategy")
+		g.Expect(expected.Strategy).To(o.Equal(spec.Strategy), "spec.strategy")
 	})
 
 	t.Run(".spec.dockerfile", func(t *testing.T) {
 		err := flags.Set(DockerfileFlag, *expected.Dockerfile)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(spec.Dockerfile).NotTo(BeNil())
-		g.Expect(*expected.Dockerfile).To(Equal(*spec.Dockerfile), "spec.dockerfile")
+		g.Expect(spec.Dockerfile).NotTo(o.BeNil())
+		g.Expect(*expected.Dockerfile).To(o.Equal(*spec.Dockerfile), "spec.dockerfile")
 	})
 
 	t.Run(".spec.builder", func(t *testing.T) {
 		err := flags.Set(BuilderImageFlag, expected.Builder.Image)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(BuilderCredentialsSecretFlag, expected.Builder.Credentials.Name)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Builder).To(Equal(*spec.Builder), "spec.builder")
+		g.Expect(*expected.Builder).To(o.Equal(*spec.Builder), "spec.builder")
 	})
 
 	t.Run(".spec.output", func(t *testing.T) {
 		err := flags.Set(OutputImageFlag, expected.Output.Image)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(OutputCredentialsSecretFlag, expected.Output.Credentials.Name)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(OutputInsecureFlag, strconv.FormatBool(*expected.Output.Insecure))
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(expected.Output).To(Equal(spec.Output), "spec.output")
+		g.Expect(expected.Output).To(o.Equal(spec.Output), "spec.output")
 	})
 
 	t.Run(".spec.timeout", func(t *testing.T) {
 		err := flags.Set(TimeoutFlag, expected.Timeout.Duration.String())
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Timeout).To(Equal(*spec.Timeout), "spec.timeout")
+		g.Expect(*expected.Timeout).To(o.Equal(*spec.Timeout), "spec.timeout")
 	})
 
 	t.Run(".spec.retention.failedLimit", func(t *testing.T) {
 		err := flags.Set(RetentionFailedLimitFlag, strconv.FormatUint(uint64(*expected.Retention.FailedLimit), 10))
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Retention.FailedLimit).To(Equal(*spec.Retention.FailedLimit), "spec.retention.failedLimit")
+		g.Expect(*expected.Retention.FailedLimit).To(o.Equal(*spec.Retention.FailedLimit), "spec.retention.failedLimit")
 	})
 
 	t.Run(".spec.retention.succeededLimit", func(t *testing.T) {
 		err := flags.Set(RetentionSucceededLimitFlag, strconv.FormatUint(uint64(*expected.Retention.SucceededLimit), 10))
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Retention.SucceededLimit).To(Equal(*spec.Retention.SucceededLimit), "spec.retention.succeededLimit")
+		g.Expect(*expected.Retention.SucceededLimit).To(o.Equal(*spec.Retention.SucceededLimit), "spec.retention.succeededLimit")
 	})
 
 	t.Run(".spec.retention.ttlAfterFailed", func(t *testing.T) {
 		err := flags.Set(RetentionTTLAfterFailedFlag, expected.Retention.TTLAfterFailed.Duration.String())
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Retention.TTLAfterFailed).To(Equal(*spec.Retention.TTLAfterFailed), "spec.retention.ttlAfterFailed")
+		g.Expect(*expected.Retention.TTLAfterFailed).To(o.Equal(*spec.Retention.TTLAfterFailed), "spec.retention.ttlAfterFailed")
 	})
 
 	t.Run(".spec.retention.ttlAfterSucceeded", func(t *testing.T) {
 		err := flags.Set(RetentionTTLAfterSucceededFlag, expected.Retention.TTLAfterSucceeded.Duration.String())
-		g.Expect(err).To(BeNil())
+		g.Expect(err).To(o.BeNil())
 
-		g.Expect(*expected.Retention.TTLAfterSucceeded).To(Equal(*spec.Retention.TTLAfterSucceeded), "spec.retention.ttlAfterSucceeded")
+		g.Expect(*expected.Retention.TTLAfterSucceeded).To(o.Equal(*spec.Retention.TTLAfterSucceeded), "spec.retention.ttlAfterSucceeded")
 	})
 }
 
 func TestSanitizeBuildSpec(t *testing.T) {
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 
 	completeBuildSpec := buildv1alpha1.BuildSpec{
 		Source: buildv1alpha1.Source{
@@ -279,7 +279,7 @@ func TestSanitizeBuildSpec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			aCopy := tt.in.DeepCopy()
 			SanitizeBuildSpec(aCopy)
-			g.Expect(tt.out).To(Equal(*aCopy))
+			g.Expect(tt.out).To(o.Equal(*aCopy))
 		})
 	}
 }

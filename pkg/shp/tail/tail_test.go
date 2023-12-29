@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/gomega"
+	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
 func Test_Tail(t *testing.T) {
-	g := NewWithT(t)
+	g := o.NewWithT(t)
 
 	name := "pod"
 	containerName := "container"
@@ -52,10 +52,10 @@ func Test_Tail(t *testing.T) {
 	var buf bytes.Buffer
 
 	stdoutNumBytes, err := io.Copy(&buf, stdoutReader)
-	g.Expect(err).To(BeNil())
-	g.Expect(stdoutNumBytes).To(Equal(int64(0)))
+	g.Expect(err).To(o.BeNil())
+	g.Expect(stdoutNumBytes).To(o.Equal(int64(0)))
 
 	stderrNumBytes, err := io.Copy(&buf, stderrReader)
-	g.Expect(err).To(BeNil())
-	g.Expect(stderrNumBytes).To(Equal(int64(0)))
+	g.Expect(err).To(o.BeNil())
+	g.Expect(stderrNumBytes).To(o.Equal(int64(0)))
 }
