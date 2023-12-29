@@ -233,9 +233,6 @@ github.com/liggitt/tabwriter
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/mattn/go-runewidth v0.0.15
-## explicit; go 1.9
-github.com/mattn/go-runewidth
 # github.com/matttproud/golang_protobuf_extensions v1.0.4
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
@@ -325,7 +322,7 @@ github.com/russross/blackfriday/v2
 # github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 ## explicit; go 1.13
 github.com/sabhiram/go-gitignore
-# github.com/schollz/progressbar/v3 v3.13.1
+# github.com/schollz/progressbar/v3 v3.14.1
 ## explicit; go 1.13
 github.com/schollz/progressbar/v3
 # github.com/shipwright-io/build v0.12.0
