@@ -63,7 +63,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 	flags := cmd.PersistentFlags()
 	spec := BuildSpecFromFlags(flags)
 
-	t.Run(".spec.source", func(t *testing.T) {
+	t.Run(".spec.source", func(_ *testing.T) {
 		err := flags.Set(SourceURLFlag, *expected.Source.URL)
 		g.Expect(err).To(o.BeNil())
 
@@ -82,7 +82,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		g.Expect(expected.Source).To(o.Equal(spec.Source), "spec.source")
 	})
 
-	t.Run(".spec.strategy", func(t *testing.T) {
+	t.Run(".spec.strategy", func(_ *testing.T) {
 		err := flags.Set(StrategyKindFlag, string(buildv1alpha1.ClusterBuildStrategyKind))
 		g.Expect(err).To(o.BeNil())
 
@@ -92,7 +92,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		g.Expect(expected.Strategy).To(o.Equal(spec.Strategy), "spec.strategy")
 	})
 
-	t.Run(".spec.dockerfile", func(t *testing.T) {
+	t.Run(".spec.dockerfile", func(_ *testing.T) {
 		err := flags.Set(DockerfileFlag, *expected.Dockerfile)
 		g.Expect(err).To(o.BeNil())
 
@@ -100,7 +100,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		g.Expect(*expected.Dockerfile).To(o.Equal(*spec.Dockerfile), "spec.dockerfile")
 	})
 
-	t.Run(".spec.builder", func(t *testing.T) {
+	t.Run(".spec.builder", func(_ *testing.T) {
 		err := flags.Set(BuilderImageFlag, expected.Builder.Image)
 		g.Expect(err).To(o.BeNil())
 
@@ -110,7 +110,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		g.Expect(*expected.Builder).To(o.Equal(*spec.Builder), "spec.builder")
 	})
 
-	t.Run(".spec.output", func(t *testing.T) {
+	t.Run(".spec.output", func(_ *testing.T) {
 		err := flags.Set(OutputImageFlag, expected.Output.Image)
 		g.Expect(err).To(o.BeNil())
 
@@ -123,35 +123,35 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		g.Expect(expected.Output).To(o.Equal(spec.Output), "spec.output")
 	})
 
-	t.Run(".spec.timeout", func(t *testing.T) {
+	t.Run(".spec.timeout", func(_ *testing.T) {
 		err := flags.Set(TimeoutFlag, expected.Timeout.Duration.String())
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(*expected.Timeout).To(o.Equal(*spec.Timeout), "spec.timeout")
 	})
 
-	t.Run(".spec.retention.failedLimit", func(t *testing.T) {
+	t.Run(".spec.retention.failedLimit", func(_ *testing.T) {
 		err := flags.Set(RetentionFailedLimitFlag, strconv.FormatUint(uint64(*expected.Retention.FailedLimit), 10))
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(*expected.Retention.FailedLimit).To(o.Equal(*spec.Retention.FailedLimit), "spec.retention.failedLimit")
 	})
 
-	t.Run(".spec.retention.succeededLimit", func(t *testing.T) {
+	t.Run(".spec.retention.succeededLimit", func(_ *testing.T) {
 		err := flags.Set(RetentionSucceededLimitFlag, strconv.FormatUint(uint64(*expected.Retention.SucceededLimit), 10))
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(*expected.Retention.SucceededLimit).To(o.Equal(*spec.Retention.SucceededLimit), "spec.retention.succeededLimit")
 	})
 
-	t.Run(".spec.retention.ttlAfterFailed", func(t *testing.T) {
+	t.Run(".spec.retention.ttlAfterFailed", func(_ *testing.T) {
 		err := flags.Set(RetentionTTLAfterFailedFlag, expected.Retention.TTLAfterFailed.Duration.String())
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(*expected.Retention.TTLAfterFailed).To(o.Equal(*spec.Retention.TTLAfterFailed), "spec.retention.ttlAfterFailed")
 	})
 
-	t.Run(".spec.retention.ttlAfterSucceeded", func(t *testing.T) {
+	t.Run(".spec.retention.ttlAfterSucceeded", func(_ *testing.T) {
 		err := flags.Set(RetentionTTLAfterSucceededFlag, expected.Retention.TTLAfterSucceeded.Duration.String())
 		g.Expect(err).To(o.BeNil())
 
@@ -276,7 +276,7 @@ func TestSanitizeBuildSpec(t *testing.T) {
 	}}
 
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			aCopy := tt.in.DeepCopy()
 			SanitizeBuildSpec(aCopy)
 			g.Expect(tt.out).To(o.Equal(*aCopy))

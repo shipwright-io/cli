@@ -18,7 +18,7 @@ func Command() *cobra.Command {
 		Annotations: map[string]string{
 			"commandType": "main",
 		},
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			if version == "" {
 				version = "development"
 			}

@@ -50,14 +50,14 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 	flags := cmd.PersistentFlags()
 	spec := BuildRunSpecFromFlags(flags)
 
-	t.Run(".spec.buildRef", func(t *testing.T) {
+	t.Run(".spec.buildRef", func(_ *testing.T) {
 		err := flags.Set(BuildrefNameFlag, expected.BuildRef.Name)
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(*expected.BuildRef).To(o.Equal(*spec.BuildRef), "spec.buildRef")
 	})
 
-	t.Run(".spec.serviceAccount", func(t *testing.T) {
+	t.Run(".spec.serviceAccount", func(_ *testing.T) {
 		err := flags.Set(ServiceAccountNameFlag, *expected.ServiceAccount.Name)
 		g.Expect(err).To(o.BeNil())
 
@@ -67,14 +67,14 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 		g.Expect(*expected.ServiceAccount).To(o.Equal(*spec.ServiceAccount), "spec.serviceAccount")
 	})
 
-	t.Run(".spec.timeout", func(t *testing.T) {
+	t.Run(".spec.timeout", func(_ *testing.T) {
 		err := flags.Set(TimeoutFlag, expected.Timeout.Duration.String())
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(*expected.Timeout).To(o.Equal(*spec.Timeout), "spec.timeout")
 	})
 
-	t.Run(".spec.output", func(t *testing.T) {
+	t.Run(".spec.output", func(_ *testing.T) {
 		err := flags.Set(OutputImageFlag, expected.Output.Image)
 		g.Expect(err).To(o.BeNil())
 
@@ -84,14 +84,14 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 		g.Expect(*expected.Output).To(o.Equal(*spec.Output), "spec.output")
 	})
 
-	t.Run(".spec.retention.ttlAfterFailed", func(t *testing.T) {
+	t.Run(".spec.retention.ttlAfterFailed", func(_ *testing.T) {
 		err := flags.Set(RetentionTTLAfterFailedFlag, expected.Retention.TTLAfterFailed.Duration.String())
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(*expected.Retention.TTLAfterFailed).To(o.Equal(*spec.Retention.TTLAfterFailed), "spec.retention.ttlAfterFailed")
 	})
 
-	t.Run(".spec.retention.ttlAfterSucceeded", func(t *testing.T) {
+	t.Run(".spec.retention.ttlAfterSucceeded", func(_ *testing.T) {
 		err := flags.Set(RetentionTTLAfterSucceededFlag, expected.Retention.TTLAfterSucceeded.Duration.String())
 		g.Expect(err).To(o.BeNil())
 
@@ -146,7 +146,7 @@ func TestSanitizeBuildRunSpec(t *testing.T) {
 	}}
 
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			aCopy := tt.in.DeepCopy()
 			SanitizeBuildRunSpec(aCopy)
 			g.Expect(tt.out).To(o.Equal(*aCopy))
