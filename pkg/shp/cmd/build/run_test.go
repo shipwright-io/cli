@@ -119,13 +119,13 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		// need this reactor since the Run method uses the ObjectMeta.GenerateName k8s feature to generate the random
 		// name for the BuildRun.  However, for our purposes with unit testing, we want to control the name of the BuildRun
 		// to facilitate the list/selector via labels that is also employed by the Run method.
-		createReactorFunc := func(action fakekubetesting.Action) (handled bool, ret kruntime.Object, err error) {
+		createReactorFunc := func(_ fakekubetesting.Action) (handled bool, ret kruntime.Object, err error) {
 			return true, br, nil
 		}
 		shpclientset.PrependReactor("create", "buildruns", createReactorFunc)
 		// need this reactor to handle returning our test BuildRun with whatever updates we make based on the various
 		// test bools that result in spec.state or deletion timestamp updates
-		getReactorFunc := func(action fakekubetesting.Action) (handled bool, ret kruntime.Object, err error) {
+		getReactorFunc := func(_ fakekubetesting.Action) (handled bool, ret kruntime.Object, err error) {
 			return true, br, nil
 		}
 		shpclientset.PrependReactor("get", "buildruns", getReactorFunc)

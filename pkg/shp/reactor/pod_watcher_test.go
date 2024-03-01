@@ -25,7 +25,7 @@ func Test_PodWatcher_RequestTimeout(t *testing.T) {
 	g.Expect(err).To(o.BeNil())
 	called := false
 
-	pw.WithTimeoutPodFn(func(msg string) {
+	pw.WithTimeoutPodFn(func(_ string) {
 		called = true
 	})
 
@@ -45,7 +45,7 @@ func Test_PodWatcher_ContextTimeout(t *testing.T) {
 	g.Expect(err).To(o.BeNil())
 	called := false
 
-	pw.WithTimeoutPodFn(func(msg string) {
+	pw.WithTimeoutPodFn(func(_ string) {
 		called = true
 	})
 
@@ -68,7 +68,7 @@ func Test_PodWatcher_NotCalledYet(t *testing.T) {
 	eventsDoneCh := make(chan bool, 1)
 
 	called := false
-	pw.WithNoPodEventsYetFn(func(podList *corev1.PodList) {
+	pw.WithNoPodEventsYetFn(func(_ *corev1.PodList) {
 		called = true
 		eventsCh <- true
 	})
@@ -100,7 +100,7 @@ func Test_PodWatcher_NotCalledYet_AllEventsBeforeWatchStart(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	// set up lister that will return pod, but we don't create/update a Pod, thus we do not trigger
 	// events on the watch; mimics a Pod completing before the watch is established.
-	listReactorFunc := func(action fakekubetesting.Action) (handled bool, ret kruntime.Object, err error) {
+	listReactorFunc := func(_ fakekubetesting.Action) (handled bool, ret kruntime.Object, err error) {
 		pod := corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: metav1.NamespaceDefault,
@@ -166,16 +166,16 @@ func Test_PodWatcherEvents(t *testing.T) {
 
 	// adding functions to be triggered on all types of events, and sending the function name over
 	// the events channel
-	pw.WithSkipPodFn(func(pod *corev1.Pod) bool {
+	pw.WithSkipPodFn(func(_ *corev1.Pod) bool {
 		eventsCh <- skipPODFn
 		return false
-	}).WithOnPodAddedFn(func(pod *corev1.Pod) error {
+	}).WithOnPodAddedFn(func(_ *corev1.Pod) error {
 		eventsCh <- onPodAddedFn
 		return nil
-	}).WithOnPodDeletedFn(func(pod *corev1.Pod) error {
+	}).WithOnPodDeletedFn(func(_ *corev1.Pod) error {
 		eventsCh <- onPodDeletedFn
 		return nil
-	}).WithOnPodModifiedFn(func(pod *corev1.Pod) error {
+	}).WithOnPodModifiedFn(func(_ *corev1.Pod) error {
 		eventsCh <- onPodModifiedFn
 		return nil
 	})
