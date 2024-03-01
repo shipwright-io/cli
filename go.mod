@@ -6,7 +6,7 @@ require (
 	github.com/google/go-containerregistry v0.19.0
 	github.com/onsi/gomega v1.31.1
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
-	github.com/schollz/progressbar/v3 v3.14.1
+	github.com/schollz/progressbar/v3 v3.14.2
 	github.com/shipwright-io/build v0.12.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
@@ -94,7 +94,7 @@ require (
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.1 // indirect
 	github.com/prometheus/statsd_exporter v0.24.0 // indirect
-	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/tektoncd/pipeline v0.47.4 // indirect
@@ -109,8 +109,8 @@ require (
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/oauth2 v0.11.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/term v0.15.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/term v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
