@@ -1,7 +1,7 @@
 language: go
 
 go:
-  - 1.21.x
+  - 1.11.x
 
 go_import_path: contrib.go.opencensus.io/exporter/ocagent
 
@@ -17,4 +17,4 @@ script:
   - if [ -n "$(gofmt -s -l $GO_FILES)" ]; then echo "gofmt the following files:"; gofmt -s -l $GO_FILES; exit 1; fi
   - go vet ./...
   - go test -v -race $PKGS            # Run all the tests with the race detector enabled
-  - 'if [[ $TRAVIS_GO_VERSION = 1.21* ]]; then ! golint ./... | grep -vE "(_mock|_string|\.pb)\.go:"; fi'
+  - 'if [[ $TRAVIS_GO_VERSION = 1.8* ]]; then ! golint ./... | grep -vE "(_mock|_string|\.pb)\.go:"; fi'

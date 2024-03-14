@@ -27,9 +27,9 @@ Install using `go get github.com/hashicorp/go-multierror`.
 Full documentation is available at
 https://pkg.go.dev/github.com/hashicorp/go-multierror
 
-### Requires go version 1.21 or newer
+### Requires go version 1.13 or newer
 
-`go-multierror` requires go version 1.21 or newer. Initially, Go 1.13 introduced
+`go-multierror` requires go version 1.13 or newer. Go 1.13 introduced
 [error wrapping](https://golang.org/doc/go1.13#error_wrapping), which
 this library takes advantage of.
 
