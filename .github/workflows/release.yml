@@ -18,13 +18,13 @@ jobs:
       contents: write # To be able to update releases
     steps:
     - name: Check out code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ github.event.inputs.release }}
         fetch-depth: 0
 
     - name: Install Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: '1.21.x'
         cache: true
@@ -41,9 +41,8 @@ jobs:
         "${GITHUB_WORKSPACE}/.github/draft_release_notes.sh"
 
     - name: Run GoReleaser
-      uses: goreleaser/goreleaser-action@v2
+      uses: goreleaser/goreleaser-action@v5
       with:
-        version: latest
-        args: release --rm-dist --release-notes /tmp/release-notes/Changes.md
+        args: release --clean --release-notes /tmp/release-notes/Changes.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
