@@ -9,6 +9,9 @@ on:
       previous-tag:
         description: 'Previous release tag'
         required: true
+      git-ref: 
+        description: 'Git reference for the release. Use an appropriate release-v* branch, tag, or commit SHA.'
+        required: true
 jobs:
   release:
     name: Release
@@ -20,7 +23,7 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.inputs.release }}
+        ref: ${{ inputs.git-ref }}
         fetch-depth: 0
 
     - name: Install Go
@@ -29,11 +32,20 @@ jobs:
         go-version: '1.19.x'
         cache: true
         check-latest: true
+    
+    - name: Tag release
+      run: |
+        git config --global user.name "${GITHUB_ACTOR}"
+        git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+        git tag -a "${{ inputs.release }}" -m "Release ${{ inputs.release }}" --force
+        git push origin "${{ inputs.release }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build Release Changelog
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PREVIOUS_TAG: ${{ github.event.inputs.previous-tag }}
+        PREVIOUS_TAG: ${{ inputs.previous-tag }}
       # This creates a set of release notes at Changes.md
       run: |
         export GITHUB_TOKEN
