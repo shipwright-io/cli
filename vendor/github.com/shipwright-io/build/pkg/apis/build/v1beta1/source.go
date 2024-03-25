@@ -44,9 +44,7 @@ type Local struct {
 // Git describes the git repository to pull
 type Git struct {
 	// URL describes the URL of the Git repository.
-	//
-	// +optional
-	URL *string `json:"url,omitempty"`
+	URL string `json:"url"`
 
 	// Revision describes the Git revision (e.g., branch, tag, commit SHA,
 	// etc.) to fetch.
@@ -76,6 +74,7 @@ type OCIArtifact struct {
 	//
 	// +optional
 	Prune *PruneOption `json:"prune,omitempty"`
+
 	// PullSecret references a Secret that contains credentials to access
 	// the repository.
 	//
@@ -83,42 +82,41 @@ type OCIArtifact struct {
 	PullSecret *string `json:"pullSecret,omitempty"`
 }
 
-// Source describes the Git source repository to fetch.
+// Source describes the build source type to fetch.
 type Source struct {
-	// Type is the BuildSource qualifier, the type of the data-source.
-	//
-	// +optional
-	Type BuildSourceType `json:"type,omitempty"`
+	// Type is the BuildSource qualifier, the type of the source.
+	Type BuildSourceType `json:"type"`
 
 	// ContextDir is a path to subfolder in the repo. Optional.
 	//
 	// +optional
 	ContextDir *string `json:"contextDir,omitempty"`
 
-	// OCIArtifact
+	// OCIArtifact contains the details for the source of type OCIArtifact
 	//
 	// +optional
 	OCIArtifact *OCIArtifact `json:"ociArtifact,omitempty"`
 
-	// GitSource
+	// Git contains the details for the source of type Git
 	//
 	// +optional
-	GitSource *Git `json:"git,omitempty"`
+	Git *Git `json:"git,omitempty"`
 
-	// LocalSource
+	// Local contains the details for the source of type Local
 	//
 	// +optional
-	LocalSource *Local `json:"local,omitempty"`
+	Local *Local `json:"local,omitempty"`
 }
 
 // BuildRunSource describes the local source to use
 type BuildRunSource struct {
-	// Type is the BuildRunSource qualifier, the type of the data-source.
-	// Only LocalType is supported.
+	// Type is the BuildRunSource qualifier, the type of the source.
+	// Only Local is supported.
+	//
+	Type BuildSourceType `json:"type"`
+
+	// Local contains the details for the source of type Local
 	//
 	// +optional
-	Type BuildSourceType `json:"type,omitempty"`
-	// LocalSource
-	//
-	LocalSource *Local `json:"local,omitempty"`
+	Local *Local `json:"local,omitempty"`
 }
