@@ -1,13 +1,7 @@
 <p align="center">
-    <a alt="GitHub-Actions unit-tests" href="https://github.com/shipwright-io/cli/actions">
-        <img src="https://github.com/shipwright-io/cli/actions/workflows/unit.yaml/badge.svg">
-    </a>
-    <a alt="go.pkg.dev project documentation" href="https://pkg.go.dev/mod/github.com/shipwright-io/cli">
-        <img src="https://img.shields.io/badge/go.pkg.dev-docs-007d9c?logo=go&logoColor=white">
-    </a>
-    <a alt="goreportcard.com project report" href="https://goreportcard.com/report/github.com/shipwright-io/cli">
-        <img src="https://goreportcard.com/badge/github.com/shipwright-io/cli">
-    </a>
+    <a alt="GitHub-Actions unit-tests" href="https://github.com/shipwright-io/cli/actions"><img src="https://github.com/shipwright-io/cli/actions/workflows/unit.yaml/badge.svg"></a>
+    <a alt="go.pkg.dev project documentation" href="https://pkg.go.dev/mod/github.com/shipwright-io/cli"><img src="https://img.shields.io/badge/go.pkg.dev-docs-007d9c?logo=go&logoColor=white"></a>
+    <a alt="goreportcard.com project report" href="https://goreportcard.com/report/github.com/shipwright-io/cli"><img src="https://goreportcard.com/badge/github.com/shipwright-io/cli"></a>
 </p>
 
 `shp`
