@@ -16,6 +16,8 @@ type BuildReason string
 const (
 	// SucceedStatus indicates that all validations Succeeded
 	SucceedStatus BuildReason = "Succeeded"
+	// UnknownBuildStrategyKind indicates that neither namespace-scope or cluster-scope strategy kind was used
+	UnknownBuildStrategyKind BuildReason = "UnknownBuildStrategyKind"
 	// BuildStrategyNotFound indicates that a namespaced-scope strategy was not found in the namespace
 	BuildStrategyNotFound BuildReason = "BuildStrategyNotFound"
 	// ClusterBuildStrategyNotFound indicates that a cluster-scope strategy was not found
@@ -70,6 +72,10 @@ const (
 	TriggerInvalidImage BuildReason = "TriggerInvalidImage"
 	// TriggerInvalidPipeline indicates the trigger type Pipeline is invalid
 	TriggerInvalidPipeline BuildReason = "TriggerInvalidPipeline"
+	// OutputTimestampNotSupported indicates that an unsupported output timestamp setting was used
+	OutputTimestampNotSupported BuildReason = "OutputTimestampNotSupported"
+	// OutputTimestampNotValid indicates that the output timestamp value is not valid
+	OutputTimestampNotValid BuildReason = "OutputTimestampNotValid"
 
 	// AllValidationsSucceeded indicates a Build was successfully validated
 	AllValidationsSucceeded = "all validations succeeded"
@@ -105,12 +111,25 @@ const (
 	AnnotationBuildVerifyRepository = BuildDomain + "/verify.repository"
 )
 
+const (
+	// OutputImageZeroTimestamp indicates that the UNIX timestamp 0 is to be used
+	OutputImageZeroTimestamp = "Zero"
+
+	// OutputImageSourceTimestamp indicates that the timestamp of the respective source it to be used
+	OutputImageSourceTimestamp = "SourceTimestamp"
+
+	// OutputImageBuildTimestamp indicates that the current timestamp of the build run itself is to be used
+	OutputImageBuildTimestamp = "BuildTimestamp"
+)
+
 // BuildSpec defines the desired state of Build
 type BuildSpec struct {
 	// Source refers to the location where the source code is,
 	// this could be a git repository, a local source or an oci
 	// artifact
-	Source Source `json:"source"`
+	//
+	// +optional
+	Source *Source `json:"source"`
 
 	// Trigger defines the scenarios where a new build should be triggered.
 	//
@@ -137,6 +156,7 @@ type BuildSpec struct {
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
 	// Env contains additional environment variables that should be passed to the build container
+	//
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 
@@ -147,6 +167,7 @@ type BuildSpec struct {
 
 	// Volumes contains volume Overrides of the BuildStrategy volumes in case those are allowed
 	// to be overridden. Must only contain volumes that exist in the corresponding BuildStrategy
+	//
 	// +optional
 	Volumes []BuildVolume `json:"volumes,omitempty"`
 }
@@ -196,6 +217,16 @@ type Image struct {
 	//
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
+
+	// Timestamp references the optional image timestamp to be set, valid values are:
+	// - "Zero", to set 00:00:00 UTC on 1 January 1970
+	// - "SourceTimestamp", to set the source timestamp dereived from the input source
+	// - "BuildTimestamp", to set the timestamp of the current build itself
+	// - Parsable integer number defined as the epoch seconds
+	// - or nil/empty to not set any specific timestamp
+	//
+	// +optional
+	Timestamp *string `json:"timestamp,omitempty"`
 }
 
 // BuildStatus defines the observed state of Build
@@ -220,6 +251,7 @@ type BuildStatus struct {
 
 // Build is the Schema representing a Build definition
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:path=builds,scope=Namespaced
 // +kubebuilder:printcolumn:name="Registered",type="string",JSONPath=".status.registered",description="The register status of the Build"
 // +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".status.reason",description="The reason of the registered Build, either an error or succeed message"
@@ -273,4 +305,23 @@ type BuildRetention struct {
 
 func init() {
 	SchemeBuilder.Register(&Build{}, &BuildList{})
+}
+
+// GetSourceCredentials returns the secret name for a Build Source
+func (b Build) GetSourceCredentials() *string {
+	if b.Spec.Source == nil {
+		return nil
+	}
+
+	switch b.Spec.Source.Type {
+	case OCIArtifactType:
+		if b.Spec.Source.OCIArtifact != nil && b.Spec.Source.OCIArtifact.PullSecret != nil {
+			return b.Spec.Source.OCIArtifact.PullSecret
+		}
+	default:
+		if b.Spec.Source.Git != nil && b.Spec.Source.Git.CloneSecret != nil {
+			return b.Spec.Source.Git.CloneSecret
+		}
+	}
+	return nil
 }
