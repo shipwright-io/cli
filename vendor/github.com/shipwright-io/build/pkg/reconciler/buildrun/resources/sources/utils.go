@@ -9,13 +9,13 @@ import (
 	"regexp"
 	"strings"
 
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	pipelineapi "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 )
 
 const (
-	prefixParamsResultsVolumes = "shp"
+	PrefixParamsResultsVolumes = "shp"
 
 	paramSourceRoot = "source-root"
 )
@@ -29,7 +29,7 @@ var (
 
 // AppendSecretVolume checks if a volume for a secret already exists, if not it appends it to the TaskSpec
 func AppendSecretVolume(
-	taskSpec *tektonv1beta1.TaskSpec,
+	taskSpec *pipelineapi.TaskSpec,
 	secretName string,
 ) {
 	volumeName := SanitizeVolumeNameForSecretName(secretName)
@@ -56,7 +56,7 @@ func AppendSecretVolume(
 // SanitizeVolumeNameForSecretName creates the name of a Volume for a Secret
 func SanitizeVolumeNameForSecretName(secretName string) string {
 	// remove forbidden characters
-	sanitizedName := dnsLabel1123Forbidden.ReplaceAllString(fmt.Sprintf("%s-%s", prefixParamsResultsVolumes, secretName), "-")
+	sanitizedName := dnsLabel1123Forbidden.ReplaceAllString(fmt.Sprintf("%s-%s", PrefixParamsResultsVolumes, secretName), "-")
 
 	// ensure maximum length
 	if len(sanitizedName) > 63 {
@@ -69,7 +69,16 @@ func SanitizeVolumeNameForSecretName(secretName string) string {
 	return sanitizedName
 }
 
-func findResultValue(results []tektonv1beta1.TaskRunResult, name string) string {
+func TaskResultName(sourceName, resultName string) string {
+	return fmt.Sprintf("%s-source-%s-%s",
+		PrefixParamsResultsVolumes,
+		sourceName,
+		resultName,
+	)
+}
+
+func FindResultValue(results []pipelineapi.TaskRunResult, sourceName, resultName string) string {
+	var name = TaskResultName(sourceName, resultName)
 	for _, result := range results {
 		if result.Name == name {
 			return result.Value.StringVal

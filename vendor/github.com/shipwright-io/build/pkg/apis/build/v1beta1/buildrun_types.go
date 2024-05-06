@@ -21,10 +21,10 @@ const (
 )
 
 type ReferencedBuild struct {
-	// Build refers to an embedded build specification
+	// Spec refers to an embedded build specification
 	//
 	// +optional
-	Build *BuildSpec `json:"spec,omitempty"`
+	Spec *BuildSpec `json:"spec,omitempty"`
 
 	// Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
 	//
@@ -122,6 +122,14 @@ type SourceResult struct {
 	//
 	// +optional
 	OciArtifact *OciArtifactSourceResult `json:"ociArtifact,omitempty"`
+
+	// Timestamp holds the timestamp of the source, which
+	// depends on the actual source type and could range from
+	// being the commit timestamp or the fileystem timestamp
+	// of the most recent source file in the working directory
+	//
+	// +optional
+	Timestamp *metav1.Time `json:"timestamp,omitempty"`
 }
 
 // OciArtifactSourceResult holds the results emitted from the bundle source
@@ -213,6 +221,7 @@ type FailureDetails struct {
 
 // BuildRun is the Schema representing an instance of build execution
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:path=buildruns,scope=Namespaced,shortName=br;brs
 // +kubebuilder:printcolumn:name="Succeeded",type="string",JSONPath=".status.conditions[?(@.type==\"Succeeded\")].status",description="The Succeeded status of the BuildRun"
 // +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".status.conditions[?(@.type==\"Succeeded\")].reason",description="The Succeeded reason of the BuildRun"
