@@ -1,6 +1,7 @@
 package buildrun
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -85,8 +86,8 @@ func (c *LogsCommand) Run(params *params.Params, ioStreams *genericclioptions.IO
 	// is invoked.
 	justGetLogs := false
 	var pods *corev1.PodList
-	err = wait.PollImmediate(1*time.Second, 10*time.Second, func() (done bool, err error) {
-		if pods, err = clientset.CoreV1().Pods(params.Namespace()).List(c.cmd.Context(), lo); err != nil {
+	err = wait.PollUntilContextTimeout(c.cmd.Context(), 1*time.Second, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
+		if pods, err = clientset.CoreV1().Pods(params.Namespace()).List(ctx, lo); err != nil {
 			fmt.Fprintf(ioStreams.ErrOut, "error listing Pods for BuildRun %q: %s\n", c.name, err.Error())
 			return false, nil
 		}
