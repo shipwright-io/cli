@@ -1,16 +1,12 @@
 # See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
 
 approvers:
-- coreydaley
-- otaviof
 - qu1queee
 - adambkaplan
 - SaschaSchwarze0
 - HeavyWombat
 
 reviewers:
-- coreydaley
-- otaviof
 - qu1queee
 - SaschaSchwarze0
 - adambkaplan
@@ -20,6 +16,10 @@ emeritus_approvers:
 - alicerum #2022-08-15
 - gabemontero # 2022-08-15
 - sbose78 # 2022-08-15
+- otaviof # 2024-05-24
+- coreydaley # 2024-05-24
 
 emeritus_reviewers:
+- otaviof # 2024-05-24
+- coreydaley # 2024-05-24
 - ImJasonH
