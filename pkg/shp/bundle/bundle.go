@@ -17,6 +17,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // GetSourceBundleImage returns the source bundle image of the build that is
 // associated with the provided buildrun, an empty string if source bundle is
 // not used, or an error in case the build cannot be obtained
@@ -98,8 +105,11 @@ func Push(ctx context.Context, io *genericclioptions.IOStreams, localDirectory s
 					defer progress.Close()
 				}
 
-				progress.ChangeMax64(update.Total)
-				_ = progress.Set64(update.Complete)
+				if update.Total != progress.GetMax64() {
+					progress.ChangeMax64(update.Total)
+				}
+
+				_ = progress.Set64(min(update.Complete, update.Total))
 			}
 		}
 	}()
