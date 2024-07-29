@@ -9,6 +9,14 @@ import (
 	"strings"
 )
 
+type writeCounter struct{ total int }
+
+func (wc *writeCounter) Write(p []byte) (int, error) {
+	n := len(p)
+	wc.total += n
+	return n, nil
+}
+
 func trimPrefix(prefix, fpath string) string {
 	return strings.TrimPrefix(strings.Replace(fpath, prefix, "", -1), string(filepath.Separator))
 }

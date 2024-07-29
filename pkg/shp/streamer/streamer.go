@@ -9,10 +9,10 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	progressbar "github.com/schollz/progressbar/v3"
 	"k8s.io/kubectl/pkg/cmd/exec"
 	"k8s.io/kubectl/pkg/util/interrupt"
+
+	progressbar "github.com/schollz/progressbar/v3"
 )
 
 // Streamer represents the actor that streams data onto a POD, running on Kubernetes. It does so via
@@ -43,7 +43,7 @@ func (s *Streamer) execute(opts *exec.ExecOptions) error {
 
 // Stream the data onto the informed target, and it uses the BaseDir as the path to store the data on
 // the running POD. The writerFn is employed to expose the writer interface to callers.
-func (s *Streamer) Stream(target *Target, writerFn WriterFn, size int64) error {
+func (s *Streamer) Stream(target *Target, writerFn WriterFn, size int) error {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -60,7 +60,7 @@ func (s *Streamer) Stream(target *Target, writerFn WriterFn, size int64) error {
 		wg.Done()
 	}()
 
-	progress := progressbar.NewOptions(int(size),
+	progress := progressbar.NewOptions(size,
 		progressbar.OptionSetWriter(os.Stderr),
 		progressbar.OptionEnableColorCodes(true),
 		progressbar.OptionShowBytes(true),

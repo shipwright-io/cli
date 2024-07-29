@@ -210,14 +210,14 @@ func (u *UploadCommand) performDataStreaming(target *streamer.Target) error {
 		return err
 	}
 
-	tarsize, err := streamer.GetTarSize(u.sourceDir)
+	size, err := tarball.Size()
 	if err != nil {
 		return err
 	}
 
 	// start writing the data using the tarball format, and streaming it via STDIN, which is
 	// redirected to the correct container
-	if err = u.dataStreamer.Stream(target, tarball.Create, tarsize.Size); err != nil {
+	if err = u.dataStreamer.Stream(target, tarball.Create, size); err != nil {
 		return err
 	}
 
