@@ -46,6 +46,8 @@ const (
 	OutputInsecureFlag = "output-insecure"
 	// OutputCredentialsSecretFlag command-line flag.
 	OutputCredentialsSecretFlag = "output-credentials-secret" // #nosec G101
+	// ParameterValueFlag command-line flag.
+	ParamValueFlag = "param-value"
 	// ServiceAccountNameFlag command-line flag.
 	ServiceAccountNameFlag = "sa-name"
 	// ServiceAccountGenerateFlag command-line flag.
@@ -209,6 +211,16 @@ func envFlags(flags *pflag.FlagSet, envs *[]corev1.EnvVar) {
 		"env",
 		"e",
 		"specify a key-value pair for an environment variable to set for the build container",
+	)
+}
+
+// parameterValueFlag registers flags for adding BuildSpec.ParamValues
+func paramValueFlag(flags *pflag.FlagSet, paramValue *[]buildv1alpha1.ParamValue) {
+	flags.VarP(
+		NewParamArrayValue(paramValue),
+		ParamValueFlag,
+		"",
+		"set of key-value pairs to pass as parameters to the buildStrategy",
 	)
 }
 

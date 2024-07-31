@@ -38,6 +38,7 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildRunSpec {
 	timeoutFlags(flags, spec.Timeout)
 	imageFlags(flags, "output", spec.Output)
 	envFlags(flags, &spec.Env)
+	paramValueFlag(flags, &spec.ParamValues)
 	imageLabelsFlags(flags, spec.Output.Labels)
 	imageAnnotationsFlags(flags, spec.Output.Annotations)
 	buildRunRetentionFlags(flags, spec.Retention)
