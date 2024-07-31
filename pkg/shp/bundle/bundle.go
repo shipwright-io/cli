@@ -98,7 +98,10 @@ func Push(ctx context.Context, io *genericclioptions.IOStreams, localDirectory s
 					defer progress.Close()
 				}
 
-				progress.ChangeMax64(update.Total)
+				if update.Total != progress.GetMax64() {
+					progress.ChangeMax64(update.Total)
+				}
+
 				_ = progress.Set64(update.Complete)
 			}
 		}
