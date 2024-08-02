@@ -7,7 +7,7 @@ PKG = ./pkg/...
 BIN ?= $(OUTPUT_DIR)/$(APP)
 KUBECTL_BIN ?= $(OUTPUT_DIR)/kubectl-$(APP)
 
-GO_FLAGS ?= -v -mod=vendor
+GO_FLAGS ?= -mod=vendor
 GO_TEST_FLAGS ?= -race -cover
 
 GO_PATH ?= $(shell go env GOPATH)
