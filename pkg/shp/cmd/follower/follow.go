@@ -3,6 +3,7 @@ package follower
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -201,7 +202,7 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 		for _, c := range pod.Status.Conditions {
 			if c.Type == corev1.PodInitialized || c.Type == corev1.ContainersReady {
 				if c.Status == corev1.ConditionUnknown {
-					return fmt.Errorf(c.Message)
+					return errors.New(c.Message)
 				}
 			}
 		}
