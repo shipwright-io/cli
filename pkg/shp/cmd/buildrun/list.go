@@ -54,7 +54,7 @@ func (c *ListCommand) Validate() error {
 }
 
 // Run executes list sub-command logic
-func (c *ListCommand) Run(params *params.Params, _ *genericclioptions.IOStreams) error {
+func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
 	// TODO: Support multiple output formats here, not only tabwriter
 	//       find out more in kubectl libraries and use them
 
@@ -67,9 +67,22 @@ func (c *ListCommand) Run(params *params.Params, _ *genericclioptions.IOStreams)
 		return err
 	}
 
+	k8sclient, err := params.ClientSet()
+	if err != nil {
+		return fmt.Errorf("failed to get k8s client: %w", err)
+	}
+	_, err = k8sclient.CoreV1().Namespaces().Get(c.cmd.Context(), params.Namespace(), metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("namespace %s not found. Please ensure that the namespace exists and try again", params.Namespace())
+	}
+
 	var brs *buildv1alpha1.BuildRunList
 	if brs, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
 		return err
+	}
+	if len(brs.Items) == 0 {
+		fmt.Fprintf(io.Out, "No buildruns found in namespace '%s'. Please initiate a buildrun or verify the namespace.\n", params.Namespace())
+		return nil
 	}
 
 	if !c.noHeader {
