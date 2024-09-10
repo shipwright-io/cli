@@ -9,6 +9,7 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/spf13/cobra"
 
+	k8serrors "k8s.io/apimachinery/pkg/api/errors" // Import the k8serrors package
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -70,14 +71,18 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	}
 	_, err = k8sclient.CoreV1().Namespaces().Get(c.cmd.Context(), params.Namespace(), metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("namespace %s not found. Please ensure that the namespace exists and try again", params.Namespace())
+		if k8serrors.IsNotFound(err) {
+			fmt.Fprintf(io.Out, "Namespace '%s' not found. Please ensure that the namespace exists and try again.\n", params.Namespace())
+			return nil
+		}
+		return err
 	}
 
 	if buildList, err = clientset.ShipwrightV1alpha1().Builds(params.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
 		return err
 	}
 	if len(buildList.Items) == 0 {
-		fmt.Fprintf(io.Out, "No builds found in namespace '%s'. Please initiate a build or verify the namespace.\n", params.Namespace())
+		fmt.Fprintf(io.Out, "No builds found in namespace '%s'. Please create a build or verify the namespace.\n", params.Namespace())
 		return nil
 	}
 

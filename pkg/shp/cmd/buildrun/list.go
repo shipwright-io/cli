@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -73,7 +74,11 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	}
 	_, err = k8sclient.CoreV1().Namespaces().Get(c.cmd.Context(), params.Namespace(), metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("namespace %s not found. Please ensure that the namespace exists and try again", params.Namespace())
+		if k8serrors.IsNotFound(err) {
+			fmt.Fprintf(io.Out, "Namespace '%s' not found. Please ensure that the namespace exists and try again.\n", params.Namespace())
+			return nil
+		}
+		return err
 	}
 
 	var brs *buildv1alpha1.BuildRunList
@@ -81,7 +86,7 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 		return err
 	}
 	if len(brs.Items) == 0 {
-		fmt.Fprintf(io.Out, "No buildruns found in namespace '%s'. Please initiate a buildrun or verify the namespace.\n", params.Namespace())
+		fmt.Fprintf(io.Out, "No buildruns found in namespace '%s'. Please create a buildrun or verify the namespace.\n", params.Namespace())
 		return nil
 	}
 
