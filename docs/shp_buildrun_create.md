@@ -27,6 +27,7 @@ shp buildrun create <name> [flags]
       --output-image-annotation stringArray      specify a set of key-value pairs that correspond to annotations to set on the output image (default [])
       --output-image-label stringArray           specify a set of key-value pairs that correspond to labels to set on the output image (default [])
       --output-insecure                          flag to indicate an insecure container registry
+      --param-value stringArray                  set of key-value pairs to pass as parameters to the buildStrategy (default [])
       --retention-ttl-after-failed duration      duration to delete the BuildRun after it failed
       --retention-ttl-after-succeeded duration   duration to delete the BuildRun after it succeeded
       --sa-generate                              generate a Kubernetes service-account for the build
