@@ -30,7 +30,6 @@ func (f *FakeRemoteExecutor) Stdin() string {
 // Execute handles the actual http request against Kubernetes API, and here greatly simplified to
 // only return a stubbed error, and extract elements from the request.
 func (f *FakeRemoteExecutor) Execute(
-	_ string,
 	reqURL *url.URL,
 	_ *rest.Config,
 	stdin io.Reader,

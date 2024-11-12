@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -230,12 +231,34 @@ func Pack(directory string) (io.ReadCloser, error) {
 // Unpack reads a tar stream and writes the content into the local file system
 // with all files and directories.
 func Unpack(in io.Reader, targetPath string) (*UnpackDetails, error) {
+	type chmod struct {
+		name string
+		mode os.FileMode
+	}
+
+	// Make sure the target path exists and is a directory
+	if stat, err := os.Stat(targetPath); err != nil {
+		if err := os.MkdirAll(targetPath, os.FileMode(0755)); err != nil {
+			return nil, err
+		}
+	} else if !stat.IsDir() {
+		return nil, fmt.Errorf("target %q exists, but it's not a directory", targetPath)
+	}
+
+	var chmods []chmod
 	var details = UnpackDetails{}
 	var tr = tar.NewReader(in)
 	for {
 		header, err := tr.Next()
 		switch {
 		case err == io.EOF:
+			// before leaving, make sure to set the file permissions to the ones specified in the tar stream
+			for _, chmod := range chmods {
+				if err := os.Chmod(chmod.name, chmod.mode); err != nil {
+					return nil, err
+				}
+			}
+
 			return &details, nil
 
 		case err != nil:
@@ -252,9 +275,16 @@ func Unpack(in io.Reader, targetPath string) (*UnpackDetails, error) {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
+			// Skip the root directory, since it already exists
+			if target == targetPath {
+				continue
+			}
+
+			if err := os.MkdirAll(target, os.FileMode(0777)); err != nil {
 				return nil, err
 			}
+
+			chmods = append(chmods, chmod{name: target, mode: fileMode(header)})
 
 		case tar.TypeReg:
 			// Edge case in which that tarball did not have a directory entry
@@ -263,7 +293,7 @@ func Unpack(in io.Reader, targetPath string) (*UnpackDetails, error) {
 				return nil, err
 			}
 
-			file, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			file, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, fileMode(header))
 			if err != nil {
 				return nil, err
 			}
@@ -289,4 +319,14 @@ func Unpack(in io.Reader, targetPath string) (*UnpackDetails, error) {
 			return nil, fmt.Errorf("provided tarball contains unsupported file type, only directories and regular files are supported")
 		}
 	}
+}
+
+func fileMode(tarHeader *tar.Header) os.FileMode {
+	mode := tarHeader.Mode
+	if mode < 0 || mode > math.MaxUint32 {
+		return 0
+	}
+
+	// #nosec G115 was checked above
+	return os.FileMode(mode)
 }
