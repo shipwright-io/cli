@@ -94,8 +94,6 @@ func (p *PodWatcher) WithNoPodEventsYetFn(fn NoPodEventsYetFn) *PodWatcher {
 
 // handleEvent applies user informed functions against informed pod and event.
 func (p *PodWatcher) handleEvent(pod *corev1.Pod, event watch.Event) error {
-	//p.stopLock.Lock()
-	//defer p.stopLock.Unlock()
 	p.eventTicker.Stop()
 	switch event.Type {
 	case watch.Added:
@@ -235,6 +233,6 @@ func NewPodWatcher(
 	clientset kubernetes.Interface,
 	ns string,
 ) (*PodWatcher, error) {
-	//TODO don't think the have not received events yet ticker needs to be tunable, but leaving a TODO for now while we get feedback
+	// TODO don't think the have not received events yet ticker needs to be tunable, but leaving a TODO for now while we get feedback
 	return &PodWatcher{ctx: ctx, to: timeout, ns: ns, clientset: clientset, eventTicker: time.NewTicker(1 * time.Second), stopCh: make(chan bool), stopLock: sync.Mutex{}}, nil
 }
