@@ -110,8 +110,7 @@ func (c *LogsCommand) Run(params *params.Params, ioStreams *genericclioptions.IO
 		fmt.Fprintf(ioStreams.Out, "Obtaining logs for BuildRun %q\n\n", c.name)
 
 		var b strings.Builder
-		containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
-		for _, container := range containers {
+		for _, container := range append(pod.Spec.InitContainers, pod.Spec.Containers...) {
 			logs, err := util.GetPodLogs(c.cmd.Context(), clientset, pod, container.Name)
 			if err != nil {
 				return err
