@@ -1,0 +1,33 @@
+---
+name: Build Check
+
+on:
+  push:
+    tags-ignore:
+      - "**"
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run GoReleaser Check
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GoReleaser Build
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: build --clean --snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
