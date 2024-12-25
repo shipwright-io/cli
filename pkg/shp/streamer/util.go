@@ -18,7 +18,7 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 }
 
 func trimPrefix(prefix, fpath string) string {
-	return strings.TrimPrefix(strings.Replace(fpath, prefix, "", -1), string(filepath.Separator))
+	return strings.TrimPrefix(strings.ReplaceAll(fpath, prefix, ""), string(filepath.Separator))
 }
 
 func writeFileToTar(tw *tar.Writer, src, fpath string, stat fs.FileInfo) error {
