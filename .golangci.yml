@@ -3,5 +3,6 @@ linters:
     - gosec
     - revive
     - misspell
+    - gocritic
   disable:
     - errcheck

@@ -6,6 +6,6 @@
 set -eu -o pipefail
 
 if ( git diff --name-only |grep -q '^docs\/' ) ; then
-	echo "[ERROR] Markdown documenation is out of sync, run 'make generate-docs' and commit the changes!"
+	echo "[ERROR] Markdown documentation is out of sync, run 'make generate-docs' and commit the changes!"
 	exit 1
 fi

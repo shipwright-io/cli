@@ -44,15 +44,15 @@ teardown() {
 	run kubectl get buildruns.shipwright.io/${buildrun_name} -o yaml
 	assert_success
 
-	
+
 	# ensure that the environment variables were inserted into the Build object
 	assert_output --partial "VAR_2" && assert_output --partial "buildrun-value-2"
 	assert_output --partial "VAR_3" && assert_output --partial "buildrun-value-3"
 
 	# get the taskrun that we created
-	run kubectl get taskruns.tekton.dev --selector=buildrun.shipwright.io/name=${buildrun_name} -o name 
+	run kubectl get taskruns.tekton.dev --selector=buildrun.shipwright.io/name=${buildrun_name} -o name
 	assert_success
-	
+
 	run kubectl get ${output} -o yaml
 	assert_success
 

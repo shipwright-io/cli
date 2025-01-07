@@ -107,8 +107,7 @@ func (f *Follower) Log(msg string) {
 // tailLogs start tailing logs for each container name in init-containers and containers, if not
 // started already.
 func (f *Follower) tailLogs(pod *corev1.Pod) {
-	containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
-	for _, container := range containers {
+	for _, container := range append(pod.Spec.InitContainers, pod.Spec.Containers...) {
 		if _, exists := f.tailLogsStarted[container.Name]; exists {
 			continue
 		}
