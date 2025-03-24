@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
@@ -24,8 +24,8 @@ type RunCommand struct {
 
 	buildName     string
 	namespace     string
-	buildRunSpec  *buildv1alpha1.BuildRunSpec // stores command-line flags
-	follow        bool                        // flag to tail pod logs
+	buildRunSpec  *buildv1beta1.BuildRunSpec // stores command-line flags
+	follow        bool                       // flag to tail pod logs
 	follower      *follower.Follower
 	followerReady chan bool
 }
@@ -87,7 +87,7 @@ func (r *RunCommand) FollowerReady() bool {
 // Run creates a BuildRun resource based on Build's name informed on arguments.
 func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
 	// resource using GenerateName, which will provide a unique instance
-	br := &buildv1alpha1.BuildRun{
+	br := &buildv1beta1.BuildRun{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", r.buildName),
 		},
@@ -100,7 +100,7 @@ func (r *RunCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	if err != nil {
 		return err
 	}
-	br, err = clientset.ShipwrightV1alpha1().BuildRuns(r.namespace).Create(ctx, br, metav1.CreateOptions{})
+	br, err = clientset.ShipwrightV1beta1().BuildRuns(r.namespace).Create(ctx, br, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

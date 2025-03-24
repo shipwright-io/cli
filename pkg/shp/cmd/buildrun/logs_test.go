@@ -10,7 +10,7 @@ import (
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	fakekubetesting "k8s.io/client-go/testing"
 
-	"github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	"github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 
 	corev1 "k8s.io/api/core/v1"
@@ -27,7 +27,7 @@ func TestStreamBuildLogs(t *testing.T) {
 	pod.Name = name
 	pod.Namespace = metav1.NamespaceDefault
 	pod.Labels = map[string]string{
-		v1alpha1.LabelBuildRun: name,
+		v1beta1.LabelBuildRun: name,
 	}
 	pod.Spec.Containers = []corev1.Container{
 		{
@@ -132,8 +132,8 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 				Name:      name,
 				Labels: map[string]string{
-					v1alpha1.LabelBuild:    name,
-					v1alpha1.LabelBuildRun: name,
+					v1beta1.LabelBuild:    name,
+					v1beta1.LabelBuildRun: name,
 				},
 			},
 			Spec: corev1.PodSpec{
@@ -142,7 +142,7 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 				}},
 			},
 		}
-		br := &v1alpha1.BuildRun{
+		br := &v1beta1.BuildRun{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: metav1.NamespaceDefault,
 				Name:      name,
@@ -186,26 +186,26 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 
 		switch {
 		case test.cancelled:
-			br.Spec.State = v1alpha1.BuildRunRequestedStatePtr(v1alpha1.BuildRunStateCancel)
-			br.Status.Conditions = []v1alpha1.Condition{
+			br.Spec.State = v1beta1.BuildRunRequestedStatePtr(v1beta1.BuildRunStateCancel)
+			br.Status.Conditions = []v1beta1.Condition{
 				{
-					Type:   v1alpha1.Succeeded,
+					Type:   v1beta1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}
 		case test.brDeleted:
 			br.DeletionTimestamp = &metav1.Time{}
-			br.Status.Conditions = []v1alpha1.Condition{
+			br.Status.Conditions = []v1beta1.Condition{
 				{
-					Type:   v1alpha1.Succeeded,
+					Type:   v1beta1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}
 		case test.podDeleted:
 			pod.DeletionTimestamp = &metav1.Time{}
-			br.Status.Conditions = []v1alpha1.Condition{
+			br.Status.Conditions = []v1beta1.Condition{
 				{
-					Type:   v1alpha1.Succeeded,
+					Type:   v1beta1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}

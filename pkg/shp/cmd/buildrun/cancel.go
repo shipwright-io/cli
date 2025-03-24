@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 )
@@ -56,8 +56,8 @@ func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.
 		return err
 	}
 
-	var br *buildv1alpha1.BuildRun
-	if br, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Get(c.cmd.Context(), c.name, metav1.GetOptions{}); err != nil {
+	var br *buildv1beta1.BuildRun
+	if br, err = clientset.ShipwrightV1beta1().BuildRuns(params.Namespace()).Get(c.cmd.Context(), c.name, metav1.GetOptions{}); err != nil {
 		return fmt.Errorf("failed to retrieve BuildRun %s: %s", c.name, err.Error())
 	}
 	if br.IsDone() {
@@ -72,13 +72,13 @@ func (c *CancelCommand) Run(params *params.Params, ioStreams *genericclioptions.
 	payload := []patchStringValue{{
 		Op:    "replace",
 		Path:  "/spec/state",
-		Value: buildv1alpha1.BuildRunStateCancel,
+		Value: buildv1beta1.BuildRunStateCancel,
 	}}
 	var data []byte
 	if data, err = json.Marshal(payload); err != nil {
 		return err
 	}
-	if _, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Patch(c.Cmd().Context(), c.name, types.JSONPatchType, data, metav1.PatchOptions{}); err != nil {
+	if _, err = clientset.ShipwrightV1beta1().BuildRuns(params.Namespace()).Patch(c.Cmd().Context(), c.name, types.JSONPatchType, data, metav1.PatchOptions{}); err != nil {
 		return err
 	}
 

@@ -10,14 +10,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	"github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 )
 
 func TestCancelBuildRun(t *testing.T) {
 	tests := map[string]struct {
-		br              *v1alpha1.BuildRun
+		br              *v1beta1.BuildRun
 		expectCancelSet bool
 		expectErr       bool
 	}{
@@ -26,15 +26,15 @@ func TestCancelBuildRun(t *testing.T) {
 			expectErr: true,
 		},
 		"completed": {
-			br: &v1alpha1.BuildRun{
+			br: &v1beta1.BuildRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "completed",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Status: v1alpha1.BuildRunStatus{
-					Conditions: v1alpha1.Conditions{
+				Status: v1beta1.BuildRunStatus{
+					Conditions: v1beta1.Conditions{
 						{
-							Type:   v1alpha1.Succeeded,
+							Type:   v1beta1.Succeeded,
 							Status: corev1.ConditionTrue,
 						},
 					},
@@ -42,15 +42,15 @@ func TestCancelBuildRun(t *testing.T) {
 			expectErr: true,
 		},
 		"failed": {
-			br: &v1alpha1.BuildRun{
+			br: &v1beta1.BuildRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "failed",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Status: v1alpha1.BuildRunStatus{
-					Conditions: v1alpha1.Conditions{
+				Status: v1beta1.BuildRunStatus{
+					Conditions: v1beta1.Conditions{
 						{
-							Type:   v1alpha1.Succeeded,
+							Type:   v1beta1.Succeeded,
 							Status: corev1.ConditionFalse,
 						},
 					},
@@ -58,7 +58,7 @@ func TestCancelBuildRun(t *testing.T) {
 			expectErr: true,
 		},
 		"condition-missing": {
-			br: &v1alpha1.BuildRun{
+			br: &v1beta1.BuildRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "failed",
 					Namespace: metav1.NamespaceDefault,
@@ -67,15 +67,15 @@ func TestCancelBuildRun(t *testing.T) {
 			expectCancelSet: true,
 		},
 		"in-progress": {
-			br: &v1alpha1.BuildRun{
+			br: &v1beta1.BuildRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "failed",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Status: v1alpha1.BuildRunStatus{
-					Conditions: v1alpha1.Conditions{
+				Status: v1beta1.BuildRunStatus{
+					Conditions: v1beta1.Conditions{
 						{
-							Type:   v1alpha1.Succeeded,
+							Type:   v1beta1.Succeeded,
 							Status: corev1.ConditionUnknown,
 						},
 					},
@@ -112,7 +112,7 @@ func TestCancelBuildRun(t *testing.T) {
 			continue
 		}
 
-		buildRun, _ := clientset.ShipwrightV1alpha1().BuildRuns(param.Namespace()).Get(context.Background(), test.br.Name, metav1.GetOptions{})
+		buildRun, _ := clientset.ShipwrightV1beta1().BuildRuns(param.Namespace()).Get(context.Background(), test.br.Name, metav1.GetOptions{})
 
 		if test.expectCancelSet && !buildRun.IsCanceled() {
 			t.Errorf("%s: cancel not set", testName)

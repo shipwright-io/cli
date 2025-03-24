@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/spf13/cobra"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
@@ -78,7 +78,7 @@ func (c *LogsCommand) Run(params *params.Params, ioStreams *genericclioptions.IO
 	}
 
 	lo := v1.ListOptions{
-		LabelSelector: fmt.Sprintf("%v=%v", buildv1alpha1.LabelBuildRun, c.name),
+		LabelSelector: fmt.Sprintf("%v=%v", buildv1beta1.LabelBuildRun, c.name),
 	}
 
 	// first see if pod is already done; if so, even if we have follow == true, just do the normal path;
