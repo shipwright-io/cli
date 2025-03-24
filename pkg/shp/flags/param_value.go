@@ -3,13 +3,13 @@ package flags
 import (
 	"fmt"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 )
 
 // ParamArrayValue implements pflag.Value interface, in order to store ParamValue key-value
 // pairs used on Shipwright's BuildSpec.
 type ParamArrayValue struct {
-	params *[]buildv1alpha1.ParamValue // pointer to the slice of ParamValue
+	params *[]buildv1beta1.ParamValue // pointer to the slice of ParamValue
 }
 
 // String prints out the string representation of the slice of EnvVar objects.
@@ -33,7 +33,7 @@ func (p *ParamArrayValue) Set(value string) error {
 			return fmt.Errorf("environment variable '%s' is already set", k)
 		}
 	}
-	*p.params = append(*p.params, buildv1alpha1.ParamValue{Name: k, SingleValue: &buildv1alpha1.SingleValue{Value: &v}})
+	*p.params = append(*p.params, buildv1beta1.ParamValue{Name: k, SingleValue: &buildv1beta1.SingleValue{Value: &v}})
 	return nil
 }
 
@@ -45,6 +45,6 @@ func (p *ParamArrayValue) Type() string {
 }
 
 // NewCoreEnvVarArrayValue instantiate a ParamValSliceValue sharing the EnvVar pointer.
-func NewParamArrayValue(params *[]buildv1alpha1.ParamValue) *ParamArrayValue {
+func NewParamArrayValue(params *[]buildv1beta1.ParamValue) *ParamArrayValue {
 	return &ParamArrayValue{params: params}
 }

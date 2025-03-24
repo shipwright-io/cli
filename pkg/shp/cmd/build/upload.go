@@ -7,7 +7,7 @@ import (
 	"path"
 	"time"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/shipwright-io/build/pkg/reconciler/buildrun/resources/sources"
 
 	"github.com/shipwright-io/cli/pkg/shp/bundle"
@@ -26,9 +26,9 @@ import (
 
 // UploadCommand represents the "build upload" subcommand, implements runner.SubCommand interface.
 type UploadCommand struct {
-	cmd          *cobra.Command              // cobra command instance
-	buildRunSpec *buildv1alpha1.BuildRunSpec // command-line flags stored directly on the BuildRun
-	follow       bool                        // flag to tail pod logs
+	cmd          *cobra.Command             // cobra command instance
+	buildRunSpec *buildv1beta1.BuildRunSpec // command-line flags stored directly on the BuildRun
+	follow       bool                       // flag to tail pod logs
 
 	buildRefName string // build name
 	sourceDir    string // local directory to be streamed
@@ -121,20 +121,21 @@ func (u *UploadCommand) Complete(p *params.Params, _ *genericclioptions.IOStream
 	}
 
 	// check that the cluster actually contains a build with this name
-	build, err := shpClientSet.ShipwrightV1alpha1().Builds(p.Namespace()).Get(u.cmd.Context(), u.buildRefName, metav1.GetOptions{})
+	build, err := shpClientSet.ShipwrightV1beta1().Builds(p.Namespace()).Get(u.cmd.Context(), u.buildRefName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	// detect upload method, if build has bundle container image set, it
 	// is assumed that the source bundle upload via registry is used
-	if build.Spec.Source.BundleContainer != nil && build.Spec.Source.BundleContainer.Image != "" {
-		u.sourceBundleImage = build.Spec.Source.BundleContainer.Image
+	if build.Spec.Source != nil {
+		if build.Spec.Source.OCIArtifact != nil && build.Spec.Source.OCIArtifact.Image != "" {
+			u.sourceBundleImage = build.Spec.Source.OCIArtifact.Image
 
-	} else {
-		u.dataStreamer = streamer.NewStreamer(restConfig, clientset)
+		} else {
+			u.dataStreamer = streamer.NewStreamer(restConfig, clientset)
+		}
 	}
-
 	u.pw, err = p.NewPodWatcher(u.Cmd().Context())
 	return err
 }
@@ -153,12 +154,12 @@ func (u *UploadCommand) Validate() error {
 
 // createBuildRun creates the BuildRun instance to receive the data upload afterwards, it returns the
 // BuildRun name just created and error.
-func (u *UploadCommand) createBuildRun(p *params.Params) (*buildv1alpha1.BuildRun, error) {
-	var br *buildv1alpha1.BuildRun
+func (u *UploadCommand) createBuildRun(p *params.Params) (*buildv1beta1.BuildRun, error) {
+	var br *buildv1beta1.BuildRun
 	switch {
 	// Use bundle feature for source upload and build
 	case u.sourceBundleImage != "":
-		br = &buildv1alpha1.BuildRun{
+		br = &buildv1beta1.BuildRun{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: fmt.Sprintf("%s-", u.buildRefName),
 			},
@@ -167,11 +168,13 @@ func (u *UploadCommand) createBuildRun(p *params.Params) (*buildv1alpha1.BuildRu
 
 	// Use local copy streaming feature for source upload and build
 	default:
-		u.buildRunSpec.Sources = []buildv1alpha1.BuildSource{{
-			Name: "local-copy",
-			Type: buildv1alpha1.LocalCopy,
-		}}
-		br = &buildv1alpha1.BuildRun{
+		u.buildRunSpec.Source = &buildv1beta1.BuildRunSource{
+			Type: buildv1beta1.LocalType,
+			Local: &buildv1beta1.Local{
+				Name: "local-copy",
+			},
+		}
+		br = &buildv1beta1.BuildRun{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: fmt.Sprintf("%s-", u.buildRefName),
 			},
@@ -187,7 +190,7 @@ func (u *UploadCommand) createBuildRun(p *params.Params) (*buildv1alpha1.BuildRu
 	if err != nil {
 		return nil, err
 	}
-	br, err = clientset.ShipwrightV1alpha1().
+	br, err = clientset.ShipwrightV1beta1().
 		BuildRuns(ns).
 		Create(u.cmd.Context(), br, metav1.CreateOptions{})
 	if err != nil {
@@ -309,7 +312,7 @@ func (u *UploadCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStr
 	// BuildRun we've just issued
 	labelSelector := fmt.Sprintf(
 		"%s=%s,%s=%s",
-		buildNameAnnotation, u.buildRunSpec.BuildRef.Name,
+		buildNameAnnotation, *u.buildRunSpec.Build.Name,
 		buildRunNameAnnotation, br.Name,
 	)
 	listOpts := metav1.ListOptions{LabelSelector: labelSelector}

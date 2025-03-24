@@ -6,9 +6,8 @@ import (
 	"time"
 
 	o "github.com/onsi/gomega"
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/spf13/cobra"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -16,29 +15,28 @@ import (
 func TestBuildSpecFromFlags(t *testing.T) {
 	g := o.NewWithT(t)
 
-	credentials := corev1.LocalObjectReference{Name: "name"}
-	buildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
-	bundlePruneOption := buildv1alpha1.PruneNever
-	expected := &buildv1alpha1.BuildSpec{
-		Source: buildv1alpha1.Source{
-			Credentials:     &credentials,
-			URL:             ptr.To("https://some.url"),
-			Revision:        ptr.To("some-rev"),
-			ContextDir:      ptr.To("some-contextdir"),
-			BundleContainer: &buildv1alpha1.BundleContainer{Prune: &bundlePruneOption},
+	buildStrategyKind := buildv1beta1.ClusterBuildStrategyKind
+	bundlePruneOption := buildv1beta1.PruneNever
+	expected := &buildv1beta1.BuildSpec{
+		Source: &buildv1beta1.Source{
+			Git: &buildv1beta1.Git{
+				URL:         "https://some.url",
+				Revision:    ptr.To("some-rev"),
+				CloneSecret: ptr.To("name"),
+			},
+			ContextDir: ptr.To("some-contextdir"),
+			OCIArtifact: &buildv1beta1.OCIArtifact{
+				Prune:      &bundlePruneOption,
+				PullSecret: ptr.To("pull-secret"),
+			},
 		},
-		Strategy: buildv1alpha1.Strategy{
-			Name:       "strategy-name",
-			Kind:       &buildStrategyKind,
-			APIVersion: &buildv1alpha1.SchemeGroupVersion.Version,
+		Strategy: buildv1beta1.Strategy{
+			Name: "strategy-name",
+			Kind: &buildStrategyKind,
 		},
-		Dockerfile: ptr.To("some-dockerfile"),
-		Builder: &buildv1alpha1.Image{
-			Credentials: &credentials,
-			Image:       "builder-image",
-		},
-		Output: buildv1alpha1.Image{
-			Credentials: &credentials,
+
+		Output: buildv1beta1.Image{
+			PushSecret:  ptr.To("name"),
 			Image:       "output-image",
 			Insecure:    ptr.To(false),
 			Labels:      map[string]string{},
@@ -47,7 +45,7 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		Timeout: &metav1.Duration{
 			Duration: 1 * time.Second,
 		},
-		Retention: &buildv1alpha1.BuildRetention{
+		Retention: &buildv1beta1.BuildRetention{
 			FailedLimit:    pointerUInt(10),
 			SucceededLimit: pointerUInt(5),
 			TTLAfterFailed: &metav1.Duration{
@@ -61,29 +59,29 @@ func TestBuildSpecFromFlags(t *testing.T) {
 
 	cmd := &cobra.Command{}
 	flags := cmd.PersistentFlags()
-	spec := BuildSpecFromFlags(flags)
+	spec, dockerfile, builderImage := BuildSpecFromFlags(flags)
 
 	t.Run(".spec.source", func(_ *testing.T) {
-		err := flags.Set(SourceURLFlag, *expected.Source.URL)
+		err := flags.Set(SourceURLFlag, expected.Source.Git.URL)
 		g.Expect(err).To(o.BeNil())
 
-		err = flags.Set(SourceRevisionFlag, *expected.Source.Revision)
+		err = flags.Set(SourceRevisionFlag, *expected.Source.Git.Revision)
 		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(SourceContextDirFlag, *expected.Source.ContextDir)
 		g.Expect(err).To(o.BeNil())
 
-		err = flags.Set(SourceCredentialsSecretFlag, expected.Source.Credentials.Name)
+		err = flags.Set(SourceCredentialsSecretFlag, *expected.Source.Git.CloneSecret)
 		g.Expect(err).To(o.BeNil())
 
-		err = flags.Set(StrategyAPIVersionFlag, *expected.Strategy.APIVersion)
+		err = flags.Set(SourceOCIArtifactPullSecretFlag, *expected.Source.OCIArtifact.PullSecret)
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(expected.Source).To(o.Equal(spec.Source), "spec.source")
 	})
 
 	t.Run(".spec.strategy", func(_ *testing.T) {
-		err := flags.Set(StrategyKindFlag, string(buildv1alpha1.ClusterBuildStrategyKind))
+		err := flags.Set(StrategyKindFlag, string(buildv1beta1.ClusterBuildStrategyKind))
 		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(StrategyNameFlag, expected.Strategy.Name)
@@ -92,29 +90,23 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		g.Expect(expected.Strategy).To(o.Equal(spec.Strategy), "spec.strategy")
 	})
 
-	t.Run(".spec.dockerfile", func(_ *testing.T) {
-		err := flags.Set(DockerfileFlag, *expected.Dockerfile)
+	t.Run("dockerfile", func(_ *testing.T) {
+		err := flags.Set(DockerfileFlag, "test-dockerfile")
 		g.Expect(err).To(o.BeNil())
-
-		g.Expect(spec.Dockerfile).NotTo(o.BeNil())
-		g.Expect(*expected.Dockerfile).To(o.Equal(*spec.Dockerfile), "spec.dockerfile")
+		g.Expect(*dockerfile).To(o.Equal("test-dockerfile"))
 	})
 
-	t.Run(".spec.builder", func(_ *testing.T) {
-		err := flags.Set(BuilderImageFlag, expected.Builder.Image)
+	t.Run("builderImage", func(_ *testing.T) {
+		err := flags.Set(BuilderImageFlag, "test-builder-image")
 		g.Expect(err).To(o.BeNil())
-
-		err = flags.Set(BuilderCredentialsSecretFlag, expected.Builder.Credentials.Name)
-		g.Expect(err).To(o.BeNil())
-
-		g.Expect(*expected.Builder).To(o.Equal(*spec.Builder), "spec.builder")
+		g.Expect(*builderImage).To(o.Equal("test-builder-image"))
 	})
 
 	t.Run(".spec.output", func(_ *testing.T) {
 		err := flags.Set(OutputImageFlag, expected.Output.Image)
 		g.Expect(err).To(o.BeNil())
 
-		err = flags.Set(OutputCredentialsSecretFlag, expected.Output.Credentials.Name)
+		err = flags.Set(OutputCredentialsSecretFlag, *expected.Output.PushSecret)
 		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(OutputInsecureFlag, strconv.FormatBool(*expected.Output.Insecure))
@@ -162,13 +154,13 @@ func TestBuildSpecFromFlags(t *testing.T) {
 func TestSanitizeBuildSpec(t *testing.T) {
 	g := o.NewWithT(t)
 
-	completeBuildSpec := buildv1alpha1.BuildSpec{
-		Source: buildv1alpha1.Source{
-			Credentials: &corev1.LocalObjectReference{Name: "name"},
-		},
-		Builder: &buildv1alpha1.Image{
-			Credentials: &corev1.LocalObjectReference{Name: "name"},
-			Image:       "image",
+	completeBuildSpec := buildv1beta1.BuildSpec{
+		Source: &buildv1beta1.Source{
+			Type: buildv1beta1.GitType,
+			Git: &buildv1beta1.Git{
+				URL:         "test-url",
+				CloneSecret: ptr.To("name"),
+			},
 		},
 	}
 
@@ -176,104 +168,101 @@ func TestSanitizeBuildSpec(t *testing.T) {
 
 	testCases := []struct {
 		name string
-		in   buildv1alpha1.BuildSpec
-		out  buildv1alpha1.BuildSpec
-	}{{
-		name: "all empty should stay empty",
-		in:   buildv1alpha1.BuildSpec{},
-		out:  buildv1alpha1.BuildSpec{},
-	}, {
-		name: "should clean-up `.spec.source.credentials`",
-		in: buildv1alpha1.BuildSpec{Source: buildv1alpha1.Source{
-			Credentials: &corev1.LocalObjectReference{},
-		}},
-		out: buildv1alpha1.BuildSpec{},
-	}, {
-		name: "should clean-up `.spec.builder.credentials`",
-		in: buildv1alpha1.BuildSpec{Builder: &buildv1alpha1.Image{
-			Credentials: &corev1.LocalObjectReference{},
-		}},
-		out: buildv1alpha1.BuildSpec{},
-	}, {
-		name: "should clean-up `.spec.builder.image`",
-		in:   buildv1alpha1.BuildSpec{Builder: &buildv1alpha1.Image{}},
-		out:  buildv1alpha1.BuildSpec{},
-	}, {
-		name: "should not clean-up complete objects",
-		in:   completeBuildSpec,
-		out:  completeBuildSpec,
-	}, {
-		name: "should clean-up 0s duration",
-		in: buildv1alpha1.BuildSpec{Timeout: &metav1.Duration{
-			Duration: time.Duration(0),
-		}},
-		out: buildv1alpha1.BuildSpec{Timeout: nil},
-	}, {
-		name: "should clean-up an empty Dockerfile",
-		in:   buildv1alpha1.BuildSpec{Dockerfile: &emptyString},
-		out:  buildv1alpha1.BuildSpec{Dockerfile: nil},
-	}, {
-		name: "should clean-up an empty revision",
-		in: buildv1alpha1.BuildSpec{Source: buildv1alpha1.Source{
-			Revision: &emptyString,
-		}},
-		out: buildv1alpha1.BuildSpec{Source: buildv1alpha1.Source{
-			Revision: nil,
-		}},
-	}, {
-		name: "should clean-up an empty retention",
-		in: buildv1alpha1.BuildSpec{
-			Retention: &buildv1alpha1.BuildRetention{},
+		in   buildv1beta1.BuildSpec
+		out  buildv1beta1.BuildSpec
+	}{
+		{
+			name: "all empty should stay empty",
+			in:   buildv1beta1.BuildSpec{},
+			out:  buildv1beta1.BuildSpec{},
+		}, {
+			name: "should clean-up `.spec.source.credentials`",
+			in: buildv1beta1.BuildSpec{Source: &buildv1beta1.Source{
+				Git: &buildv1beta1.Git{
+					CloneSecret: ptr.To(""),
+				},
+			}},
+			out: buildv1beta1.BuildSpec{},
 		},
-		out: buildv1alpha1.BuildSpec{},
-	}, {
-		name: "should clean-up an empty source contextDir",
-		in: buildv1alpha1.BuildSpec{
-			Source: buildv1alpha1.Source{
-				ContextDir: ptr.To(""),
+		{
+			name: "should not clean-up complete objects",
+			in:   completeBuildSpec,
+			out:  completeBuildSpec,
+		}, {
+			name: "should clean-up 0s duration",
+			in: buildv1beta1.BuildSpec{Timeout: &metav1.Duration{
+				Duration: time.Duration(0),
+			}},
+			out: buildv1beta1.BuildSpec{Timeout: nil},
+		},
+		{
+			name: "should clean-up an empty revision",
+			in: buildv1beta1.BuildSpec{Source: &buildv1beta1.Source{
+				Type: buildv1beta1.GitType,
+				Git: &buildv1beta1.Git{
+					URL:      "test-url",
+					Revision: &emptyString,
+				},
+			}},
+			out: buildv1beta1.BuildSpec{Source: &buildv1beta1.Source{
+				Type: buildv1beta1.GitType,
+				Git: &buildv1beta1.Git{
+					URL:      "test-url",
+					Revision: nil,
+				},
+			}},
+		}, {
+			name: "should clean-up an empty retention",
+			in: buildv1beta1.BuildSpec{
+				Retention: &buildv1beta1.BuildRetention{},
 			},
-		},
-		out: buildv1alpha1.BuildSpec{
-			Source: buildv1alpha1.Source{},
-		},
-	}, {
-		name: "should clean-up an empty source URL",
-		in: buildv1alpha1.BuildSpec{
-			Source: buildv1alpha1.Source{
-				URL: ptr.To(""),
+			out: buildv1beta1.BuildSpec{},
+		}, {
+			name: "should clean-up an empty source contextDir",
+			in: buildv1beta1.BuildSpec{
+				Source: &buildv1beta1.Source{
+					ContextDir: ptr.To(""),
+				},
 			},
-		},
-		out: buildv1alpha1.BuildSpec{
-			Source: buildv1alpha1.Source{},
-		},
-	}, {
-		name: "should clean-up a false output insecure",
-		in: buildv1alpha1.BuildSpec{
-			Output: buildv1alpha1.Image{
-				Image:    "some",
-				Insecure: ptr.To(false),
+			out: buildv1beta1.BuildSpec{},
+		}, {
+			name: "should clean-up an empty source URL",
+			in: buildv1beta1.BuildSpec{
+				Source: &buildv1beta1.Source{
+					Git: &buildv1beta1.Git{
+						URL: "",
+					},
+				},
 			},
-		},
-		out: buildv1alpha1.BuildSpec{
-			Output: buildv1alpha1.Image{
-				Image: "some",
+			out: buildv1beta1.BuildSpec{},
+		}, {
+			name: "should clean-up a false output insecure",
+			in: buildv1beta1.BuildSpec{
+				Output: buildv1beta1.Image{
+					Image:    "some",
+					Insecure: ptr.To(false),
+				},
 			},
-		},
-	}, {
-		name: "should not clean-up a true output insecure",
-		in: buildv1alpha1.BuildSpec{
-			Output: buildv1alpha1.Image{
-				Image:    "some",
-				Insecure: ptr.To(true),
+			out: buildv1beta1.BuildSpec{
+				Output: buildv1beta1.Image{
+					Image: "some",
+				},
 			},
-		},
-		out: buildv1alpha1.BuildSpec{
-			Output: buildv1alpha1.Image{
-				Image:    "some",
-				Insecure: ptr.To(true),
+		}, {
+			name: "should not clean-up a true output insecure",
+			in: buildv1beta1.BuildSpec{
+				Output: buildv1beta1.Image{
+					Image:    "some",
+					Insecure: ptr.To(true),
+				},
 			},
-		},
-	}}
+			out: buildv1beta1.BuildSpec{
+				Output: buildv1beta1.Image{
+					Image:    "some",
+					Insecure: ptr.To(true),
+				},
+			},
+		}}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(_ *testing.T) {

@@ -1,10 +1,9 @@
 package flags
 
 import (
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/spf13/pflag"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -14,33 +13,32 @@ func pointerUInt(value uint) *uint {
 }
 
 // BuildSpecFromFlags creates a BuildSpec instance based on command-line flags.
-func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
-	clusterBuildStrategyKind := buildv1alpha1.ClusterBuildStrategyKind
-	bundlePruneOption := buildv1alpha1.PruneNever
-	spec := &buildv1alpha1.BuildSpec{
-		Source: buildv1alpha1.Source{
-			Credentials:     &corev1.LocalObjectReference{},
-			Revision:        ptr.To(""),
-			ContextDir:      ptr.To(""),
-			URL:             ptr.To(""),
-			BundleContainer: &buildv1alpha1.BundleContainer{Prune: &bundlePruneOption},
+func BuildSpecFromFlags(flags *pflag.FlagSet) (*buildv1beta1.BuildSpec, *string, *string) {
+	clusterBuildStrategyKind := buildv1beta1.ClusterBuildStrategyKind
+	pruneOption := buildv1beta1.PruneNever
+	spec := &buildv1beta1.BuildSpec{
+		Source: &buildv1beta1.Source{
+			ContextDir: ptr.To(""),
+			Git: &buildv1beta1.Git{
+				Revision:    ptr.To(""),
+				CloneSecret: ptr.To(""),
+			},
+			OCIArtifact: &buildv1beta1.OCIArtifact{
+				Prune:      &pruneOption,
+				PullSecret: ptr.To(""),
+			},
 		},
-		Strategy: buildv1alpha1.Strategy{
-			Kind:       &clusterBuildStrategyKind,
-			APIVersion: &buildv1alpha1.SchemeGroupVersion.Version,
+		Strategy: buildv1beta1.Strategy{
+			Kind: &clusterBuildStrategyKind,
 		},
-		Dockerfile: ptr.To(""),
-		Builder: &buildv1alpha1.Image{
-			Credentials: &corev1.LocalObjectReference{},
-		},
-		Output: buildv1alpha1.Image{
-			Credentials: &corev1.LocalObjectReference{},
+		Output: buildv1beta1.Image{
 			Insecure:    ptr.To(false),
+			PushSecret:  ptr.To(""),
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},
 		Timeout: &metav1.Duration{},
-		Retention: &buildv1alpha1.BuildRetention{
+		Retention: &buildv1beta1.BuildRetention{
 			FailedLimit:       pointerUInt(65535),
 			SucceededLimit:    pointerUInt(65535),
 			TTLAfterFailed:    &metav1.Duration{},
@@ -48,10 +46,8 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 		},
 	}
 
-	sourceFlags(flags, &spec.Source)
+	sourceFlags(flags, spec.Source)
 	strategyFlags(flags, &spec.Strategy)
-	dockerfileFlags(flags, spec.Dockerfile)
-	imageFlags(flags, "builder", spec.Builder)
 	imageFlags(flags, "output", &spec.Output)
 	timeoutFlags(flags, spec.Timeout)
 	envFlags(flags, &spec.Env)
@@ -60,48 +56,62 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) *buildv1alpha1.BuildSpec {
 	imageAnnotationsFlags(flags, spec.Output.Annotations)
 	buildRetentionFlags(flags, spec.Retention)
 
-	return spec
+	var dockerfile, builderImage string
+	dockerfileFlags(flags, &dockerfile)
+	builderImageFlag(flags, &builderImage)
+
+	return spec, &dockerfile, &builderImage
 }
 
 // SanitizeBuildSpec checks for empty inner data structures and replaces them with nil.
-func SanitizeBuildSpec(b *buildv1alpha1.BuildSpec) {
+func SanitizeBuildSpec(b *buildv1beta1.BuildSpec) {
 	if b == nil {
 		return
 	}
-	if b.Source.Credentials != nil && b.Source.Credentials.Name == "" {
-		b.Source.Credentials = nil
-	}
-	if b.Source.ContextDir != nil && *b.Source.ContextDir == "" {
-		b.Source.ContextDir = nil
-	}
-	if b.Source.Revision != nil && *b.Source.Revision == "" {
-		b.Source.Revision = nil
-	}
-	if b.Source.URL != nil && *b.Source.URL == "" {
-		b.Source.URL = nil
-	}
-	if b.Source.BundleContainer != nil && b.Source.BundleContainer.Image == "" {
-		b.Source.BundleContainer = nil
-	}
-	if b.Builder != nil {
-		if b.Builder.Credentials != nil && b.Builder.Credentials.Name == "" {
-			b.Builder.Credentials = nil
+
+	if b.Source != nil {
+		if b.Source.Git != nil {
+			if b.Source.Git.URL == "" {
+				b.Source.Git = nil
+			}
 		}
-		if b.Builder.Image == "" && b.Builder.Credentials == nil {
-			b.Builder = nil
+
+		if b.Source.Git != nil {
+			if b.Source.Git.Revision != nil && *b.Source.Git.Revision == "" {
+				b.Source.Git.Revision = nil
+			}
+			if b.Source.Git.CloneSecret != nil && *b.Source.Git.CloneSecret == "" {
+				b.Source.Git.CloneSecret = nil
+			}
 		}
-		if len(b.Env) == 0 {
-			b.Env = nil
+
+		if b.Source.ContextDir != nil && *b.Source.ContextDir == "" {
+			b.Source.ContextDir = nil
+		}
+		if b.Source.OCIArtifact != nil && b.Source.OCIArtifact.Image == "" {
+			b.Source.OCIArtifact = nil
+		}
+		if b.Source.OCIArtifact != nil && b.Source.OCIArtifact.PullSecret != nil {
+			if *b.Source.OCIArtifact.PullSecret == "" {
+				b.Source.OCIArtifact.PullSecret = nil
+			}
+		}
+
+		if b.Source.Git == nil && b.Source.OCIArtifact == nil {
+			b.Source = nil
 		}
 	}
+
+	if len(b.Env) == 0 {
+		b.Env = nil
+	}
+
 	if b.Timeout != nil && b.Timeout.Duration == 0 {
 		b.Timeout = nil
 	}
-	if b.Dockerfile != nil && *b.Dockerfile == "" {
-		b.Dockerfile = nil
-	}
-	if b.Output.Credentials != nil && b.Output.Credentials.Name == "" {
-		b.Output.Credentials = nil
+
+	if b.Output.PushSecret != nil && *b.Output.PushSecret == "" {
+		b.Output.PushSecret = nil
 	}
 	if b.Output.Insecure != nil && !*b.Output.Insecure {
 		b.Output.Insecure = nil

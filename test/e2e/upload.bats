@@ -39,7 +39,7 @@ function assert_shp_upload_follow_output() {
 	# change directory (cd) during the build process, so if the directory is not uploaded properly
 	# the actual build will fail
 	run shp build create ${build_name} \
-		--source-url="${source_url}" \
+		--source-git-url="${source_url}" \
 		--source-context-dir="source-build" \
 		--output-image="${output_image}"
 	assert_success
@@ -82,8 +82,8 @@ function assert_shp_upload_follow_output() {
 
 	# Verify that invalid prune options are not accepted
 	run shp build create ${build_name} \
-		--source-bundle-image="$(get_output_image source-bundle):latest" \
-		--source-bundle-prune=Magic
+		--source-oci-artifact-image="$(get_output_image source-bundle):latest" \
+		--source-oci-artifact-prune=Magic
 	assert_failure
 	assert_output --partial 'invalid argument'
 
@@ -95,8 +95,8 @@ function assert_shp_upload_follow_output() {
 	# from the local shp client.
 	#
 	run shp build create ${build_name} \
-		--source-bundle-image="$(get_output_image source-bundle):latest" \
-		--source-bundle-prune=AfterPull \
+		--source-oci-artifact-image="$(get_output_image source-bundle):latest" \
+		--source-oci-artifact-prune=AfterPull \
 		--source-context-dir="docker-build" \
 		--dockerfile=Dockerfile \
 		--strategy-name=kaniko \

@@ -11,7 +11,7 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	progressbar "github.com/schollz/progressbar/v3"
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	buildbundle "github.com/shipwright-io/build/pkg/bundle"
 	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,21 +20,22 @@ import (
 // GetSourceBundleImage returns the source bundle image of the build that is
 // associated with the provided buildrun, an empty string if source bundle is
 // not used, or an error in case the build cannot be obtained
-func GetSourceBundleImage(ctx context.Context, client buildclientset.Interface, buildRun *buildv1alpha1.BuildRun) (string, error) {
+func GetSourceBundleImage(ctx context.Context, client buildclientset.Interface, buildRun *buildv1beta1.BuildRun) (string, error) {
 	if buildRun == nil {
 		return "", fmt.Errorf("no buildrun provided, given reference is nil")
 	}
 
-	if buildRun.Spec.BuildRef != nil {
-		name, namespace := buildRun.Spec.BuildRef.Name, buildRun.Namespace
+	if buildRun.Spec.Build.Name != nil && *buildRun.Spec.Build.Name != "" {
+		name, namespace := buildRun.Spec.Build.Name, buildRun.Namespace
 
-		build, err := client.ShipwrightV1alpha1().Builds(namespace).Get(ctx, name, metav1.GetOptions{})
+		build, err := client.ShipwrightV1beta1().Builds(namespace).Get(ctx, *name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
-
-		if build.Spec.Source.BundleContainer != nil && build.Spec.Source.BundleContainer.Image != "" {
-			return build.Spec.Source.BundleContainer.Image, nil
+		if build.Spec.Source != nil {
+			if build.Spec.Source.OCIArtifact != nil && build.Spec.Source.OCIArtifact.Image != "" {
+				return build.Spec.Source.OCIArtifact.Image, nil
+			}
 		}
 	}
 

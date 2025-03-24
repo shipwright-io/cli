@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/spf13/pflag"
 
 	corev1 "k8s.io/api/core/v1"
@@ -16,26 +16,24 @@ const (
 	BuildrefNameFlag = "buildref-name"
 	// BuilderImageFlag command-line flag.
 	BuilderImageFlag = "builder-image"
-	// BuilderCredentialsSecretFlag command-line flag.
-	BuilderCredentialsSecretFlag = "builder-credentials-secret"
 	// DockerfileFlag command-line flag.
 	DockerfileFlag = "dockerfile"
 	// EnvFlag command-line flag.
 	EnvFlag = "env"
 	// SourceURLFlag command-line flag.
-	SourceURLFlag = "source-url"
+	SourceURLFlag = "source-git-url"
 	// SourceRevisionFlag command-line flag.
-	SourceRevisionFlag = "source-revision"
+	SourceRevisionFlag = "source-git-revision"
 	// SourceContextDirFlag command-line flag.
 	SourceContextDirFlag = "source-context-dir"
 	// SourceCredentialsSecretFlag command-line flag.
-	SourceCredentialsSecretFlag = "source-credentials-secret" // #nosec G101
+	SourceCredentialsSecretFlag = "source-git-clone-secret" // #nosec G101
 	// SourceBundleImageFlag command-line flag
-	SourceBundleImageFlag = "source-bundle-image"
+	SourceOCIArtifactImageFlag = "source-oci-artifact-image"
 	// SourceBundlePruneFlag command-line flag
-	SourceBundlePruneFlag = "source-bundle-prune"
-	// StrategyAPIVersionFlag command-line flag.
-	StrategyAPIVersionFlag = "strategy-apiversion"
+	SourceOCIArtifactPruneFlag = "source-oci-artifact-prune"
+	// SourceOCIArtifactPullSecretFlag command-line flag
+	SourceOCIArtifactPullSecretFlag = "source-oci-artifact-pull-secret" // #nosec G101
 	// StrategyKindFlag command-line flag.
 	StrategyKindFlag = "strategy-kind"
 	// StrategyNameFlag command-line flag.
@@ -69,52 +67,92 @@ const (
 )
 
 // sourceFlags flags for ".spec.source"
-func sourceFlags(flags *pflag.FlagSet, source *buildv1alpha1.Source) {
+func sourceFlags(flags *pflag.FlagSet, source *buildv1beta1.Source) {
 	flags.StringVar(
-		source.URL,
+		&source.Git.URL,
 		SourceURLFlag,
 		"",
 		"git repository source URL",
 	)
 	flags.StringVar(
-		source.Revision,
+		&source.Git.URL,
+		"source-url",
+		"",
+		"alias for source-git-url",
+	)
+	flags.MarkDeprecated("source-url", fmt.Sprintf("please use --%s instead", SourceURLFlag))
+
+	flags.StringVar(
+		source.Git.Revision,
 		SourceRevisionFlag,
 		"",
 		"git repository source revision",
 	)
+	flags.StringVar(
+		source.Git.Revision,
+		"source-revision",
+		"",
+		"alias for source-git-revision",
+	)
+	flags.MarkDeprecated("source-revision", fmt.Sprintf("please use --%s instead", SourceRevisionFlag))
+
 	flags.StringVar(
 		source.ContextDir,
 		SourceContextDirFlag,
 		"",
 		"use a inner directory as context directory",
 	)
+
 	flags.StringVar(
-		&source.Credentials.Name,
+		source.Git.CloneSecret,
 		SourceCredentialsSecretFlag,
 		"",
-		"name of the secret with credentials to access the source, e.g. git or registry credentials",
+		"name of the secret with credentials to access the git source, e.g. git credentials",
 	)
 	flags.StringVar(
-		&source.BundleContainer.Image,
-		SourceBundleImageFlag,
+		source.Git.CloneSecret,
+		"source-credentials-secret",
+		"",
+		"name of the secret with credentials to access the source, e.g. credentials",
+	)
+	flags.MarkDeprecated("source-credentials-secret", fmt.Sprintf("please use --%s instead", SourceCredentialsSecretFlag))
+
+	flags.StringVar(
+		&source.OCIArtifact.Image,
+		SourceOCIArtifactImageFlag,
+		"",
+		"source OCI artifact image reference, e.g. ghcr.io/shipwright-io/sample-go/source-bundle:latest",
+	)
+	flags.StringVar(
+		&source.OCIArtifact.Image,
+		"source-bundle-image",
 		"",
 		"source bundle image location, e.g. ghcr.io/shipwright-io/sample-go/source-bundle:latest",
 	)
-	flags.Var(
-		pruneOptionFlag{ref: source.BundleContainer.Prune},
-		SourceBundlePruneFlag,
-		fmt.Sprintf("source bundle prune option, either %s, or %s", buildv1alpha1.PruneNever, buildv1alpha1.PruneAfterPull),
+	flags.MarkDeprecated("source-bundle-image", fmt.Sprintf("please use --%s instead", SourceOCIArtifactImageFlag))
+
+	flags.StringVar(
+		source.OCIArtifact.PullSecret,
+		SourceOCIArtifactPullSecretFlag,
+		"",
+		"name of the secret with credentials to access the OCI artifact image, e.g. registry credentials",
 	)
+
+	flags.Var(
+		pruneOptionFlag{ref: source.OCIArtifact.Prune},
+		SourceOCIArtifactPruneFlag,
+		fmt.Sprintf("source OCI artifact image prune option, either %s, or %s", buildv1beta1.PruneNever, buildv1beta1.PruneAfterPull),
+	)
+	flags.Var(
+		pruneOptionFlag{ref: source.OCIArtifact.Prune},
+		"source-bundle-prune",
+		fmt.Sprintf("source bundle prune option, either %s, or %s", buildv1beta1.PruneNever, buildv1beta1.PruneAfterPull),
+	)
+	flags.MarkDeprecated("source-bundle-prune", fmt.Sprintf("please use --%s instead", SourceOCIArtifactPruneFlag))
 }
 
 // strategyFlags flags for ".spec.strategy".
-func strategyFlags(flags *pflag.FlagSet, strategy *buildv1alpha1.Strategy) {
-	flags.StringVar(
-		strategy.APIVersion,
-		StrategyAPIVersionFlag,
-		buildv1alpha1.SchemeGroupVersion.Version,
-		"kubernetes api-version of the build-strategy resource",
-	)
+func strategyFlags(flags *pflag.FlagSet, strategy *buildv1beta1.Strategy) {
 	flags.Var(
 		NewStrategyKindValue(strategy.Kind),
 		StrategyKindFlag,
@@ -129,7 +167,7 @@ func strategyFlags(flags *pflag.FlagSet, strategy *buildv1alpha1.Strategy) {
 }
 
 // imageFlags flags for Shipwright's Image definition, using a prefix to avoid duplicated flags.
-func imageFlags(flags *pflag.FlagSet, prefix string, image *buildv1alpha1.Image) {
+func imageFlags(flags *pflag.FlagSet, prefix string, image *buildv1beta1.Image) {
 	flags.StringVar(
 		&image.Image,
 		fmt.Sprintf("%s-image", prefix),
@@ -137,11 +175,19 @@ func imageFlags(flags *pflag.FlagSet, prefix string, image *buildv1alpha1.Image)
 		"image employed during the building process",
 	)
 	flags.StringVar(
-		&image.Credentials.Name,
+		image.PushSecret,
+		fmt.Sprintf("%s-image-push-secret", prefix),
+		"",
+		"name of the secret with output image push credentials",
+	)
+	flags.StringVar(
+		image.PushSecret,
 		fmt.Sprintf("%s-credentials-secret", prefix),
 		"",
-		"name of the secret with builder-image pull credentials",
+		"name of the secret with output image push credentials",
 	)
+	flags.MarkDeprecated(fmt.Sprintf("%s-credentials-secret", prefix), fmt.Sprintf("please use --%s-image-push-secret instead", prefix))
+
 	if prefix == "output" {
 		flags.BoolVar(
 			image.Insecure,
@@ -152,7 +198,7 @@ func imageFlags(flags *pflag.FlagSet, prefix string, image *buildv1alpha1.Image)
 	}
 }
 
-// dockerfileFlags register dockerfile flag as pointer to string.
+// dockerfileFlags register dockerfile flag as an environment variable.
 func dockerfileFlags(flags *pflag.FlagSet, dockerfile *string) {
 	flags.StringVar(
 		dockerfile,
@@ -160,6 +206,18 @@ func dockerfileFlags(flags *pflag.FlagSet, dockerfile *string) {
 		"",
 		"path to dockerfile relative to repository",
 	)
+	flags.MarkDeprecated("dockerfile", "dockerfile parameter is deprecated")
+}
+
+// builderImageFlag register builder-image flag as an environment variable..
+func builderImageFlag(flags *pflag.FlagSet, builderImage *string) {
+	flags.StringVar(
+		builderImage,
+		BuilderImageFlag,
+		"",
+		"path to dockerfile relative to repository",
+	)
+	flags.MarkDeprecated("builder-image", "builder-image flag is deprecated, and will be removed in a future release. Use an appropriate parameter for the build strategy instead.")
 }
 
 // timeoutFlags register a timeout flag as time.Duration instance.
@@ -173,35 +231,32 @@ func timeoutFlags(flags *pflag.FlagSet, timeout *metav1.Duration) {
 }
 
 // buildRefFlags register flags for BuildRun's spec.buildRef attribute.
-func buildRefFlags(flags *pflag.FlagSet, buildRef *buildv1alpha1.BuildRef) {
+func buildRefFlags(flags *pflag.FlagSet, buildRef *buildv1beta1.ReferencedBuild) {
 	flags.StringVar(
-		&buildRef.Name,
+		buildRef.Name,
 		BuildrefNameFlag,
 		"",
 		"name of build resource to reference",
 	)
-	flags.StringVar(
-		buildRef.APIVersion,
-		"buildref-apiversion",
-		"",
-		"API version of build resource to reference",
-	)
 }
 
 // serviceAccountFlags register flags for BuildRun's spec.serviceAccount attribute.
-func serviceAccountFlags(flags *pflag.FlagSet, sa *buildv1alpha1.ServiceAccount) {
+func serviceAccountFlags(flags *pflag.FlagSet, sa *string) {
 	flags.StringVar(
-		sa.Name,
+		sa,
 		ServiceAccountNameFlag,
 		"",
 		"Kubernetes service-account name",
 	)
+	var ignore bool
 	flags.BoolVar(
-		sa.Generate,
+		&ignore,
 		ServiceAccountGenerateFlag,
 		false,
 		"generate a Kubernetes service-account for the build",
 	)
+	flags.MarkDeprecated("sa-generate", fmt.Sprintf("this flag has no effect, please use --%s for service account", ServiceAccountNameFlag))
+
 }
 
 // envFlags registers flags for adding corev1.EnvVars.
@@ -215,7 +270,7 @@ func envFlags(flags *pflag.FlagSet, envs *[]corev1.EnvVar) {
 }
 
 // parameterValueFlag registers flags for adding BuildSpec.ParamValues
-func paramValueFlag(flags *pflag.FlagSet, paramValue *[]buildv1alpha1.ParamValue) {
+func paramValueFlag(flags *pflag.FlagSet, paramValue *[]buildv1beta1.ParamValue) {
 	flags.VarP(
 		NewParamArrayValue(paramValue),
 		ParamValueFlag,
@@ -244,7 +299,7 @@ func imageAnnotationsFlags(flags *pflag.FlagSet, annotations map[string]string) 
 	)
 }
 
-func buildRetentionFlags(flags *pflag.FlagSet, buildRetention *buildv1alpha1.BuildRetention) {
+func buildRetentionFlags(flags *pflag.FlagSet, buildRetention *buildv1beta1.BuildRetention) {
 	flags.UintVar(
 		buildRetention.FailedLimit,
 		RetentionFailedLimitFlag,
@@ -271,7 +326,7 @@ func buildRetentionFlags(flags *pflag.FlagSet, buildRetention *buildv1alpha1.Bui
 	)
 }
 
-func buildRunRetentionFlags(flags *pflag.FlagSet, buildRunRetention *buildv1alpha1.BuildRunRetention) {
+func buildRunRetentionFlags(flags *pflag.FlagSet, buildRunRetention *buildv1beta1.BuildRunRetention) {
 	flags.DurationVar(
 		&buildRunRetention.TTLAfterFailed.Duration,
 		RetentionTTLAfterFailedFlag,

@@ -21,7 +21,7 @@ teardown() {
 
     # create a Build
     run shp build create ${build_name} \
-        --source-url=https://github.com/shipwright-io/sample-go \
+        --source-git-url=https://github.com/shipwright-io/sample-go \
         --source-context-dir=source-build \
         --output-image=${output_image}
     assert_success
@@ -53,7 +53,7 @@ teardown() {
 
     # create a Build which will fail
     run shp build create ${build_name} \
-        --source-url=https://github.com/shipwright-io/sample-go \
+        --source-git-url=https://github.com/shipwright-io/sample-go \
         --source-context-dir=source-build \
         --output-image=${output_image} \
         --strategy-name buildkit
