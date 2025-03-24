@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/shipwright-io/cli/pkg/shp/tail"
@@ -140,9 +140,9 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 		}
 	case corev1.PodFailed:
 		msg := ""
-		var br *buildv1alpha1.BuildRun
+		var br *buildv1beta1.BuildRun
 		err := wait.PollUntilContextTimeout(f.ctx, f.failPollInterval, f.failPollTimeout, true, func(ctx context.Context) (done bool, err error) {
-			brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(pod.Namespace)
+			brClient := f.buildClientset.ShipwrightV1beta1().BuildRuns(pod.Namespace)
 			br, err = brClient.Get(ctx, f.buildRun.Name, metav1.GetOptions{})
 			if err != nil {
 				if kerrors.IsNotFound(err) {
@@ -223,7 +223,7 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 		f.OnEvent(&podList.Items[0]) // #nosec G104 there is nothing we must handle here, the error is logged in the function already
 		return
 	}
-	brClient := f.buildClientset.ShipwrightV1alpha1().BuildRuns(f.buildRun.Namespace)
+	brClient := f.buildClientset.ShipwrightV1beta1().BuildRuns(f.buildRun.Namespace)
 	br, err := brClient.Get(f.ctx, f.buildRun.Name, metav1.GetOptions{})
 	if err != nil {
 		f.Log(fmt.Sprintf("error accessing BuildRun %q: %s\n", f.buildRun.Name, err.Error()))
@@ -231,7 +231,7 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 		return
 	}
 
-	c := br.Status.GetCondition(buildv1alpha1.Succeeded)
+	c := br.Status.GetCondition(buildv1beta1.Succeeded)
 	giveUp := false
 	msg := ""
 	switch {
@@ -275,7 +275,7 @@ func (f *Follower) Start(listOpts metav1.ListOptions) (*corev1.Pod, error) {
 	return f.WaitForCompletion()
 }
 
-func buildErrorMessage(br *buildv1alpha1.BuildRun, pod *corev1.Pod) string {
+func buildErrorMessage(br *buildv1beta1.BuildRun, pod *corev1.Pod) string {
 	failureDetails := br.Status.FailureDetails
 	if failureDetails == nil {
 		if podBytes, err := json.MarshalIndent(pod, "  ", "  "); err == nil {

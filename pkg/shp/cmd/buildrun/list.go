@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -81,8 +81,8 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 		return err
 	}
 
-	var brs *buildv1alpha1.BuildRunList
-	if brs, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
+	var brs *buildv1beta1.BuildRunList
+	if brs, err = clientset.ShipwrightV1beta1().BuildRuns(params.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
 		return err
 	}
 	if len(brs.Items) == 0 {
@@ -98,7 +98,7 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 		name := br.Name
 		status := string(metav1.ConditionUnknown)
 		for _, condition := range br.Status.Conditions {
-			if condition.Type == buildv1alpha1.Succeeded {
+			if condition.Type == buildv1beta1.Succeeded {
 				status = condition.Reason
 				break
 			}
