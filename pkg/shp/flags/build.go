@@ -44,6 +44,7 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) (*buildv1beta1.BuildSpec, *string,
 			TTLAfterFailed:    &metav1.Duration{},
 			TTLAfterSucceeded: &metav1.Duration{},
 		},
+		NodeSelector: map[string]string{},
 	}
 
 	sourceFlags(flags, spec.Source)
@@ -55,7 +56,7 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) (*buildv1beta1.BuildSpec, *string,
 	imageLabelsFlags(flags, spec.Output.Labels)
 	imageAnnotationsFlags(flags, spec.Output.Annotations)
 	buildRetentionFlags(flags, spec.Retention)
-
+	buildNodeSelectorFlags(flags, spec.NodeSelector)
 	var dockerfile, builderImage string
 	dockerfileFlags(flags, &dockerfile)
 	builderImageFlag(flags, &builderImage)
