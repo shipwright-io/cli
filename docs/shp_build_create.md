@@ -30,6 +30,7 @@ shp build create <name> [flags]
       --retention-succeeded-limit uint           number of succeeded BuildRuns to be kept (default 65535)
       --retention-ttl-after-failed duration      duration to delete a failed BuildRun after completion
       --retention-ttl-after-succeeded duration   duration to delete a succeeded BuildRun after completion
+      --scheduler-name string                    specify the scheduler to be used to dispatch the Pod
       --source-context-dir string                use a inner directory as context directory
       --source-git-clone-secret string           name of the secret with credentials to access the git source, e.g. git credentials
       --source-git-revision string               git repository source revision

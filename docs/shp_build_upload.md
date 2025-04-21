@@ -42,6 +42,7 @@ shp build upload <build-name> [path/to/source|.] [flags]
       --retention-ttl-after-failed duration      duration to delete the BuildRun after it failed
       --retention-ttl-after-succeeded duration   duration to delete the BuildRun after it succeeded
       --sa-name string                           Kubernetes service-account name
+      --scheduler-name string                    specify the scheduler to be used to dispatch the Pod
       --timeout duration                         build process timeout
 ```
 
