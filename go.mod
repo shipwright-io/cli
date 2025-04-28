@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/google/go-containerregistry v0.20.3
-	github.com/onsi/gomega v1.36.3
+	github.com/onsi/gomega v1.37.0
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/shipwright-io/build v0.15.0
