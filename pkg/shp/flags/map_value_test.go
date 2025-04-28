@@ -3,7 +3,7 @@ package flags
 import (
 	"testing"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 
 	o "github.com/onsi/gomega"
 )
@@ -11,7 +11,7 @@ import (
 func TestNewMapValue(t *testing.T) {
 	g := o.NewWithT(t)
 
-	spec := &buildv1alpha1.BuildSpec{Output: buildv1alpha1.Image{
+	spec := &buildv1beta1.BuildSpec{Output: buildv1beta1.Image{
 		Labels: map[string]string{},
 	}}
 	c := NewMapValue(spec.Output.Labels)

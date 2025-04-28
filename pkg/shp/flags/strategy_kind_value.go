@@ -3,13 +3,13 @@ package flags
 import (
 	"fmt"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 )
 
 // StrategyKindValue implements pflag.Value interface, to represent Shipwright's BuildStrategyKind as
 // a string command-line in an cobra.Command instance.
 type StrategyKindValue struct {
-	kindPtr *buildv1alpha1.BuildStrategyKind
+	kindPtr *buildv1beta1.BuildStrategyKind
 }
 
 // String shows the value as string.
@@ -22,9 +22,9 @@ func (s *StrategyKindValue) String() string {
 
 // Set set the informed string as BuildStrategyKind by casting.
 func (s *StrategyKindValue) Set(value string) error {
-	kind := buildv1alpha1.BuildStrategyKind(value)
-	if kind != buildv1alpha1.NamespacedBuildStrategyKind &&
-		kind != buildv1alpha1.ClusterBuildStrategyKind {
+	kind := buildv1beta1.BuildStrategyKind(value)
+	if kind != buildv1beta1.NamespacedBuildStrategyKind &&
+		kind != buildv1beta1.ClusterBuildStrategyKind {
 		return fmt.Errorf("'%s' is an invalid BuildStrategyKind", value)
 	}
 	*s.kindPtr = kind
@@ -37,6 +37,6 @@ func (s *StrategyKindValue) Type() string {
 }
 
 // NewStrategyKindValue creates a new instance of StrategyKindValue sharing an existing reference.
-func NewStrategyKindValue(kindPtr *buildv1alpha1.BuildStrategyKind) *StrategyKindValue {
+func NewStrategyKindValue(kindPtr *buildv1beta1.BuildStrategyKind) *StrategyKindValue {
 	return &StrategyKindValue{kindPtr: kindPtr}
 }

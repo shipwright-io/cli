@@ -3,28 +3,28 @@ package flags
 import (
 	"fmt"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 )
 
 // pruneOptionFlag serves as an adapter to make the Build spec source bundle
 // container prune option to be used as a command-line flag (pflag.Value).
 type pruneOptionFlag struct {
-	ref *buildv1alpha1.PruneOption
+	ref *buildv1beta1.PruneOption
 }
 
 // Set translates the provided input string into one of the supported prune
 // options, or fails with an error in cases of an unsupported value
 func (p pruneOptionFlag) Set(val string) error {
-	var pruneOption = buildv1alpha1.PruneOption(val)
+	var pruneOption = buildv1beta1.PruneOption(val)
 	switch pruneOption {
-	case buildv1alpha1.PruneNever, buildv1alpha1.PruneAfterPull:
+	case buildv1beta1.PruneNever, buildv1beta1.PruneAfterPull:
 		*p.ref = pruneOption
 		return nil
 
 	default:
 		return fmt.Errorf("supported values are %s, or %s",
-			buildv1alpha1.PruneNever,
-			buildv1alpha1.PruneAfterPull,
+			buildv1beta1.PruneNever,
+			buildv1beta1.PruneAfterPull,
 		)
 	}
 }
@@ -33,7 +33,7 @@ func (p pruneOptionFlag) Set(val string) error {
 // spec source container bundle prune default of `Never` in case it is not set
 func (p pruneOptionFlag) String() string {
 	if p.ref == nil {
-		return string(buildv1alpha1.PruneNever)
+		return string(buildv1beta1.PruneNever)
 	}
 
 	return string(*p.ref)

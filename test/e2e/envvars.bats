@@ -19,7 +19,7 @@ teardown() {
 	buildrun_name=$(random_name)
 
 	# create a Build with two environment variables
-	run shp build create ${build_name} --source-url=https://github.com/shipwright-io/sample-go --output-image=my-image --env=VAR_1=build-value-1 --env=VAR_2=build-value-2
+	run shp build create ${build_name} --source-git-url=https://github.com/shipwright-io/sample-go --output-image=my-image --env=VAR_1=build-value-1 --env=VAR_2=build-value-2
 	assert_success
 
 	# ensure that the build was successfully created

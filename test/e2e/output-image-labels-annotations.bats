@@ -19,7 +19,7 @@ teardown() {
 	buildrun_name=$(random_name)
 
 	# create a Build with a label and an annotation
-	run shp build create ${build_name} --source-url=https://github.com/shipwright-io/sample-go --output-image=my-image --output-image-label=foo=bar --output-image-annotation=created-by=shipwright
+	run shp build create ${build_name} --source-git-url=https://github.com/shipwright-io/sample-go --output-image=my-image --output-image-label=foo=bar --output-image-annotation=created-by=shipwright
 	assert_success
 
 	# ensure that the build was successfully created

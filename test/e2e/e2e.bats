@@ -51,7 +51,7 @@ teardown() {
 	buildrun_name=$(random_name)
 
 	# ensure that shp build create does not give an error when a build_name is specified
-	run shp build create ${build_name} --source-url=url --output-image=image
+	run shp build create ${build_name} --source-git-url=url --output-image=image
 	assert_success
 
 	# ensure that shp buildrun create does not give an error when a buildrun_name is specified
@@ -63,14 +63,14 @@ teardown() {
 	# ensure that shp command doesn't log the api calls by default
 	run shp build list
 	assert_success
-	refute_line --regexp "GET .*/apis/shipwright.io/v1alpha1/namespaces/"
+	refute_line --regexp "GET .*/apis/shipwright.io/v1beta1/namespaces/"
 	refute_line --partial "Response Headers"
 	refute_line --partial "Response Body"
 
 	# ensure that shp command supports -v loglevel flag.
 	run shp -v=10 build list
 	assert_success
-	assert_line --regexp "GET .*/apis/shipwright.io/v1alpha1/namespaces/"
+	assert_line --regexp "GET .*/apis/shipwright.io/v1beta1/namespaces/"
 	assert_line --partial "Response Headers"
 	assert_line --partial "Response Body"
 }

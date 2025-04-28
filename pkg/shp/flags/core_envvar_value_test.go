@@ -3,7 +3,7 @@ package flags
 import (
 	"testing"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 
 	o "github.com/onsi/gomega"
@@ -12,7 +12,7 @@ import (
 func TestCoreEnvVarSliceValue(t *testing.T) {
 	g := o.NewWithT(t)
 
-	spec := &buildv1alpha1.BuildSpec{Env: []corev1.EnvVar{}}
+	spec := &buildv1beta1.BuildSpec{Env: []corev1.EnvVar{}}
 	c := NewCoreEnvVarArrayValue(&spec.Env)
 
 	// expect error when key-value is not split by equal sign

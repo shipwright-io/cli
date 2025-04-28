@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	shpfake "github.com/shipwright-io/build/pkg/client/clientset/versioned/fake"
 	"github.com/shipwright-io/cli/pkg/shp/flags"
 	"github.com/shipwright-io/cli/pkg/shp/params"
@@ -98,8 +98,8 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 				Name:      name,
 				Labels: map[string]string{
-					buildv1alpha1.LabelBuild:    name,
-					buildv1alpha1.LabelBuildRun: name,
+					buildv1beta1.LabelBuild:    name,
+					buildv1beta1.LabelBuildRun: name,
 				},
 			},
 			Spec: corev1.PodSpec{
@@ -108,7 +108,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 				}},
 			},
 		}
-		br := &buildv1alpha1.BuildRun{
+		br := &buildv1beta1.BuildRun{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: metav1.NamespaceDefault,
 				Name:      name,
@@ -153,26 +153,26 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 
 		switch {
 		case test.cancelled:
-			br.Spec.State = buildv1alpha1.BuildRunRequestedStatePtr(buildv1alpha1.BuildRunStateCancel)
-			br.Status.Conditions = []buildv1alpha1.Condition{
+			br.Spec.State = buildv1beta1.BuildRunRequestedStatePtr(buildv1beta1.BuildRunStateCancel)
+			br.Status.Conditions = []buildv1beta1.Condition{
 				{
-					Type:   buildv1alpha1.Succeeded,
+					Type:   buildv1beta1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}
 		case test.brDeleted:
 			br.DeletionTimestamp = &metav1.Time{}
-			br.Status.Conditions = []buildv1alpha1.Condition{
+			br.Status.Conditions = []buildv1beta1.Condition{
 				{
-					Type:   buildv1alpha1.Succeeded,
+					Type:   buildv1beta1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}
 		case test.podDeleted:
 			pod.DeletionTimestamp = &metav1.Time{}
-			br.Status.Conditions = []buildv1alpha1.Condition{
+			br.Status.Conditions = []buildv1beta1.Condition{
 				{
-					Type:   buildv1alpha1.Succeeded,
+					Type:   buildv1beta1.Succeeded,
 					Status: corev1.ConditionFalse,
 				},
 			}

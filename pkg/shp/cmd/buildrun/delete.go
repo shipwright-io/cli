@@ -53,7 +53,7 @@ func (c *DeleteCommand) Run(params *params.Params, ioStreams *genericclioptions.
 		return err
 	}
 
-	if err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Delete(c.cmd.Context(), c.name, metav1.DeleteOptions{}); err != nil {
+	if err = clientset.ShipwrightV1beta1().BuildRuns(params.Namespace()).Delete(c.cmd.Context(), c.name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 

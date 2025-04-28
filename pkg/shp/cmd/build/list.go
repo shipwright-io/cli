@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"text/tabwriter"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/spf13/cobra"
@@ -59,7 +59,7 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	columnNames := "NAME\tOUTPUT\tSTATUS"
 	columnTemplate := "%s\t%s\t%s\n"
 
-	var buildList *buildv1alpha1.BuildList
+	var buildList *buildv1beta1.BuildList
 	clientset, err := params.ShipwrightClientSet()
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 		return err
 	}
 
-	if buildList, err = clientset.ShipwrightV1alpha1().Builds(params.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
+	if buildList, err = clientset.ShipwrightV1beta1().Builds(params.Namespace()).List(c.cmd.Context(), metav1.ListOptions{}); err != nil {
 		return err
 	}
 	if len(buildList.Items) == 0 {

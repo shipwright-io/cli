@@ -3,7 +3,7 @@ package buildrun
 import (
 	"fmt"
 
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,8 +18,8 @@ import (
 type CreateCommand struct {
 	cmd *cobra.Command // cobra command instance
 
-	name         string                      // buildrun name
-	buildRunSpec *buildv1alpha1.BuildRunSpec // stores command-line flags
+	name         string                     // buildrun name
+	buildRunSpec *buildv1beta1.BuildRunSpec // stores command-line flags
 }
 
 const buildRunCreateLongDesc = `
@@ -55,7 +55,7 @@ func (c *CreateCommand) Validate() error {
 
 // Run executes the creation of BuildRun object.
 func (c *CreateCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
-	br := &buildv1alpha1.BuildRun{
+	br := &buildv1beta1.BuildRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: c.name,
 		},
@@ -68,10 +68,12 @@ func (c *CreateCommand) Run(params *params.Params, ioStreams *genericclioptions.
 	if err != nil {
 		return err
 	}
-	if _, err = clientset.ShipwrightV1alpha1().BuildRuns(params.Namespace()).Create(c.cmd.Context(), br, metav1.CreateOptions{}); err != nil {
+	if _, err = clientset.ShipwrightV1beta1().BuildRuns(params.Namespace()).Create(c.cmd.Context(), br, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	fmt.Fprintf(ioStreams.Out, "BuildRun created %q for Build %q\n", c.name, br.Spec.BuildRef.Name)
+
+	// Cli doesn't allow standalone buildruns, so it will always refer an existing build.
+	fmt.Fprintf(ioStreams.Out, "BuildRun created %q for Build %q\n", c.name, *br.Spec.Build.Name)
 	return nil
 }
 

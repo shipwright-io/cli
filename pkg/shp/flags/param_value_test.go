@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
-	buildv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
+	buildv1beta1 "github.com/shipwright-io/build/pkg/apis/build/v1beta1"
 )
 
 func TestNewParamArrayValue(t *testing.T) {
@@ -42,7 +42,7 @@ func TestNewParamArrayValue(t *testing.T) {
 	}
 	for tName, tCase := range testCases {
 		t.Run(tName, func(_ *testing.T) {
-			buildSpec := buildv1alpha1.BuildSpec{}
+			buildSpec := buildv1beta1.BuildSpec{}
 			buildParamVal := NewParamArrayValue(&buildSpec.ParamValues)
 
 			err := buildParamVal.Set(tCase.paramPassed)
