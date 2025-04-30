@@ -32,6 +32,7 @@ shp build upload <build-name> [path/to/source|.] [flags]
   -e, --env stringArray                          specify a key-value pair for an environment variable to set for the build container (default [])
   -F, --follow                                   Start a build and watch its log until it completes or fails.
   -h, --help                                     help for upload
+      --node-selector stringArray                set of key-value pairs that correspond to labels of a node to match (default [])
       --output-image string                      image employed during the building process
       --output-image-annotation stringArray      specify a set of key-value pairs that correspond to annotations to set on the output image (default [])
       --output-image-label stringArray           specify a set of key-value pairs that correspond to labels to set on the output image (default [])

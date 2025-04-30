@@ -28,6 +28,7 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1beta1.BuildRunSpec {
 			TTLAfterFailed:    &metav1.Duration{},
 			TTLAfterSucceeded: &metav1.Duration{},
 		},
+		NodeSelector: map[string]string{},
 	}
 
 	buildRefFlags(flags, &spec.Build)
@@ -39,7 +40,7 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1beta1.BuildRunSpec {
 	imageLabelsFlags(flags, spec.Output.Labels)
 	imageAnnotationsFlags(flags, spec.Output.Annotations)
 	buildRunRetentionFlags(flags, spec.Retention)
-
+	buildNodeSelectorFlags(flags, spec.NodeSelector)
 	return spec
 }
 

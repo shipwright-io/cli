@@ -38,6 +38,7 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 				Duration: 30 * time.Minute,
 			},
 		},
+		NodeSelector: map[string]string{"kubernetes.io/hostname": "worker-1"},
 	}
 
 	cmd := &cobra.Command{}
@@ -73,6 +74,13 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(*expected.Output).To(o.Equal(*spec.Output), "spec.output")
+	})
+
+	t.Run(".spec.nodeSelector", func(_ *testing.T) {
+		err := flags.Set(NodeSelectorFlag, "kubernetes.io/hostname=worker-1")
+		g.Expect(err).To(o.BeNil())
+		// g.Expect(expected.NodeSelector).To(o.HaveKeyWithValue("kubernetes.io/hostname",spec.NodeSelector["kubernetes.io/hostname"]), ".spec.nodeSelector")
+		g.Expect(expected.NodeSelector).To(o.Equal(spec.NodeSelector), ".spec.nodeSelector")
 	})
 
 	t.Run(".spec.retention.ttlAfterFailed", func(_ *testing.T) {
