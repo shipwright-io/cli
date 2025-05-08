@@ -86,4 +86,7 @@ func SanitizeBuildRunSpec(br *buildv1beta1.BuildRunSpec) {
 			br.Retention = nil
 		}
 	}
+	if br.SchedulerName != nil && *br.SchedulerName == "" {
+		br.SchedulerName = nil
+	}
 }
