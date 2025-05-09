@@ -169,7 +169,7 @@ scheduler_name="dolphinscheduler"
     run shp build run ${build_name} --scheduler-name=${scheduler_name}
 
     # get the jsonpath of BuildRun object .spec.schedulerName
-    run kubectl get buildruns.shipwright.io -l build.shipwright.io/name=${build_name} -ojsonpath='{.spec.schedulerName}'
+    run kubectl get buildruns.shipwright.io -l build.shipwright.io/name=${build_name} -ojsonpath='{.items[*].spec.schedulerName}'
     assert_success
     assert_output --partial "${scheduler_name}"
 }
