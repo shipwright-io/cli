@@ -66,6 +66,8 @@ const (
 	RetentionTTLAfterSucceededFlag = "retention-ttl-after-succeeded"
 	// NodeSelectorFlag command-line flag.
 	NodeSelectorFlag = "node-selector"
+	// SchedulerNameFlag command-line flag.
+	SchedulerNameFlag = "scheduler-name"
 )
 
 // sourceFlags flags for ".spec.source"
@@ -264,6 +266,16 @@ func serviceAccountFlags(flags *pflag.FlagSet, sa *string) {
 // buildNodeSelectorFlags registers flags for adding BuildSpec.NodeSelector
 func buildNodeSelectorFlags(flags *pflag.FlagSet, nodeSelectorLabels map[string]string) {
 	flags.Var(NewMapValue(nodeSelectorLabels), NodeSelectorFlag, "set of key-value pairs that correspond to labels of a node to match")
+}
+
+// buildSchedulerNameFlag registers flags for adding BuildSpec.SchedulerName
+func buildSchedulerNameFlag(flags *pflag.FlagSet, schedulerName *string) {
+	flags.StringVar(
+		schedulerName,
+		SchedulerNameFlag,
+		"",
+		"specify the scheduler to be used to dispatch the Pod",
+	)
 }
 
 // envFlags registers flags for adding corev1.EnvVars.

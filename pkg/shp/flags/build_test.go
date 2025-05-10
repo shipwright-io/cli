@@ -55,7 +55,8 @@ func TestBuildSpecFromFlags(t *testing.T) {
 				Duration: 30 * time.Minute,
 			},
 		},
-		NodeSelector: map[string]string{"kubernetes.io/hostname": "worker-1"},
+		NodeSelector:  map[string]string{"kubernetes.io/hostname": "worker-1"},
+		SchedulerName: ptr.To("dolphinscheduler"),
 	}
 
 	cmd := &cobra.Command{}
@@ -121,6 +122,13 @@ func TestBuildSpecFromFlags(t *testing.T) {
 		g.Expect(err).To(o.BeNil())
 		// g.Expect(expected.NodeSelector).To(o.HaveKeyWithValue("kubernetes.io/hostname",spec.NodeSelector["kubernetes.io/hostname"]), ".spec.nodeSelector")
 		g.Expect(expected.NodeSelector).To(o.Equal(spec.NodeSelector), ".spec.nodeSelector")
+	})
+
+	t.Run(".spec.schedulerName", func(_ *testing.T) {
+		err := flags.Set(SchedulerNameFlag, *expected.SchedulerName)
+		g.Expect(err).To(o.BeNil())
+
+		g.Expect(expected.SchedulerName).To(o.Equal(spec.SchedulerName), "spec.schedulerName")
 	})
 
 	t.Run(".spec.timeout", func(_ *testing.T) {
