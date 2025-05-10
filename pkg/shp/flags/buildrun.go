@@ -13,12 +13,12 @@ import (
 func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1beta1.BuildRunSpec {
 	spec := &buildv1beta1.BuildRunSpec{
 		Build: buildv1beta1.ReferencedBuild{
-			Name: ptr.To(""),
+			Name: new(string),
 		},
-		ServiceAccount: ptr.To(""),
+		ServiceAccount: new(string),
 		Timeout:        &metav1.Duration{},
 		Output: &buildv1beta1.Image{
-			PushSecret:  ptr.To(""),
+			PushSecret:  new(string),
 			Insecure:    ptr.To(false),
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
@@ -29,7 +29,7 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1beta1.BuildRunSpec {
 			TTLAfterSucceeded: &metav1.Duration{},
 		},
 		NodeSelector:  map[string]string{},
-		SchedulerName: ptr.To(""),
+		SchedulerName: new(string),
 	}
 
 	buildRefFlags(flags, &spec.Build)
