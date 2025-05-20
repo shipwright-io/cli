@@ -43,8 +43,8 @@ func (f *FakeClientset) Clientset() *kubernetes.Clientset {
 // roundTripperFn handles the request against the Kubernetes API, and ultimately returns the object
 // requested by the client.
 func (f *FakeClientset) roundTripperFn(req *http.Request) (*http.Response, error) {
-	switch method := req.Method; {
-	case method == "GET":
+	switch req.Method {
+	case "GET":
 		body := io.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(f.codec, f.pod))))
 		return &http.Response{
 			StatusCode: http.StatusOK,
