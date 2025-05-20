@@ -141,7 +141,9 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		}
 
 		// set up context
-		cmd.Cmd().ExecuteC()
+		if _, err := cmd.Cmd().ExecuteC(); err != nil {
+			t.Error(err.Error())
+		}
 		pm := genericclioptions.NewConfigFlags(true)
 		if len(test.to) > 0 {
 			pm.Timeout = &tests[i].to
@@ -184,9 +186,14 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			})
 		}
 
-		cmd.Complete(param, &ioStreams, []string{name})
+		if err := cmd.Complete(param, &ioStreams, []string{name}); err != nil {
+			t.Error(err.Error())
+		}
+
 		if len(test.to) > 0 {
-			cmd.Run(param, &ioStreams)
+			if err := cmd.Run(param, &ioStreams); err != nil {
+				t.Error(err.Error())
+			}
 			checkLog(test.name, test.logText, cmd, out, t)
 			continue
 		}
@@ -209,7 +216,9 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 		if !test.noPodYet {
 			// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
 			pod.Status.Phase = test.phase
-			cmd.follower.OnEvent(pod)
+			if err := cmd.follower.OnEvent(pod); err != nil {
+				t.Error(err.Error())
+			}
 		} else {
 			cmd.follower.OnNoPodEventsYet(nil)
 		}

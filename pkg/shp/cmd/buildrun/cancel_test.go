@@ -96,7 +96,9 @@ func TestCancelBuildRun(t *testing.T) {
 		}
 
 		// set up context
-		cmd.Cmd().ExecuteC()
+		if _, err := cmd.Cmd().ExecuteC(); err != nil {
+			t.Error(err.Error())
+		}
 		param := params.NewParamsForTest(nil, clientset, nil, metav1.NamespaceDefault, nil, nil)
 
 		ioStreams, _, _, _ := genericclioptions.NewTestIOStreams()
