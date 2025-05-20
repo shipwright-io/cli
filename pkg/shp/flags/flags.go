@@ -20,31 +20,41 @@ const (
 	DockerfileFlag = "dockerfile"
 	// EnvFlag command-line flag.
 	EnvFlag = "env"
+	// SourceGitURLFlag command-line flag.
+	SourceGitURLFlag = "source-git-url"
 	// SourceURLFlag command-line flag.
-	SourceURLFlag = "source-git-url"
+	SourceURLFlag = "source-url"
+	// SourceGitRevisionFlag command-line flag.
+	SourceGitRevisionFlag = "source-git-revision"
 	// SourceRevisionFlag command-line flag.
-	SourceRevisionFlag = "source-git-revision"
+	SourceRevisionFlag = "source-revision"
 	// SourceContextDirFlag command-line flag.
 	SourceContextDirFlag = "source-context-dir"
-	// SourceCredentialsSecretFlag command-line flag.
-	SourceCredentialsSecretFlag = "source-git-clone-secret" // #nosec G101
-	// SourceBundleImageFlag command-line flag
+	// SourceGitCloneSecretFlag command-line flag.
+	SourceGitCloneSecretFlag = "source-git-clone-secret" // #nosec G101
+	// SourceCredentialsSecret command-line flag.
+	SourceCredentialsSecret = "source-credentials-secret" // #nosec G101
+	// SourceOCIArtifactImageFlag command-line flag
 	SourceOCIArtifactImageFlag = "source-oci-artifact-image"
-	// SourceBundlePruneFlag command-line flag
+	// SourceOCIArtifactPruneFlag command-line flag
 	SourceOCIArtifactPruneFlag = "source-oci-artifact-prune"
 	// SourceOCIArtifactPullSecretFlag command-line flag
 	SourceOCIArtifactPullSecretFlag = "source-oci-artifact-pull-secret" // #nosec G101
+	// SourceBundleImageFlag command-line flag
+	SourceBundleImageFlag = "source-bundle-image"
+	// SourceBundlePruneFlag command-line flag
+	SourceBundlePruneFlag = "source-bundle-prune"
 	// StrategyKindFlag command-line flag.
 	StrategyKindFlag = "strategy-kind"
 	// StrategyNameFlag command-line flag.
 	StrategyNameFlag = "strategy-name"
 	// OutputImageFlag command-line flag.
 	OutputImageFlag = "output-image"
-	// OutputInsecure command-line flag.
+	// OutputInsecureFlag command-line flag.
 	OutputInsecureFlag = "output-insecure"
 	// OutputCredentialsSecretFlag command-line flag.
 	OutputCredentialsSecretFlag = "output-credentials-secret" // #nosec G101
-	// ParameterValueFlag command-line flag.
+	// ParamValueFlag command-line flag.
 	ParamValueFlag = "param-value"
 	// ServiceAccountNameFlag command-line flag.
 	ServiceAccountNameFlag = "sa-name"
@@ -74,31 +84,31 @@ const (
 func sourceFlags(flags *pflag.FlagSet, source *buildv1beta1.Source) {
 	flags.StringVar(
 		&source.Git.URL,
-		SourceURLFlag,
+		SourceGitURLFlag,
 		"",
 		"git repository source URL",
 	)
 	flags.StringVar(
 		&source.Git.URL,
-		"source-url",
+		SourceURLFlag,
 		"",
 		"alias for source-git-url",
 	)
-	flags.MarkDeprecated("source-url", fmt.Sprintf("please use --%s instead", SourceURLFlag))
+	_ = flags.MarkDeprecated(SourceURLFlag, fmt.Sprintf("please use --%s instead", SourceGitURLFlag))
 
 	flags.StringVar(
 		source.Git.Revision,
-		SourceRevisionFlag,
+		SourceGitRevisionFlag,
 		"",
 		"git repository source revision",
 	)
 	flags.StringVar(
 		source.Git.Revision,
-		"source-revision",
+		SourceRevisionFlag,
 		"",
 		"alias for source-git-revision",
 	)
-	flags.MarkDeprecated("source-revision", fmt.Sprintf("please use --%s instead", SourceRevisionFlag))
+	_ = flags.MarkDeprecated(SourceRevisionFlag, fmt.Sprintf("please use --%s instead", SourceGitRevisionFlag))
 
 	flags.StringVar(
 		source.ContextDir,
@@ -109,17 +119,17 @@ func sourceFlags(flags *pflag.FlagSet, source *buildv1beta1.Source) {
 
 	flags.StringVar(
 		source.Git.CloneSecret,
-		SourceCredentialsSecretFlag,
+		SourceGitCloneSecretFlag,
 		"",
 		"name of the secret with credentials to access the git source, e.g. git credentials",
 	)
 	flags.StringVar(
 		source.Git.CloneSecret,
-		"source-credentials-secret",
+		SourceCredentialsSecret,
 		"",
 		"name of the secret with credentials to access the source, e.g. credentials",
 	)
-	flags.MarkDeprecated("source-credentials-secret", fmt.Sprintf("please use --%s instead", SourceCredentialsSecretFlag))
+	_ = flags.MarkDeprecated(SourceCredentialsSecret, fmt.Sprintf("please use --%s instead", SourceGitCloneSecretFlag))
 
 	flags.StringVar(
 		&source.OCIArtifact.Image,
@@ -129,11 +139,11 @@ func sourceFlags(flags *pflag.FlagSet, source *buildv1beta1.Source) {
 	)
 	flags.StringVar(
 		&source.OCIArtifact.Image,
-		"source-bundle-image",
+		SourceBundleImageFlag,
 		"",
 		"source bundle image location, e.g. ghcr.io/shipwright-io/sample-go/source-bundle:latest",
 	)
-	flags.MarkDeprecated("source-bundle-image", fmt.Sprintf("please use --%s instead", SourceOCIArtifactImageFlag))
+	_ = flags.MarkDeprecated(SourceBundleImageFlag, fmt.Sprintf("please use --%s instead", SourceOCIArtifactImageFlag))
 
 	flags.StringVar(
 		source.OCIArtifact.PullSecret,
@@ -149,10 +159,10 @@ func sourceFlags(flags *pflag.FlagSet, source *buildv1beta1.Source) {
 	)
 	flags.Var(
 		pruneOptionFlag{ref: source.OCIArtifact.Prune},
-		"source-bundle-prune",
+		SourceBundlePruneFlag,
 		fmt.Sprintf("source bundle prune option, either %s, or %s", buildv1beta1.PruneNever, buildv1beta1.PruneAfterPull),
 	)
-	flags.MarkDeprecated("source-bundle-prune", fmt.Sprintf("please use --%s instead", SourceOCIArtifactPruneFlag))
+	_ = flags.MarkDeprecated(SourceBundlePruneFlag, fmt.Sprintf("please use --%s instead", SourceOCIArtifactPruneFlag))
 }
 
 // strategyFlags flags for ".spec.strategy".
@@ -190,7 +200,7 @@ func imageFlags(flags *pflag.FlagSet, prefix string, image *buildv1beta1.Image) 
 		"",
 		"name of the secret with output image push credentials",
 	)
-	flags.MarkDeprecated(fmt.Sprintf("%s-credentials-secret", prefix), fmt.Sprintf("please use --%s-image-push-secret instead", prefix))
+	_ = flags.MarkDeprecated(fmt.Sprintf("%s-credentials-secret", prefix), fmt.Sprintf("please use --%s-image-push-secret instead", prefix))
 
 	if prefix == "output" {
 		flags.BoolVar(
@@ -210,7 +220,7 @@ func dockerfileFlags(flags *pflag.FlagSet, dockerfile *string) {
 		"",
 		"path to dockerfile relative to repository",
 	)
-	flags.MarkDeprecated("dockerfile", "dockerfile parameter is deprecated")
+	_ = flags.MarkDeprecated("dockerfile", "dockerfile parameter is deprecated")
 }
 
 // builderImageFlag register builder-image flag as an environment variable..
@@ -221,7 +231,7 @@ func builderImageFlag(flags *pflag.FlagSet, builderImage *string) {
 		"",
 		"path to dockerfile relative to repository",
 	)
-	flags.MarkDeprecated("builder-image", "builder-image flag is deprecated, and will be removed in a future release. Use an appropriate parameter for the build strategy instead.")
+	_ = flags.MarkDeprecated(BuilderImageFlag, "builder-image flag is deprecated, and will be removed in a future release. Use an appropriate parameter for the build strategy instead.")
 }
 
 // timeoutFlags register a timeout flag as time.Duration instance.
@@ -259,8 +269,7 @@ func serviceAccountFlags(flags *pflag.FlagSet, sa *string) {
 		false,
 		"generate a Kubernetes service-account for the build",
 	)
-	flags.MarkDeprecated("sa-generate", fmt.Sprintf("this flag has no effect, please use --%s for service account", ServiceAccountNameFlag))
-
+	_ = flags.MarkDeprecated(ServiceAccountGenerateFlag, fmt.Sprintf("this flag has no effect, please use --%s for service account", ServiceAccountNameFlag))
 }
 
 // buildNodeSelectorFlags registers flags for adding BuildSpec.NodeSelector

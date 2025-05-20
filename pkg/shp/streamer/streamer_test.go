@@ -4,16 +4,16 @@ import (
 	"io"
 	"testing"
 
-	"github.com/onsi/gomega"
-	"github.com/shipwright-io/cli/test/mock"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	o "github.com/onsi/gomega"
+
+	"github.com/shipwright-io/cli/test/mock"
 )
 
 func Test_Streamer(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := o.NewGomegaWithT(t)
 
 	podName := "pod"
 	f := mock.NewFakeClientset(&corev1.Pod{

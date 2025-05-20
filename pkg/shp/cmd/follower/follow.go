@@ -257,6 +257,7 @@ func (f *Follower) OnNoPodEventsYet(podList *corev1.PodList) {
 	}
 }
 
+// Connect handles the creation of the watch based on the list options provided
 func (f *Follower) Connect(lo metav1.ListOptions) error {
 	return f.pw.Connect(lo)
 }

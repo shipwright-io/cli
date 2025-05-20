@@ -6,13 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/onsi/gomega"
-
 	o "github.com/onsi/gomega"
 )
 
 func Test_Tar(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := o.NewGomegaWithT(t)
 
 	tarHelper, err := NewTar("../../..")
 	g.Expect(err).To(o.BeNil())

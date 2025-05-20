@@ -6,3 +6,10 @@ linters:
     - gocritic
   disable:
     - errcheck
+
+  exclusions:
+    rules:
+    - path: \.go$
+      text: "should have a package comment"
+      linters:
+      - revive
