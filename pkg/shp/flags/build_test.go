@@ -64,16 +64,16 @@ func TestBuildSpecFromFlags(t *testing.T) {
 	spec, dockerfile, builderImage := BuildSpecFromFlags(flags)
 
 	t.Run(".spec.source", func(_ *testing.T) {
-		err := flags.Set(SourceURLFlag, expected.Source.Git.URL)
+		err := flags.Set(SourceGitURLFlag, expected.Source.Git.URL)
 		g.Expect(err).To(o.BeNil())
 
-		err = flags.Set(SourceRevisionFlag, *expected.Source.Git.Revision)
+		err = flags.Set(SourceGitRevisionFlag, *expected.Source.Git.Revision)
 		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(SourceContextDirFlag, *expected.Source.ContextDir)
 		g.Expect(err).To(o.BeNil())
 
-		err = flags.Set(SourceCredentialsSecretFlag, *expected.Source.Git.CloneSecret)
+		err = flags.Set(SourceGitCloneSecretFlag, *expected.Source.Git.CloneSecret)
 		g.Expect(err).To(o.BeNil())
 
 		err = flags.Set(SourceOCIArtifactPullSecretFlag, *expected.Source.OCIArtifact.PullSecret)
