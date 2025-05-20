@@ -44,8 +44,8 @@ func Test_Tail(t *testing.T) {
 	time.Sleep(10 * time.Second)
 	logTail.Stop()
 
-	stdoutWriter.Close()
-	stderrWriter.Close()
+	g.Expect(stdoutWriter.Close()).To(o.Succeed())
+	g.Expect(stderrWriter.Close()).To(o.Succeed())
 
 	// reading out stdout and stderr output by copying the iWriter contents to an intermediary
 	// buffer and checking how many bytes were subject to copying.

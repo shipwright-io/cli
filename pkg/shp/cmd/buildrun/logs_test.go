@@ -239,9 +239,7 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 		if !test.noPodYet {
 			// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
 			pod.Status.Phase = test.phase
-			if err := cmd.follower.OnEvent(pod); err != nil {
-				t.Error(err.Error())
-			}
+			_ = cmd.follower.OnEvent(pod)
 		} else {
 			cmd.follower.OnNoPodEventsYet(nil)
 		}

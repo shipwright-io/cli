@@ -29,7 +29,8 @@ func Test_PodWatcher_RequestTimeout(t *testing.T) {
 		called = true
 	})
 
-	pw.Start(metav1.ListOptions{})
+	_, err = pw.Start(metav1.ListOptions{})
+	g.Expect(err).ToNot(o.HaveOccurred())
 	g.Expect(called).To(o.BeTrue())
 }
 
@@ -49,7 +50,8 @@ func Test_PodWatcher_ContextTimeout(t *testing.T) {
 		called = true
 	})
 
-	pw.Start(metav1.ListOptions{})
+	_, err = pw.Start(metav1.ListOptions{})
+	g.Expect(err).ToNot(o.HaveOccurred())
 	g.Expect(called).To(o.BeTrue())
 }
 
