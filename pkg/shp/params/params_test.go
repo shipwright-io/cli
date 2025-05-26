@@ -5,6 +5,8 @@ import (
 
 	"github.com/onsi/gomega"
 	"github.com/spf13/pflag"
+
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 func TestParamsCreation(t *testing.T) {

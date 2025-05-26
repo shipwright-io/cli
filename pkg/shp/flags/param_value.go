@@ -44,7 +44,7 @@ func (p *ParamArrayValue) Type() string {
 	return "stringArray"
 }
 
-// NewCoreEnvVarArrayValue instantiate a ParamValSliceValue sharing the EnvVar pointer.
+// NewParamArrayValue instantiate a ParamValSliceValue sharing the EnvVar pointer.
 func NewParamArrayValue(params *[]buildv1beta1.ParamValue) *ParamArrayValue {
 	return &ParamArrayValue{params: params}
 }

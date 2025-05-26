@@ -38,7 +38,9 @@ func TestStreamBuildLogs(t *testing.T) {
 	cmd := LogsCommand{cmd: &cobra.Command{}}
 	cmd.name = name
 	// set up context
-	cmd.Cmd().ExecuteC()
+	if _, err := cmd.Cmd().ExecuteC(); err != nil {
+		t.Error(err.Error())
+	}
 
 	clientset := fake.NewSimpleClientset(pod)
 	ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
@@ -175,7 +177,10 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 		}
 
 		// set up context
-		cmd.Cmd().ExecuteC()
+		if _, err := cmd.Cmd().ExecuteC(); err != nil {
+			t.Error(err.Error())
+		}
+
 		pm := genericclioptions.NewConfigFlags(true)
 		if len(test.to) > 0 {
 			pm.Timeout = &tests[i].to
@@ -211,9 +216,14 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 			}
 		}
 
-		cmd.Complete(param, &ioStreams, []string{name})
+		if err := cmd.Complete(param, &ioStreams, []string{name}); err != nil {
+			t.Error(err.Error())
+		}
+
 		if len(test.to) > 0 {
-			cmd.Run(param, &ioStreams)
+			if err := cmd.Run(param, &ioStreams); err != nil {
+				t.Error(err.Error())
+			}
 			checkLog(test.name, test.logText, cmd, out, t)
 			continue
 		}
@@ -229,7 +239,7 @@ func TestStreamBuildRunFollowLogs(t *testing.T) {
 		if !test.noPodYet {
 			// mimic watch events, bypassing k8s fake client watch hoopla whose plug points are not always useful;
 			pod.Status.Phase = test.phase
-			cmd.follower.OnEvent(pod)
+			_ = cmd.follower.OnEvent(pod)
 		} else {
 			cmd.follower.OnNoPodEventsYet(nil)
 		}

@@ -148,7 +148,7 @@ func (p *Params) Namespace() string {
 	return p.namespace
 }
 
-// NewFollower instantiate a new PodWatcher based on the current instance.
+// NewPodWatcher instantiate a new PodWatcher based on the current instance.
 func (p *Params) NewPodWatcher(ctx context.Context) (*reactor.PodWatcher, error) {
 	if p.pw != nil {
 		return p.pw, nil

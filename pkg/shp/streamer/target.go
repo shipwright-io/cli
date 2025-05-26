@@ -7,7 +7,3 @@ type Target struct {
 	Container string // container name
 	BaseDir   string // base directory to store streamed data
 }
-
-func (t *Target) IsEmpty() bool {
-	return t.Pod == "" || t.Namespace == ""
-}
