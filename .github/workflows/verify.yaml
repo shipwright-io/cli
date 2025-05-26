@@ -18,12 +18,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+
       - uses: ./.github/actions/setup
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
-          args: --timeout=10m
+          args: --new-from-rev=HEAD~ --timeout=10m
 
       - name: Verify docs
         run: make verify-docs
