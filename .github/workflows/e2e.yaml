@@ -35,7 +35,7 @@ jobs:
           wait: 120s
       - uses: shipwright-io/setup@v1
         with:
-          tekton-version: v0.56.8
+          tekton-version: v1.0.0
           shipwright-ref: main
           cli-ref: _ignore
 
