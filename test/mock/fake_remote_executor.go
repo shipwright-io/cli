@@ -2,6 +2,7 @@ package mock
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/url"
 
@@ -30,6 +31,30 @@ func (f *FakeRemoteExecutor) Stdin() string {
 // Execute handles the actual http request against Kubernetes API, and here greatly simplified to
 // only return a stubbed error, and extract elements from the request.
 func (f *FakeRemoteExecutor) Execute(
+	reqURL *url.URL,
+	_ *rest.Config,
+	stdin io.Reader,
+	_, _ io.Writer,
+	_ bool,
+	_ remotecommand.TerminalSizeQueue,
+) error {
+	values, exists := reqURL.Query()["command"]
+	if exists {
+		f.command = values
+	}
+
+	if stdin != nil {
+		if _, err := io.Copy(&f.stdin, stdin); err != nil {
+			return err
+		}
+	}
+	return f.err
+}
+
+// ExecuteWithContext handles the actual http request against Kubernetes API, and here greatly simplified to
+// only return a stubbed error, and extract elements from the request.
+func (f *FakeRemoteExecutor) ExecuteWithContext(
+	ctx context.Context,
 	reqURL *url.URL,
 	_ *rest.Config,
 	stdin io.Reader,
