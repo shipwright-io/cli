@@ -95,7 +95,7 @@ github.com/go-git/gcfg/types
 # github.com/go-git/go-billy/v5 v5.6.2
 ## explicit; go 1.21
 github.com/go-git/go-billy/v5
-# github.com/go-git/go-git/v5 v5.16.0
+# github.com/go-git/go-git/v5 v5.16.1
 ## explicit; go 1.23.0
 github.com/go-git/go-git/v5/internal/path_util
 github.com/go-git/go-git/v5/plumbing/format/config
@@ -340,7 +340,7 @@ github.com/sabhiram/go-gitignore
 # github.com/schollz/progressbar/v3 v3.18.0
 ## explicit; go 1.22
 github.com/schollz/progressbar/v3
-# github.com/shipwright-io/build v0.15.1-0.20250602121719-8c45c1c8590f
+# github.com/shipwright-io/build v0.16.0
 ## explicit; go 1.23.0
 github.com/shipwright-io/build/pkg/apis/build/v1alpha1
 github.com/shipwright-io/build/pkg/apis/build/v1beta1
