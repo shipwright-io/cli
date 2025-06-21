@@ -24,6 +24,7 @@ type ListCommand struct {
 	cmd *cobra.Command
 
 	noHeader bool
+	wide     bool
 }
 
 func listCmd() runner.SubCommand {
@@ -35,6 +36,7 @@ func listCmd() runner.SubCommand {
 	}
 
 	listCmd.cmd.Flags().BoolVar(&listCmd.noHeader, "no-header", false, "Do not show columns header in list output")
+	listCmd.cmd.Flags().BoolVar(&listCmd.wide, "wide", false, "Display additional fields such as source, output-image, build-name, elapsed-time and source-origin in list output")
 
 	return listCmd
 }
@@ -91,11 +93,32 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	}
 
 	if !c.noHeader {
+		if c.wide {
+			columnNames = "NAME\tSTATUS\tAGE\tSOURCE\tOUTPUT-IMAGE\tBUILD-NAME\tELAPSED-TIME\tSOURCE-ORIGIN"
+		}
 		fmt.Fprintln(writer, columnNames)
+	}
+
+	if c.wide {
+		columnTemplate = "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
 	}
 
 	for _, br := range brs.Items {
 		name := br.Name
+		buildName := br.Spec.BuildName()
+		outputImage := br.Status.BuildSpec.Output.Image
+		sourceOrigin := br.Status.BuildSpec.Source.Type
+		source := br.Status.BuildSpec.Source.Git.URL
+		revision := br.Status.BuildSpec.Source.Git.Revision
+		fmt.Println(source)
+		if sourceOrigin == "Git" {
+			if revision != nil {
+				source += "@" + *revision
+			}
+		} else {
+			source = "-"
+		}
+
 		status := string(metav1.ConditionUnknown)
 		for _, condition := range br.Status.Conditions {
 			if condition.Type == buildv1beta1.Succeeded {
@@ -104,8 +127,16 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 			}
 		}
 		age := duration.ShortHumanDuration(time.Since((br.ObjectMeta.CreationTimestamp).Time))
-
-		fmt.Fprintf(writer, columnTemplate, name, status, age)
+		elapsedTime := age
+		if br.Status.StartTime != nil && br.Status.CompletionTime != nil {
+			duration := br.Status.CompletionTime.Time.Sub(br.Status.StartTime.Time)
+			elapsedTime = duration.String()
+		}
+		if c.wide {
+			fmt.Fprintf(writer, columnTemplate, name, status, age, source, outputImage, buildName, elapsedTime, sourceOrigin)
+		} else {
+			fmt.Fprintf(writer, columnTemplate, name, status, age)
+		}
 	}
 
 	return writer.Flush()
