@@ -110,7 +110,6 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 		sourceOrigin := br.Status.BuildSpec.Source.Type
 		source := br.Status.BuildSpec.Source.Git.URL
 		revision := br.Status.BuildSpec.Source.Git.Revision
-		fmt.Println(source)
 		if sourceOrigin == "Git" {
 			if revision != nil {
 				source += "@" + *revision
