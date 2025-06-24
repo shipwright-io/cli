@@ -7,6 +7,8 @@ import (
 
 	"github.com/shipwright-io/cli/pkg/shp/cmd/build"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/buildrun"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/buildstrategy"
+	"github.com/shipwright-io/cli/pkg/shp/cmd/clusterbuildstrategy"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/version"
 	"github.com/shipwright-io/cli/pkg/shp/params"
 	"github.com/shipwright-io/cli/pkg/shp/suggestion"
@@ -26,6 +28,8 @@ func NewCmdSHP(ioStreams *genericclioptions.IOStreams) *cobra.Command {
 	rootCmd.AddCommand(version.Command())
 	rootCmd.AddCommand(build.Command(p, ioStreams))
 	rootCmd.AddCommand(buildrun.Command(p, ioStreams))
+	rootCmd.AddCommand(buildstrategy.Command(p, ioStreams))
+	rootCmd.AddCommand(clusterbuildstrategy.Command(p, ioStreams))
 
 	visitCommands(rootCmd, reconfigureCommandWithSubcommand)
 
