@@ -108,14 +108,13 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 		buildName := br.Spec.BuildName()
 		outputImage := br.Status.BuildSpec.Output.Image
 		sourceOrigin := br.Status.BuildSpec.Source.Type
-		source := br.Status.BuildSpec.Source.Git.URL
-		revision := br.Status.BuildSpec.Source.Git.Revision
+		source := "-"
 		if sourceOrigin == "Git" {
+			source = br.Status.BuildSpec.Source.Git.URL
+			revision := br.Status.BuildSpec.Source.Git.Revision
 			if revision != nil {
 				source += "@" + *revision
 			}
-		} else {
-			source = "-"
 		}
 
 		status := string(metav1.ConditionUnknown)
