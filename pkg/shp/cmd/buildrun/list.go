@@ -127,7 +127,7 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 		age := duration.ShortHumanDuration(time.Since((br.ObjectMeta.CreationTimestamp).Time))
 		elapsedTime := age
 		if br.Status.StartTime != nil && br.Status.CompletionTime != nil {
-			duration := br.Status.CompletionTime.Time.Sub(br.Status.StartTime.Time)
+			duration := br.Status.CompletionTime.Sub(br.Status.StartTime.Time)
 			elapsedTime = duration.String()
 		}
 		if c.wide {
