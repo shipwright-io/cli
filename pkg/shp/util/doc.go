@@ -1,2 +1,2 @@
-// Package util contains utility function and constants used in other packages.
-package util
+// Package shputil contains utility function and constants used in other packages.
+package shputil

@@ -18,7 +18,7 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/cmd/follower"
 	"github.com/shipwright-io/cli/pkg/shp/cmd/runner"
 	"github.com/shipwright-io/cli/pkg/shp/params"
-	"github.com/shipwright-io/cli/pkg/shp/util"
+	shputil "github.com/shipwright-io/cli/pkg/shp/util"
 )
 
 // LogsCommand contains data input from user for logs sub-command
@@ -111,7 +111,7 @@ func (c *LogsCommand) Run(params *params.Params, ioStreams *genericclioptions.IO
 
 		var b strings.Builder
 		for _, container := range append(pod.Spec.InitContainers, pod.Spec.Containers...) {
-			logs, err := util.GetPodLogs(c.cmd.Context(), clientset, pod, container.Name)
+			logs, err := shputil.GetPodLogs(c.cmd.Context(), clientset, pod, container.Name)
 			if err != nil {
 				return err
 			}
