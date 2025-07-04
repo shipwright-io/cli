@@ -13,7 +13,7 @@ import (
 	buildclientset "github.com/shipwright-io/build/pkg/client/clientset/versioned"
 	"github.com/shipwright-io/cli/pkg/shp/reactor"
 	"github.com/shipwright-io/cli/pkg/shp/tail"
-	"github.com/shipwright-io/cli/pkg/shp/util"
+	shputil "github.com/shipwright-io/cli/pkg/shp/util"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -183,7 +183,7 @@ func (f *Follower) OnEvent(pod *corev1.Pod) error {
 			f.Log(fmt.Sprintf("succeeded event for pod %q arrived before or in place of running event so dumping logs now\n", pod.GetName()))
 			var b strings.Builder
 			for _, c := range pod.Spec.Containers {
-				logs, err := util.GetPodLogs(f.ctx, f.clientset, *pod, c.Name)
+				logs, err := shputil.GetPodLogs(f.ctx, f.clientset, *pod, c.Name)
 				if err != nil {
 					f.Log(fmt.Sprintf("could not get logs for container %q: %s\n", c.Name, err.Error()))
 					continue
