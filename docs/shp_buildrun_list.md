@@ -11,6 +11,7 @@ shp buildrun list [flags]
 ```
   -h, --help        help for list
       --no-header   Do not show columns header in list output
+      --wide        Display additional fields such as source, output-image, build-name, elapsed-time and source-origin in list output
 ```
 
 ### Options inherited from parent commands
