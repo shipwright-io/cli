@@ -19,13 +19,16 @@ teardown() {
 }
 
 @test "shp --help lists all available commands" {
-	run shp --help
-	assert_success
-	assert_line "Available Commands:"
-	assert_line "  build       Manage Builds"
-	assert_line "  buildrun    Manage BuildRuns"
-	assert_line "  completion  Generate the autocompletion script for the specified shell"
-	assert_line "  help        Help about any command"
+  run shp --help
+  assert_success
+  assert_line --regexp '^Available Commands:$'
+  assert_line --regexp '^[[:space:]]+build[[:space:]]+Manage Builds$'
+  assert_line --regexp '^[[:space:]]+buildrun[[:space:]]+Manage BuildRuns$'
+  assert_line --regexp '^[[:space:]]+buildstrategy[[:space:]]+Manage namespaced BuildStrategies$'
+  assert_line --regexp '^[[:space:]]+clusterbuildstrategy[[:space:]]+Manage cluster-scoped BuildStrategies$'
+  assert_line --regexp '^[[:space:]]+completion[[:space:]]+Generate the autocompletion script for the specified shell$'
+  assert_line --regexp '^[[:space:]]+help[[:space:]]+Help about any command$'
+
 }
 
 @test "shp --help lists some Kubernetes flags" {
