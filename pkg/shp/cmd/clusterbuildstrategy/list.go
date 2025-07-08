@@ -15,6 +15,7 @@ import (
 	"github.com/shipwright-io/cli/pkg/shp/params"
 )
 
+// ListCommand contains data input from user for list sub-command
 type ListCommand struct {
 	cmd      *cobra.Command
 	noHeader bool
