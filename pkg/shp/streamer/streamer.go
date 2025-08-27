@@ -27,7 +27,7 @@ type Streamer struct {
 type WriterFn func(w io.Writer) error
 
 // tarCmd base tar command to be executed on the POD, a target directory should be appended.
-var tarCmd = []string{"tar", "xfv", "-", "-C"}
+var tarCmd = []string{"tar", "--no-same-permissions", "--no-same-owner", "-xvf", "-", "-C"}
 
 // doneCmd command to notify the container the data streaming is done, thus the container build
 // process can continue.

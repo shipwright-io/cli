@@ -47,7 +47,7 @@ func Test_Streamer(t *testing.T) {
 		return err
 	}, size)
 	g.Expect(err).To(o.BeNil())
-	g.Expect(re.Command()).To(o.Equal([]string{"tar", "xfv", "-", "-C", "/"}))
+	g.Expect(re.Command()).To(o.Equal([]string{"tar", "--no-same-permissions", "--no-same-owner", "-xvf", "-", "-C", "/"}))
 	g.Expect(re.Stdin()).To(o.Equal(stdin))
 
 	// calling out "done" command on target pod, and making sure the command informed is expected

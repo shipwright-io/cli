@@ -131,11 +131,12 @@ func (u *UploadCommand) Complete(p *params.Params, _ *genericclioptions.IOStream
 	if build.Spec.Source != nil {
 		if build.Spec.Source.OCIArtifact != nil && build.Spec.Source.OCIArtifact.Image != "" {
 			u.sourceBundleImage = build.Spec.Source.OCIArtifact.Image
-
-		} else {
-			u.dataStreamer = streamer.NewStreamer(restConfig, clientset)
 		}
 	}
+
+	// Create a streamer instance to stream data onto pod for local source build.
+	u.dataStreamer = streamer.NewStreamer(restConfig, clientset)
+
 	u.pw, err = p.NewPodWatcher(u.Cmd().Context())
 	return err
 }
