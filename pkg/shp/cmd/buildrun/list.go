@@ -106,14 +106,26 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	for _, br := range brs.Items {
 		name := br.Name
 		buildName := br.Spec.BuildName()
-		outputImage := br.Status.BuildSpec.Output.Image
-		sourceOrigin := br.Status.BuildSpec.Source.Type
+		outputImage := "-"
 		source := "-"
-		if sourceOrigin == "Git" {
-			source = br.Status.BuildSpec.Source.Git.URL
-			revision := br.Status.BuildSpec.Source.Git.Revision
-			if revision != nil {
-				source += "@" + *revision
+		sourceOrigin := "-"
+		// Check if BuildSpec is present in Status as this is an optional pointer field.
+		if br.Status.BuildSpec != nil {
+			outputImage = br.Status.BuildSpec.Output.Image
+
+			// In case the Source is not preset in the BuildSpec, try to get it from BuildRun spec.
+			if br.Status.BuildSpec.Source != nil {
+				sourceOrigin = string(br.Status.BuildSpec.Source.Type)
+			} else if br.Spec.Source != nil {
+				sourceOrigin = string(br.Spec.Source.Type)
+			}
+
+			if sourceOrigin == "Git" {
+				source = br.Status.BuildSpec.Source.Git.URL
+				revision := br.Status.BuildSpec.Source.Git.Revision
+				if revision != nil {
+					source += "@" + *revision
+				}
 			}
 		}
 
