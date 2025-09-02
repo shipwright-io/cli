@@ -14,8 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         kubernetes:
-          - v1.30.10
-          - v1.33.0
+          - v1.31.9
+          - v1.33.1
       max-parallel: 2
     runs-on: ubuntu-latest
 
@@ -28,14 +28,14 @@ jobs:
 
       - uses: helm/kind-action@v1
         with:
-          version: v0.27.0
+          version: v0.29.0
           node_image: kindest/node:${{ matrix.kubernetes }}
           cluster_name: kind
           config: test/kind/config.yaml
           wait: 120s
       - uses: shipwright-io/setup@v1
         with:
-          tekton-version: v1.0.0
+          tekton-version: v1.3.1
           shipwright-ref: main
           cli-ref: _ignore
 

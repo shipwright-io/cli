@@ -68,14 +68,14 @@ teardown() {
   run shp build list
   assert_success
   refute_line --regexp "GET .*/apis/shipwright.io/v1beta1/namespaces/"
-  refute_line --partial "Response Headers"
+  refute_line --partial "Request Body"
   refute_line --partial "Response Body"
 
   # ensure that shp command supports -v loglevel flag.
   run shp -v=10 build list
   assert_success
   assert_line --regexp "GET .*/apis/shipwright.io/v1beta1/namespaces/"
-  assert_line --partial "Response Headers"
+  assert_line --partial "Request Body"
   assert_line --partial "Response Body"
 }
 

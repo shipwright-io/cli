@@ -2,6 +2,7 @@ package mock
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/url"
 
@@ -48,6 +49,11 @@ func (f *FakeRemoteExecutor) Execute(
 		}
 	}
 	return f.err
+}
+
+// ExecuteWithContext implements exec.RemoteExecutor.
+func (f *FakeRemoteExecutor) ExecuteWithContext(_ context.Context, url *url.URL, config *rest.Config, stdin io.Reader, stdout io.Writer, stderr io.Writer, tty bool, terminalSizeQueue remotecommand.TerminalSizeQueue) error {
+	return f.Execute(url, config, stdin, stdout, stderr, tty, terminalSizeQueue)
 }
 
 // NewFakeRemoteExecutor instantiate a FakeRemoteExecutor with stubbed error.
