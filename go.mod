@@ -9,7 +9,7 @@ require (
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/shipwright-io/build v0.17.0
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.7
+	github.com/spf13/pflag v1.0.9
 	github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
 	k8s.io/api v0.33.4
 	k8s.io/apimachinery v0.33.4
