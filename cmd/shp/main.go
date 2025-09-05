@@ -3,6 +3,7 @@ package main
 import (
 	goflag "flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -35,14 +36,19 @@ var hiddenLogFlags = []string{
 }
 
 func main() {
+	streams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
+	rootCmd := cmd.NewCmdSHP(&streams)
+
 	if err := initGoFlags(); err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+		fmt.Fprintf(os.Stderr, "ERROR: %v\n\n", err)
+		// Print the CLI help in case of error.
+		if err = rootCmd.Help(); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %v\n\n", err)
+		}
 		os.Exit(1)
 	}
 	initPFlags()
 
-	streams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
-	rootCmd := cmd.NewCmdSHP(&streams)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		os.Exit(1)
@@ -53,9 +59,13 @@ func main() {
 // Any flags for "-h" or "--help" are ignored because pflag will show the usage later with all subcommands.
 func initGoFlags() error {
 	flagset := goflag.NewFlagSet(ApplicationName, goflag.ContinueOnError)
+
+	// Discard usage and error message written to stdout and stderr in the "goflag" library.
+	// Instead, return the error only.
+	flagset.SetOutput(io.Discard)
+
 	goflag.CommandLine = flagset
 	klog.InitFlags(flagset)
-
 	args := []string{}
 	for _, arg := range os.Args[1:] {
 		if arg != "-h" && arg != "--help" {
