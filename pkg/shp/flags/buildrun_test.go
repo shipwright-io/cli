@@ -128,7 +128,7 @@ func TestSanitizeBuildRunSpec(t *testing.T) {
 		out:  buildv1beta1.BuildRunSpec{},
 	}, {
 		name: "should clean-up service-account",
-		in:   buildv1beta1.BuildRunSpec{ServiceAccount: ptr.To("")},
+		in:   buildv1beta1.BuildRunSpec{ServiceAccount: new(string)},
 		out:  buildv1beta1.BuildRunSpec{},
 	}, {
 		name: "should clean-up output",
