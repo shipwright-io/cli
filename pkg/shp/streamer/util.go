@@ -28,17 +28,33 @@ func writeFileToTar(tw *tar.Writer, src, fpath string, stat fs.FileInfo) error {
 	}
 
 	header.Name = trimPrefix(src, fpath)
+
+	// Symlink
+	if stat.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(fpath)
+		if err != nil {
+			return err
+		}
+
+		header.Linkname = target
+	}
+
 	if err := tw.WriteHeader(header); err != nil {
 		return err
 	}
 
-	// #nosec G304 intentionally opening file from variable
-	f, err := os.Open(fpath)
-	if err != nil {
-		return err
+	// Copy regular file content
+	if stat.Mode().IsRegular() {
+		// #nosec G304 intentionally opening file from variable
+		f, err := os.Open(fpath)
+		if err != nil {
+			return err
+		}
+		if _, err := io.Copy(tw, f); err != nil {
+			return err
+		}
+		return f.Close()
 	}
-	if _, err := io.Copy(tw, f); err != nil {
-		return err
-	}
-	return f.Close()
+
+	return nil
 }
