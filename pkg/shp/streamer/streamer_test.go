@@ -53,5 +53,5 @@ func Test_Streamer(t *testing.T) {
 	// calling out "done" command on target pod, and making sure the command informed is expected
 	err = s.Done(targetPod)
 	g.Expect(err).To(o.BeNil())
-	g.Expect(re.Command()).To(o.Equal([]string{"waiter", "done"}))
+	g.Expect(re.Command()).To(o.Equal([]string{"waiter", "done", "--lock-file=/shp-tmp/waiter.lock"}))
 }
