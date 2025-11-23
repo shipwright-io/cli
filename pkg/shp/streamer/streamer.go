@@ -30,8 +30,9 @@ type WriterFn func(w io.Writer) error
 var tarCmd = []string{"tar", "--no-same-permissions", "--no-same-owner", "-xvf", "-", "-C"}
 
 // doneCmd command to notify the container the data streaming is done, thus the container build
-// process can continue.
-var doneCmd = []string{"waiter", "done"}
+// process can continue. The lock file path must match the one used when the waiter container starts
+// (--lock-file=/shp-tmp/waiter.lock) to work with read-only root filesystems.
+var doneCmd = []string{"waiter", "done", "--lock-file=/shp-tmp/waiter.lock"}
 
 // execute the informed exec command, by invokeing Validate and Run methods.
 func (s *Streamer) execute(opts *exec.ExecOptions) error {
