@@ -78,6 +78,8 @@ const (
 	NodeSelectorFlag = "node-selector"
 	// SchedulerNameFlag command-line flag.
 	SchedulerNameFlag = "scheduler-name"
+	// RuntimeClassNameFlag command-line flag.
+	RuntimeClassNameFlag = "runtime-class"
 )
 
 // sourceFlags flags for ".spec.source"
@@ -284,6 +286,16 @@ func buildSchedulerNameFlag(flags *pflag.FlagSet, schedulerName *string) {
 		SchedulerNameFlag,
 		"",
 		"specify the scheduler to be used to dispatch the Pod",
+	)
+}
+
+// buildRuntimeClassNameFlag registers flags for adding BuildRunSpec.RuntimeClassName
+func buildRuntimeClassNameFlag(flags *pflag.FlagSet, runtimeClassName *string) {
+	flags.StringVar(
+		runtimeClassName,
+		RuntimeClassNameFlag,
+		"",
+		"specify the runtime class to be used for the Pod",
 	)
 }
 

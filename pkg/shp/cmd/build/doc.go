@@ -1,2 +1,2 @@
 // Package build contains types and functions for build cobra sub-command
-package build
+package build // nolint:revive

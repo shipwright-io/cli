@@ -53,7 +53,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/docker/cli v29.0.3+incompatible
+# github.com/docker/cli v29.1.4+incompatible
 ## explicit
 github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
@@ -273,7 +273,7 @@ github.com/munnerz/goautoneg
 # github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
 ## explicit
 github.com/mxk/go-flowrate/flowrate
-# github.com/onsi/gomega v1.38.2
+# github.com/onsi/gomega v1.39.0
 ## explicit; go 1.23.0
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -336,7 +336,7 @@ github.com/sabhiram/go-gitignore
 # github.com/schollz/progressbar/v3 v3.19.0
 ## explicit; go 1.22
 github.com/schollz/progressbar/v3
-# github.com/shipwright-io/build v0.18.0
+# github.com/shipwright-io/build v0.18.2-0.20260112084729-e48a9ff9aa57
 ## explicit; go 1.24.0
 github.com/shipwright-io/build/pkg/apis/build/v1alpha1
 github.com/shipwright-io/build/pkg/apis/build/v1beta1

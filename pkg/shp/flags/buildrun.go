@@ -28,8 +28,9 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1beta1.BuildRunSpec {
 			TTLAfterFailed:    &metav1.Duration{},
 			TTLAfterSucceeded: &metav1.Duration{},
 		},
-		NodeSelector:  map[string]string{},
-		SchedulerName: ptr.To(""),
+		NodeSelector:     map[string]string{},
+		SchedulerName:    ptr.To(""),
+		RuntimeClassName: ptr.To(""),
 	}
 
 	buildRefFlags(flags, &spec.Build)
@@ -43,6 +44,7 @@ func BuildRunSpecFromFlags(flags *pflag.FlagSet) *buildv1beta1.BuildRunSpec {
 	buildRunRetentionFlags(flags, spec.Retention)
 	buildNodeSelectorFlags(flags, spec.NodeSelector)
 	buildSchedulerNameFlag(flags, spec.SchedulerName)
+	buildRuntimeClassNameFlag(flags, spec.RuntimeClassName)
 	return spec
 }
 
@@ -88,5 +90,8 @@ func SanitizeBuildRunSpec(br *buildv1beta1.BuildRunSpec) {
 	}
 	if br.SchedulerName != nil && *br.SchedulerName == "" {
 		br.SchedulerName = nil
+	}
+	if br.RuntimeClassName != nil && *br.RuntimeClassName == "" {
+		br.RuntimeClassName = nil
 	}
 }

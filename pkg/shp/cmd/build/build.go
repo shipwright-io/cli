@@ -1,4 +1,4 @@
-package build
+package build // nolint:revive
 
 import (
 	"github.com/spf13/cobra"
