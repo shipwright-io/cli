@@ -39,7 +39,7 @@ var hiddenKubeFlags = []string{
 	"user",
 }
 
-// Params is a place for Shipwright CLI to store its runtime parameters including configured dynamic
+// Params is a place for Shipwright CLI to store its runtime parameters, including configured dynamic
 // client and global flags.
 type Params struct {
 	clientset      kubernetes.Interface     // kubernetes api-client, global instance
@@ -53,6 +53,9 @@ type Params struct {
 	failPollInterval *time.Duration
 	failPollTimeout  *time.Duration
 }
+
+// Options accepts optional functions to override certain parameters
+type Options func(params *Params)
 
 // AddFlags accepts flags and adds program global flags to it
 func (p *Params) AddFlags(flags *pflag.FlagSet) {
@@ -193,11 +196,38 @@ func (p *Params) NewFollower(
 	return p.follower, nil
 }
 
+// WithClientset updates the shp CLI to use the provided Kubernetes and Build clientsets
+func WithClientset(kubeClientset kubernetes.Interface, buildClientset buildclientset.Interface) Options {
+	return func(p *Params) {
+		p.clientset = kubeClientset
+		p.buildClientset = buildClientset
+	}
+}
+
+// WithConfigFlags updates the shp CLI to use the provided configuration flags
+func WithConfigFlags(configFlags *genericclioptions.ConfigFlags) Options {
+	return func(p *Params) {
+		p.configFlags = configFlags
+	}
+}
+
+// WithNamespace updates the shp CLI to use the provided namespace
+func WithNamespace(namespace string) Options {
+	return func(p *Params) {
+		p.namespace = namespace
+	}
+}
+
 // NewParams creates a new instance of ShipwrightParams and returns it as
 // an interface value
-func NewParams() *Params {
+func NewParams(options ...Options) *Params {
 	p := &Params{}
 	p.configFlags = genericclioptions.NewConfigFlags(true)
+
+	// Apply all provided options
+	for _, option := range options {
+		option(p)
+	}
 
 	return p
 }
