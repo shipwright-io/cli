@@ -195,7 +195,7 @@ func TestSanitizeBuildSpec(t *testing.T) {
 			name: "should clean-up `.spec.source.credentials`",
 			in: buildv1beta1.BuildSpec{Source: &buildv1beta1.Source{
 				Git: &buildv1beta1.Git{
-					CloneSecret: ptr.To(""),
+					CloneSecret: new(string),
 				},
 			}},
 			out: buildv1beta1.BuildSpec{},
@@ -237,7 +237,7 @@ func TestSanitizeBuildSpec(t *testing.T) {
 			name: "should clean-up an empty source contextDir",
 			in: buildv1beta1.BuildSpec{
 				Source: &buildv1beta1.Source{
-					ContextDir: ptr.To(""),
+					ContextDir: new(string),
 				},
 			},
 			out: buildv1beta1.BuildSpec{},

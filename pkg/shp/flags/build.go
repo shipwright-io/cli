@@ -18,14 +18,14 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) (*buildv1beta1.BuildSpec, *string,
 	pruneOption := buildv1beta1.PruneNever
 	spec := &buildv1beta1.BuildSpec{
 		Source: &buildv1beta1.Source{
-			ContextDir: ptr.To(""),
+			ContextDir: new(string),
 			Git: &buildv1beta1.Git{
-				Revision:    ptr.To(""),
-				CloneSecret: ptr.To(""),
+				Revision:    new(string),
+				CloneSecret: new(string),
 			},
 			OCIArtifact: &buildv1beta1.OCIArtifact{
 				Prune:      &pruneOption,
-				PullSecret: ptr.To(""),
+				PullSecret: new(string),
 			},
 		},
 		Strategy: buildv1beta1.Strategy{
@@ -33,7 +33,7 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) (*buildv1beta1.BuildSpec, *string,
 		},
 		Output: buildv1beta1.Image{
 			Insecure:    ptr.To(false),
-			PushSecret:  ptr.To(""),
+			PushSecret:  new(string),
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},
@@ -45,7 +45,7 @@ func BuildSpecFromFlags(flags *pflag.FlagSet) (*buildv1beta1.BuildSpec, *string,
 			TTLAfterSucceeded: &metav1.Duration{},
 		},
 		NodeSelector:  map[string]string{},
-		SchedulerName: ptr.To(""),
+		SchedulerName: new(string),
 	}
 
 	sourceFlags(flags, spec.Source)
