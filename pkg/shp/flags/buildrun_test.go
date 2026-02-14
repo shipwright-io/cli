@@ -38,8 +38,9 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 				Duration: 30 * time.Minute,
 			},
 		},
-		NodeSelector:  map[string]string{"kubernetes.io/hostname": "worker-1"},
-		SchedulerName: ptr.To("dolphinscheduler"),
+		NodeSelector:     map[string]string{"kubernetes.io/hostname": "worker-1"},
+		SchedulerName:    ptr.To("dolphinscheduler"),
+		RuntimeClassName: ptr.To("kata"),
 	}
 
 	cmd := &cobra.Command{}
@@ -89,6 +90,13 @@ func TestBuildRunSpecFromFlags(t *testing.T) {
 		g.Expect(err).To(o.BeNil())
 
 		g.Expect(expected.SchedulerName).To(o.Equal(spec.SchedulerName), "spec.schedulerName")
+	})
+
+	t.Run(".spec.runtimeClassName", func(_ *testing.T) {
+		err := flags.Set(RuntimeClassNameFlag, *expected.RuntimeClassName)
+		g.Expect(err).To(o.BeNil())
+
+		g.Expect(expected.RuntimeClassName).To(o.Equal(spec.RuntimeClassName), "spec.runtimeClassName")
 	})
 
 	t.Run(".spec.retention.ttlAfterFailed", func(_ *testing.T) {
@@ -150,6 +158,10 @@ func TestSanitizeBuildRunSpec(t *testing.T) {
 			Retention: &buildv1beta1.BuildRunRetention{},
 		},
 		out: buildv1beta1.BuildRunSpec{},
+	}, {
+		name: "should clean-up runtime-class-name",
+		in:   buildv1beta1.BuildRunSpec{RuntimeClassName: ptr.To("")},
+		out:  buildv1beta1.BuildRunSpec{},
 	}}
 
 	for _, tt := range testCases {
