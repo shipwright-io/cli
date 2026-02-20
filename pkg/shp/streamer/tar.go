@@ -21,7 +21,7 @@ type Tar struct {
 
 // skipPath inspect each path and makes sure it skips files the tar helper can't handle.
 func (t *Tar) skipPath(fpath string, stat fs.FileInfo) bool {
-	if !stat.Mode().IsRegular() {
+	if !stat.Mode().IsRegular() && !(stat.Mode()&fs.ModeSymlink != 0) {
 		return true
 	}
 	if strings.HasPrefix(fpath, path.Join(t.src, ".git")) {
