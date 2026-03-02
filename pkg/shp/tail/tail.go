@@ -64,6 +64,7 @@ func (t *Tail) Start(ns, podName, container string) {
 		containerName := strings.TrimPrefix(container, "step-")
 		sc := bufio.NewScanner(stream)
 		for sc.Scan() {
+			// #nosec G705: this is intentially printing everything that the BuildRun container logs
 			fmt.Fprintf(t.stdout, "[%s] %s\n", containerName, sc.Text())
 		}
 	}()
