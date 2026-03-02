@@ -25,7 +25,7 @@ var rootCmd = &cobra.Command{
 func NewCmdSHP(ioStreams *genericclioptions.IOStreams) *cobra.Command {
 	p := params.NewParams()
 	p.AddFlags(rootCmd.PersistentFlags())
-	rootCmd.AddCommand(version.Command())
+	rootCmd.AddCommand(version.Command(ioStreams))
 	rootCmd.AddCommand(build.Command(p, ioStreams))
 	rootCmd.AddCommand(buildrun.Command(p, ioStreams))
 	rootCmd.AddCommand(buildstrategy.Command(p, ioStreams))

@@ -2,7 +2,6 @@ package buildstrategy
 
 import (
 	"fmt"
-	"os"
 	"text/tabwriter"
 	"time"
 
@@ -50,7 +49,7 @@ func (c *ListCommand) Validate() error {
 
 // Run executes list sub-command logic
 func (c *ListCommand) Run(p *params.Params, io *genericclioptions.IOStreams) error {
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, '\t', 0)
+	w := tabwriter.NewWriter(io.Out, 0, 8, 2, '\t', 0)
 	if !c.noHeader {
 		fmt.Fprintln(w, "NAME\tAGE")
 	}

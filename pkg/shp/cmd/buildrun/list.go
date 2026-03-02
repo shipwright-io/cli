@@ -2,7 +2,6 @@ package buildrun
 
 import (
 	"fmt"
-	"os"
 	"text/tabwriter"
 	"time"
 
@@ -61,7 +60,7 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	// TODO: Support multiple output formats here, not only tabwriter
 	//       find out more in kubectl libraries and use them
 
-	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 2, '\t', 0)
+	writer := tabwriter.NewWriter(io.Out, 0, 8, 2, '\t', 0)
 	columnNames := "NAME\tSTATUS\tAGE"
 	columnTemplate := "%s\t%s\t%s\n"
 
