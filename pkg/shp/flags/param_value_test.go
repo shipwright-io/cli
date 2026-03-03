@@ -17,7 +17,7 @@ func TestNewParamArrayValue(t *testing.T) {
 		paramValue  string
 		expectedErr error
 	}{
-		"simpleKeyValPair": {
+		"simpleKeyValPair": { // #nosec G101: no hard-coded credential
 			paramPassed: "dockerfile=Dockerfile",
 			paramKey:    "dockerfile",
 			paramValue:  "Dockerfile",

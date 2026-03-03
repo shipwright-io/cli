@@ -29,6 +29,7 @@ const (
 	// SpecOutputSecretRefNotFound indicates the referenced secret in output is missing
 	SpecOutputSecretRefNotFound BuildReason = "SpecOutputSecretRefNotFound"
 	// SpecBuilderSecretRefNotFound indicates the referenced secret in builder is missing
+	// #nosec G101 no hard-coded credentials
 	SpecBuilderSecretRefNotFound BuildReason = "SpecBuilderSecretRefNotFound"
 	// MultipleSecretRefNotFound indicates that multiple secrets are missing
 	MultipleSecretRefNotFound BuildReason = "MultipleSecretRefNotFound"
@@ -62,6 +63,8 @@ const (
 	VolumeNotOverridable BuildReason = "VolumeNotOverridable"
 	// UndefinedVolume indicates that volume defined by build is not found in the strategy
 	UndefinedVolume BuildReason = "UndefinedVolume"
+	// UndefinedStepResource indicates that a step resource override references a step not found in the strategy
+	UndefinedStepResource BuildReason = "UndefinedStepResource"
 	// TriggerNameCanNotBeBlank indicates the trigger condition does not have a name
 	TriggerNameCanNotBeBlank BuildReason = "TriggerNameCanNotBeBlank"
 	// TriggerInvalidType indicates the trigger type is invalid
