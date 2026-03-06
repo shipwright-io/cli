@@ -110,6 +110,14 @@ type BuildRunSpec struct {
 	// +optional
 	Volumes []BuildVolume `json:"volumes,omitempty"`
 
+	// StepResources allows overriding the resource requirements for specific steps
+	// defined in the referenced BuildStrategy or ClusterBuildStrategy. Each entry
+	// specifies the step name and the resources to use instead of those defined in
+	// the referenced strategy.
+	// BuildRun stepResources take precedence over Build stepResources.
+	// +optional
+	StepResources []StepResourceOverride `json:"stepResources,omitempty"`
+
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -126,6 +134,10 @@ type BuildRunSpec struct {
 	// SchedulerName specifies the scheduler to be used to dispatch the Pod
 	// +optional
 	SchedulerName *string `json:"schedulerName,omitempty"`
+
+	// RuntimeClassName specifies the RuntimeClass to be used to run the Pod
+	// +optional
+	RuntimeClassName *string `json:"runtimeClassName,omitempty"`
 }
 
 // BuildRunRequestedState defines the buildrun state the user can provide to override whatever is the current state.
@@ -238,8 +250,14 @@ type BuildRunStatus struct {
 
 	// TaskRunName is the name of the TaskRun responsible for executing this BuildRun.
 	//
+	// Deprecated: Use Executor instead to describe the taskrun.
 	// +optional
 	TaskRunName *string `json:"taskRunName,omitempty"`
+
+	// Executor is the name and kind of the resource responsible for executing this BuildRun.
+	//
+	// +optional
+	Executor *BuildExecutor `json:"executor,omitempty"`
 
 	// StartTime is the time the build is actually started.
 	// +optional
@@ -448,4 +466,12 @@ func (buildrunSpec *BuildRunSpec) BuildName() string {
 
 	// Only BuildRuns with a ReferencedBuild can actually return a proper Build name
 	return ""
+}
+
+// BuildExecutor defines the name and kind of the build runner.
+type BuildExecutor struct {
+	// Name is the name of the TaskRun or PipelineRun that was created to execute this BuildRun
+	Name string `json:"name"`
+	// Kind is the kind of the object that was created to execute the BuildRun (e.g., "TaskRun", "PipelineRun")
+	Kind string `json:"kind"`
 }

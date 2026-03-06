@@ -27,6 +27,7 @@ const (
 	// SpecOutputSecretRefNotFound indicates the referenced secret in output is missing
 	SpecOutputSecretRefNotFound BuildReason = "SpecOutputSecretRefNotFound"
 	// SpecBuilderSecretRefNotFound indicates the referenced secret in builder is missing
+	// #nosec G101 no hard-coded credentials
 	SpecBuilderSecretRefNotFound BuildReason = "SpecBuilderSecretRefNotFound"
 	// MultipleSecretRefNotFound indicates that multiple secrets are missing
 	MultipleSecretRefNotFound BuildReason = "MultipleSecretRefNotFound"
@@ -205,7 +206,7 @@ type BuildVolume struct {
 	Description *string `json:"description,omitempty"`
 
 	// Represents the source of a volume to mount
-	// +required
+	// +optional
 	corev1.VolumeSource `json:",inline"`
 }
 

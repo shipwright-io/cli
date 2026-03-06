@@ -66,6 +66,7 @@ const (
 	controllerBuildRunMaxConcurrentReconciles             = "BUILDRUN_MAX_CONCURRENT_RECONCILES"
 	controllerBuildStrategyMaxConcurrentReconciles        = "BUILDSTRATEGY_MAX_CONCURRENT_RECONCILES"
 	controllerClusterBuildStrategyMaxConcurrentReconciles = "CLUSTERBUILDSTRATEGY_MAX_CONCURRENT_RECONCILES"
+	controllerBuildrunExecutorEnvVar                      = "BUILDRUN_EXECUTOR"
 
 	// environment variables for the kube API
 	kubeAPIBurst = "KUBE_API_BURST"
@@ -107,6 +108,7 @@ type Config struct {
 	KubeAPIOptions                   KubeAPIOptions
 	GitRewriteRule                   bool
 	VulnerabilityCountLimit          int
+	BuildrunExecutor                 string
 }
 
 // PrometheusConfig contains the specific configuration for the
@@ -163,6 +165,7 @@ func NewDefaultConfig() *Config {
 		TerminationLogPath:            terminationLogPathDefault,
 		GitRewriteRule:                false,
 		VulnerabilityCountLimit:       50,
+		BuildrunExecutor:              "TaskRun",
 
 		GitContainerTemplate: Step{
 			Image: gitDefaultImage,
@@ -187,8 +190,9 @@ func NewDefaultConfig() *Config {
 						"ALL",
 					},
 				},
-				RunAsUser:  nonRoot,
-				RunAsGroup: nonRoot,
+				RunAsUser:              nonRoot,
+				RunAsGroup:             nonRoot,
+				ReadOnlyRootFilesystem: ptr.To(true),
 			},
 		},
 
@@ -215,8 +219,9 @@ func NewDefaultConfig() *Config {
 						"ALL",
 					},
 				},
-				RunAsUser:  nonRoot,
-				RunAsGroup: nonRoot,
+				RunAsUser:              nonRoot,
+				RunAsGroup:             nonRoot,
+				ReadOnlyRootFilesystem: ptr.To(true),
 			},
 		},
 
@@ -241,6 +246,7 @@ func NewDefaultConfig() *Config {
 				AllowPrivilegeEscalation: ptr.To(false),
 				RunAsUser:                root,
 				RunAsGroup:               root,
+				ReadOnlyRootFilesystem:   ptr.To(true),
 				Capabilities: &corev1.Capabilities{
 					Add: []corev1.Capability{
 						"DAC_OVERRIDE",
@@ -259,6 +265,7 @@ func NewDefaultConfig() *Config {
 			},
 			Args: []string{
 				"start",
+				"--lock-file=/shp-tmp/waiter.lock", // Sets lock file path to the generated tmp volume to prevent it from using its own filesystem.
 			},
 			// This directory is created in the base image as writable for everybody
 			Env: []corev1.EnvVar{
@@ -274,8 +281,9 @@ func NewDefaultConfig() *Config {
 						"ALL",
 					},
 				},
-				RunAsUser:  nonRoot,
-				RunAsGroup: nonRoot,
+				RunAsUser:              nonRoot,
+				RunAsGroup:             nonRoot,
+				ReadOnlyRootFilesystem: ptr.To(true),
 			},
 		},
 
@@ -359,6 +367,11 @@ func (c *Config) SetConfigFromEnv() error {
 			return err
 		}
 		c.VulnerabilityCountLimit = vc
+	}
+
+	// set environment variable for executor type
+	if executor := os.Getenv(controllerBuildrunExecutorEnvVar); executor != "" {
+		c.BuildrunExecutor = executor
 	}
 
 	// Mark that the Git wrapper is suppose to use Git rewrite rule
