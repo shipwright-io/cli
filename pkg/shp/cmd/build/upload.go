@@ -2,7 +2,6 @@ package build // nolint:revive
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"time"
@@ -38,8 +37,9 @@ type UploadCommand struct {
 
 	sourceBundleImage string // image to be used as the source bundle
 
-	pw       *reactor.PodWatcher // pod-watcher instance
-	follower *follower.Follower  // follower instance
+	ioStreams *genericclioptions.IOStreams // io streams for user-facing output
+	pw        *reactor.PodWatcher        // pod-watcher instance
+	follower  *follower.Follower         // follower instance
 }
 
 const (
@@ -100,7 +100,9 @@ func (u *UploadCommand) extractArgs(args []string) error {
 }
 
 // Complete instantiate the dependencies for the log following and the data streaming.
-func (u *UploadCommand) Complete(p *params.Params, _ *genericclioptions.IOStreams, args []string) error {
+func (u *UploadCommand) Complete(p *params.Params, ioStreams *genericclioptions.IOStreams, args []string) error {
+	u.ioStreams = ioStreams
+
 	// extracting the command-line arguments to store the build-name and the path to the directory
 	// to be uploaded, in subsequent steps
 	if err := u.extractArgs(args); err != nil {
@@ -186,7 +188,7 @@ func (u *UploadCommand) createBuildRun(p *params.Params) (*buildv1beta1.BuildRun
 	flags.SanitizeBuildRunSpec(&br.Spec)
 
 	ns := p.Namespace()
-	log.Printf("Creating a BuildRun for '%s/%s' Build...", ns, u.buildRefName)
+	fmt.Fprintf(u.ioStreams.Out, "Creating a BuildRun for '%s/%s' Build...\n", ns, u.buildRefName)
 	clientset, err := p.ShipwrightClientSet()
 	if err != nil {
 		return nil, err
@@ -197,7 +199,7 @@ func (u *UploadCommand) createBuildRun(p *params.Params) (*buildv1beta1.BuildRun
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("BuildRun '%s' created!", br.GetName())
+	fmt.Fprintf(u.ioStreams.Out, "BuildRun '%s' created!\n", br.GetName())
 	return br, nil
 }
 
@@ -207,7 +209,7 @@ func (u *UploadCommand) performDataStreaming(target *streamer.Target) error {
 		return nil
 	}
 
-	fmt.Fprintf(os.Stdout, "Streaming %q to the Build POD %q ...\n", u.sourceDir, target.Pod)
+	fmt.Fprintf(u.ioStreams.Out, "Streaming %q to the Build POD %q ...\n", u.sourceDir, target.Pod)
 	// creates an in-memory tarball with source directory data, and ready to start data streaming
 	tarball, err := streamer.NewTar(u.sourceDir)
 	if err != nil {
