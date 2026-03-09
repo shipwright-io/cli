@@ -40,7 +40,7 @@ func (c *DeleteCommand) Complete(_ *params.Params, _ *genericclioptions.IOStream
 func (c *DeleteCommand) Validate() error { return nil }
 
 // Run executes delete sub-command logic
-func (c *DeleteCommand) Run(p *params.Params, io *genericclioptions.IOStreams) error {
+func (c *DeleteCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStreams) error {
 	cs, err := p.ShipwrightClientSet()
 	if err != nil {
 		return err
@@ -50,6 +50,6 @@ func (c *DeleteCommand) Run(p *params.Params, io *genericclioptions.IOStreams) e
 		Delete(c.cmd.Context(), c.name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
-	fmt.Fprintf(io.Out, "ClusterBuildStrategy deleted '%s'\n", c.name)
+	fmt.Fprintf(ioStreams.Out, "ClusterBuildStrategy deleted '%s'\n", c.name)
 	return nil
 }

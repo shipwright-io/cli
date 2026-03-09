@@ -47,8 +47,8 @@ func (c *ListCommand) Validate() error {
 }
 
 // Run executes list sub-command logic
-func (c *ListCommand) Run(p *params.Params, io *genericclioptions.IOStreams) error {
-	w := tabwriter.NewWriter(io.Out, 0, 8, 2, '\t', 0)
+func (c *ListCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStreams) error {
+	w := tabwriter.NewWriter(ioStreams.Out, 0, 8, 2, '\t', 0)
 	if !c.noHeader {
 		fmt.Fprintln(w, "NAME\tAGE")
 	}
@@ -62,7 +62,7 @@ func (c *ListCommand) Run(p *params.Params, io *genericclioptions.IOStreams) err
 		return err
 	}
 	if len(list.Items) == 0 {
-		fmt.Fprintln(io.Out, "No ClusterBuildStrategies found.")
+		fmt.Fprintln(ioStreams.Out, "No ClusterBuildStrategies found.")
 		return nil
 	}
 
