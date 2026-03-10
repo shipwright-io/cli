@@ -56,7 +56,7 @@ func (c *CreateCommand) Validate() error {
 }
 
 // Run executes the creation of a new Build instance using flags to fill up the details.
-func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
+func (c *CreateCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
 	b := &buildv1beta1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: c.name,
@@ -75,7 +75,7 @@ func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 
 		// print warning with regards to source bundle image being used
 		if b.Spec.Source.OCIArtifact != nil && b.Spec.Source.OCIArtifact.Image != "" {
-			fmt.Fprintf(io.Out, "Build %q uses a source bundle image, which means source code will be transferred to a container registry. It is advised to use private images to ensure the security of the source code being uploaded.\n", c.name)
+			fmt.Fprintf(ioStreams.Out, "Build %q uses a source bundle image, which means source code will be transferred to a container registry. It is advised to use private images to ensure the security of the source code being uploaded.\n", c.name)
 		}
 	}
 
@@ -106,7 +106,7 @@ func (c *CreateCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 	if _, err := clientset.ShipwrightV1beta1().Builds(params.Namespace()).Create(c.cmd.Context(), b, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	fmt.Fprintf(io.Out, "Created build %q\n", c.name)
+	fmt.Fprintf(ioStreams.Out, "Created build %q\n", c.name)
 	return nil
 }
 

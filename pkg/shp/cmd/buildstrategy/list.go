@@ -2,7 +2,6 @@ package buildstrategy
 
 import (
 	"fmt"
-	"os"
 	"text/tabwriter"
 	"time"
 
@@ -49,8 +48,8 @@ func (c *ListCommand) Validate() error {
 }
 
 // Run executes list sub-command logic
-func (c *ListCommand) Run(p *params.Params, io *genericclioptions.IOStreams) error {
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, '\t', 0)
+func (c *ListCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStreams) error {
+	w := tabwriter.NewWriter(ioStreams.Out, 0, 8, 2, '\t', 0)
 	if !c.noHeader {
 		fmt.Fprintln(w, "NAME\tAGE")
 	}
@@ -67,7 +66,7 @@ func (c *ListCommand) Run(p *params.Params, io *genericclioptions.IOStreams) err
 	ns := p.Namespace()
 	if _, err = k8s.CoreV1().Namespaces().Get(c.cmd.Context(), ns, metav1.GetOptions{}); err != nil {
 		if k8serrors.IsNotFound(err) {
-			fmt.Fprintf(io.Out, "Namespace '%s' not found.\n", ns)
+			fmt.Fprintf(ioStreams.Out, "Namespace '%s' not found.\n", ns)
 			return nil
 		}
 		return err
@@ -78,7 +77,7 @@ func (c *ListCommand) Run(p *params.Params, io *genericclioptions.IOStreams) err
 		return err
 	}
 	if len(list.Items) == 0 {
-		fmt.Fprintf(io.Out, "No BuildStrategies found in namespace '%s'.\n", ns)
+		fmt.Fprintf(ioStreams.Out, "No BuildStrategies found in namespace '%s'.\n", ns)
 		return nil
 	}
 

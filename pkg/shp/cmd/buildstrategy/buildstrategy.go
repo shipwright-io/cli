@@ -9,7 +9,7 @@ import (
 )
 
 // Command represents "shp buildstrategy".
-func Command(p *params.Params, io *genericclioptions.IOStreams) *cobra.Command {
+func Command(p *params.Params, ioStreams *genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "buildstrategy",
 		Aliases: []string{"bs"},
@@ -20,8 +20,8 @@ func Command(p *params.Params, io *genericclioptions.IOStreams) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		runner.NewRunner(p, io, listCmd()).Cmd(),
-		runner.NewRunner(p, io, deleteCmd()).Cmd(),
+		runner.NewRunner(p, ioStreams, listCmd()).Cmd(),
+		runner.NewRunner(p, ioStreams, deleteCmd()).Cmd(),
 	)
 
 	return cmd

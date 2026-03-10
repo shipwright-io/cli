@@ -53,7 +53,7 @@ func (c *DeleteCommand) Validate() error {
 }
 
 // Run contains main logic of delete subcommand
-func (c *DeleteCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
+func (c *DeleteCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
 	clientset, err := params.ShipwrightClientSet()
 	if err != nil {
 		return err
@@ -72,12 +72,12 @@ func (c *DeleteCommand) Run(params *params.Params, io *genericclioptions.IOStrea
 
 		for _, buildrun := range brList.Items {
 			if err := clientset.ShipwrightV1beta1().BuildRuns(params.Namespace()).Delete(c.cmd.Context(), buildrun.Name, v1.DeleteOptions{}); err != nil {
-				fmt.Fprintf(io.ErrOut, "Error deleting BuildRun %q: %v\n", buildrun.Name, err)
+				fmt.Fprintf(ioStreams.ErrOut, "Error deleting BuildRun %q: %v\n", buildrun.Name, err)
 			}
 		}
 	}
 
-	fmt.Fprintf(io.Out, "Build deleted %q\n", c.name)
+	fmt.Fprintf(ioStreams.Out, "Build deleted %q\n", c.name)
 
 	return nil
 }

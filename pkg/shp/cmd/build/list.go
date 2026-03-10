@@ -50,12 +50,12 @@ func (c *ListCommand) Validate() error {
 }
 
 // Run contains main logic of List subcommand of Build
-func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams) error {
+func (c *ListCommand) Run(params *params.Params, ioStreams *genericclioptions.IOStreams) error {
 	// TODO: Support multiple output formats here, not only tabwriter
 	//       find out more in kubectl libraries and use them
 
 	// Initialize tabwriter for command output
-	writer := tabwriter.NewWriter(io.Out, 0, 8, 2, '\t', 0)
+	writer := tabwriter.NewWriter(ioStreams.Out, 0, 8, 2, '\t', 0)
 	columnNames := "NAME\tOUTPUT\tSTATUS"
 	columnTemplate := "%s\t%s\t%s\n"
 
@@ -72,7 +72,7 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 	_, err = k8sclient.CoreV1().Namespaces().Get(c.cmd.Context(), params.Namespace(), metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			fmt.Fprintf(io.Out, "Namespace '%s' not found. Please ensure that the namespace exists and try again.\n", params.Namespace())
+			fmt.Fprintf(ioStreams.Out, "Namespace '%s' not found. Please ensure that the namespace exists and try again.\n", params.Namespace())
 			return nil
 		}
 		return err
@@ -82,7 +82,7 @@ func (c *ListCommand) Run(params *params.Params, io *genericclioptions.IOStreams
 		return err
 	}
 	if len(buildList.Items) == 0 {
-		fmt.Fprintf(io.Out, "No builds found in namespace '%s'. Please create a build or verify the namespace.\n", params.Namespace())
+		fmt.Fprintf(ioStreams.Out, "No builds found in namespace '%s'. Please create a build or verify the namespace.\n", params.Namespace())
 		return nil
 	}
 

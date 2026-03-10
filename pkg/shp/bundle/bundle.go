@@ -46,7 +46,7 @@ func GetSourceBundleImage(ctx context.Context, client buildclientset.Interface, 
 // it to the given registry. For this to work, it relies on valid and working
 // container registry access credentials and tokens to be available in the
 // local system, for example logins done by `docker login` or similar.
-func Push(ctx context.Context, io *genericclioptions.IOStreams, localDirectory string, targetImage string) (name.Digest, error) {
+func Push(ctx context.Context, ioStreams *genericclioptions.IOStreams, localDirectory string, targetImage string) (name.Digest, error) {
 	tag, err := name.NewTag(targetImage)
 	if err != nil {
 		return name.Digest{}, err
@@ -80,7 +80,7 @@ func Push(ctx context.Context, io *genericclioptions.IOStreams, localDirectory s
 
 				if progress == nil {
 					progress = progressbar.NewOptions(int(update.Total),
-						progressbar.OptionSetWriter(io.ErrOut),
+						progressbar.OptionSetWriter(ioStreams.ErrOut),
 						progressbar.OptionEnableColorCodes(true),
 						progressbar.OptionShowBytes(true),
 						progressbar.OptionSetWidth(15),
@@ -93,7 +93,7 @@ func Push(ctx context.Context, io *genericclioptions.IOStreams, localDirectory s
 							BarStart:      "[",
 							BarEnd:        "]"}),
 						progressbar.OptionOnCompletion(func() {
-							fmt.Fprintln(io.Out)
+							fmt.Fprintln(ioStreams.Out)
 						}),
 					)
 					defer progress.Close()
@@ -108,7 +108,7 @@ func Push(ctx context.Context, io *genericclioptions.IOStreams, localDirectory s
 		}
 	}()
 
-	fmt.Fprintf(io.Out, "Bundling %q as %q ...\n", localDirectory, targetImage)
+	fmt.Fprintf(ioStreams.Out, "Bundling %q as %q ...\n", localDirectory, targetImage)
 	digest, err := buildbundle.PackAndPush(
 		tag,
 		localDirectory,
