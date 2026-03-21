@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubectl/pkg/scheme"
 
@@ -44,6 +45,7 @@ var hiddenKubeFlags = []string{
 type Params struct {
 	clientset      kubernetes.Interface     // kubernetes api-client, global instance
 	buildClientset buildclientset.Interface // shipwright api-client, global instance
+	dynamicClient  dynamic.Interface
 	pw             *reactor.PodWatcher      // pod-watcher global instance
 	follower       *follower.Follower       // follower global instance
 
@@ -140,6 +142,25 @@ func (p *Params) ShipwrightClientSet() (buildclientset.Interface, error) {
 	return p.buildClientset, nil
 }
 
+// dynamic clientset to get tekton objects
+func (p *Params) DynamicClientSet() (dynamic.Interface, error) {
+	if p.dynamicClient != nil {
+		return p.dynamicClient, nil
+	}
+
+	restConfig, err := p.RESTConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	p.dynamicClient, err = dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.dynamicClient, nil
+}
+
 // Namespace returns kubernetes namespace with all the overrides
 // from command line and kubernetes config
 func (p *Params) Namespace() string {
@@ -211,6 +232,13 @@ func WithConfigFlags(configFlags *genericclioptions.ConfigFlags) Options {
 	}
 }
 
+// WithDynamicClient updates the shp CLI to use the provided dynamic client
+func WithDynamicClient(dynamicClient dynamic.Interface) Options {
+	return func(p *Params) {
+		p.dynamicClient = dynamicClient
+	}
+}
+
 // WithNamespace updates the shp CLI to use the provided namespace
 func WithNamespace(namespace string) Options {
 	return func(p *Params) {
@@ -235,6 +263,7 @@ func NewParams(options ...Options) *Params {
 // NewParamsForTest creates an instance of Params for testing purpose
 func NewParamsForTest(clientset kubernetes.Interface,
 	shpClientset buildclientset.Interface,
+	dynamicClient dynamic.Interface,
 	configFlags *genericclioptions.ConfigFlags,
 	namespace string,
 	failPollInterval *time.Duration,
@@ -244,6 +273,7 @@ func NewParamsForTest(clientset kubernetes.Interface,
 	return &Params{
 		clientset:        clientset,
 		buildClientset:   shpClientset,
+		dynamicClient:    dynamicClient,
 		configFlags:      configFlags,
 		namespace:        namespace,
 		failPollInterval: failPollInterval,
