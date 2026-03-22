@@ -142,7 +142,7 @@ func (p *Params) ShipwrightClientSet() (buildclientset.Interface, error) {
 	return p.buildClientset, nil
 }
 
-// dynamic clientset to get tekton objects
+// DynamicClientSet to get tekton objects
 func (p *Params) DynamicClientSet() (dynamic.Interface, error) {
 	if p.dynamicClient != nil {
 		return p.dynamicClient, nil
