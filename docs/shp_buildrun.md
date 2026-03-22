@@ -26,6 +26,7 @@ shp buildrun [flags]
 * [shp buildrun cancel](shp_buildrun_cancel.md)	 - Cancel BuildRun
 * [shp buildrun create](shp_buildrun_create.md)	 - Creates a BuildRun instance.
 * [shp buildrun delete](shp_buildrun_delete.md)	 - Delete BuildRun
+* [shp buildrun gather](shp_buildrun_gather.md)	 - Gather BuildRun diagnostics into a single directory or archive.
 * [shp buildrun list](shp_buildrun_list.md)	 - List Builds
 * [shp buildrun logs](shp_buildrun_logs.md)	 - See BuildRun log output
 
