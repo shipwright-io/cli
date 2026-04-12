@@ -17,7 +17,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
 
@@ -104,6 +106,9 @@ func (c *GatherCommand) Validate() error {
 	if c.name == "" {
 		return fmt.Errorf("buildrun name is required")
 	}
+	if errs := validation.IsDNS1123Subdomain(c.name); len(errs) > 0 {
+		return fmt.Errorf("invalid buildrun name %q: %v", c.name, errs)
+	}
 	if c.outputDir == "" {
 		return fmt.Errorf("output directory cannot be empty")
 	}
@@ -146,16 +151,21 @@ func (c *GatherCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStr
 
 	executorKind, executorName := executorForBuildRun(buildRun)
 
+	dynamicClient, err := p.DynamicClientSet()
+	if err != nil {
+		return err
+	}
+
 	switch executorKind {
 	case "":
 		fmt.Fprintf(ioStreams.ErrOut, "warning: BuildRun %q does not reference an executor yet\n", c.name)
 	case "TaskRun":
-		err := c.gatherTaskRunExecutor(ctx, p, ioStreams, namespace, targetDir, executorName, kubeClient)
+		err := c.gatherTaskRunExecutor(ctx, dynamicClient, ioStreams, namespace, targetDir, executorName, kubeClient)
 		if err != nil {
 			return err
 		}
 	case "PipelineRun":
-		err := c.gatherPipelineRunExecutor(ctx, p, ioStreams, namespace, targetDir, executorName, kubeClient)
+		err := c.gatherPipelineRunExecutor(ctx, dynamicClient, ioStreams, namespace, targetDir, executorName, kubeClient)
 		if err != nil {
 			return err
 		}
@@ -183,18 +193,13 @@ func (c *GatherCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStr
 
 func (c *GatherCommand) gatherTaskRunExecutor(
 	ctx context.Context,
-	p *params.Params,
+	dynamicClient dynamic.Interface,
 	ioStreams *genericclioptions.IOStreams,
 	namespace string,
 	targetDir string,
 	executorName string,
 	kubeClient kubernetes.Interface,
 ) error {
-
-	dynamicClient, err := p.DynamicClientSet()
-	if err != nil {
-		return err
-	}
 
 	taskRunObj, err := dynamicClient.Resource(taskRunGVR).Namespace(namespace).Get(ctx, executorName, metav1.GetOptions{})
 	var podName string
@@ -205,9 +210,7 @@ func (c *GatherCommand) gatherTaskRunExecutor(
 		if err = writeYAMLFile(filepath.Join(targetDir, "taskrun.yaml"), taskRunObj.Object); err != nil {
 			return err
 		}
-		if name, found, nestedErr := unstructured.NestedString(taskRunObj.Object, "status", "podName"); nestedErr == nil && found {
-			podName = name
-		}
+		podName = getPodName(taskRunObj)
 	case k8serrors.IsNotFound(err):
 		fmt.Fprintf(ioStreams.ErrOut, "warning: TaskRun %q referenced by BuildRun %q was not found\n", executorName, c.name)
 		return nil
@@ -227,21 +230,8 @@ func (c *GatherCommand) gatherTaskRunExecutor(
 			return err
 		}
 
-		for _, container := range append(pod.Spec.InitContainers, pod.Spec.Containers...) {
-			logText, err := shputil.GetPodLogs(ctx, kubeClient, *pod, container.Name)
-			if err != nil {
-				fmt.Fprintf(ioStreams.ErrOut, "warning: could not fetch logs for Pod %q container %q: %s\n",
-					pod.Name,
-					container.Name,
-					err.Error(),
-				)
-				continue
-			}
-
-			logPath := filepath.Join(logsDir, fmt.Sprintf("%s.log", container.Name))
-			if err := os.WriteFile(logPath, []byte(logText), 0o600); err != nil {
-				return fmt.Errorf("failed to write logs %w", err)
-			}
+		if err := writePodLogs(ctx, kubeClient, ioStreams, pod, logsDir); err != nil {
+			return err
 		}
 	}
 
@@ -250,17 +240,13 @@ func (c *GatherCommand) gatherTaskRunExecutor(
 
 func (c *GatherCommand) gatherPipelineRunExecutor(
 	ctx context.Context,
-	p *params.Params,
+	dynamicClient dynamic.Interface,
 	ioStreams *genericclioptions.IOStreams,
 	namespace string,
 	targetDir string,
 	executorName string,
 	kubeClient kubernetes.Interface,
 ) error {
-	dynamicClient, err := p.DynamicClientSet()
-	if err != nil {
-		return err
-	}
 
 	pipelineRunObj, err := dynamicClient.Resource(pipelineRunGVR).Namespace(namespace).Get(ctx, executorName, metav1.GetOptions{})
 	if err != nil {
@@ -300,13 +286,7 @@ func (c *GatherCommand) gatherPipelineRunExecutor(
 			return err
 		}
 
-		podName, found, nestedErr := unstructured.NestedString(taskRun.Object, "status", "podName")
-		if nestedErr != nil {
-			return fmt.Errorf("failed to inspect status.podName for TaskRun %q: %w", taskRunName, nestedErr)
-		}
-		if !found {
-			podName = ""
-		}
+		podName := getPodName(&taskRun)
 
 		pod, err := resolvePodForTaskRun(ctx, kubeClient, namespace, taskRunName, podName)
 		if err != nil {
@@ -324,25 +304,8 @@ func (c *GatherCommand) gatherPipelineRunExecutor(
 		}
 
 		taskRunLogsDir := filepath.Join(logsDir, taskRunName)
-		if err := os.MkdirAll(taskRunLogsDir, 0o750); err != nil {
+		if err := writePodLogs(ctx, kubeClient, ioStreams, pod, taskRunLogsDir); err != nil {
 			return err
-		}
-
-		for _, container := range append(pod.Spec.InitContainers, pod.Spec.Containers...) {
-			logText, err := shputil.GetPodLogs(ctx, kubeClient, *pod, container.Name)
-			if err != nil {
-				fmt.Fprintf(ioStreams.ErrOut, "warning: could not fetch logs for Pod %q container %q: %s\n",
-					pod.Name,
-					container.Name,
-					err.Error(),
-				)
-				continue
-			}
-
-			logPath := filepath.Join(taskRunLogsDir, fmt.Sprintf("%s.log", container.Name))
-			if err := os.WriteFile(logPath, []byte(logText), 0o600); err != nil {
-				return fmt.Errorf("failed to write logs %w", err)
-			}
 		}
 	}
 	return nil
@@ -351,11 +314,11 @@ func (c *GatherCommand) gatherPipelineRunExecutor(
 func resolvePodForTaskRun(ctx context.Context, client kubernetes.Interface, namespace string, taskRunName string, podName string) (*corev1.Pod, error) {
 	if podName != "" {
 		pod, err := client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
-		switch {
-		case err == nil:
+		if err == nil {
 			return pod, nil
-		case k8serrors.IsNotFound(err):
-		default:
+		}
+		// Not Found error is intentionally ignored to fallback to another way of finding the pod.
+		if !k8serrors.IsNotFound(err) {
 			return nil, err
 		}
 	}
@@ -403,24 +366,28 @@ func writeYAMLFile(path string, object any) error {
 	return os.WriteFile(path, data, 0o600)
 }
 
-func createTargz(sourceDir, archivePath string) error {
+func createTargz(sourceDir, archivePath string) (err error) {
 	// #nosec G304 -- create the file in path provided by the user
 	file, err := os.Create(archivePath)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+
+	// Delete the partially written archive if something goes wrong.
+	defer func() {
+		if err != nil {
+			_ = file.Close()
+			_ = os.Remove(archivePath)
+		}
+	}()
 
 	gzipWriter := gzip.NewWriter(file)
-	defer gzipWriter.Close()
-
 	tarWriter := tar.NewWriter(gzipWriter)
-	defer tarWriter.Close()
 
 	rootFS := os.DirFS(sourceDir)
 
 	// use sourceDir as the root to prevent TOCTOU problems
-	return fs.WalkDir(rootFS, ".", func(path string, d fs.DirEntry, walkErr error) error {
+	err = fs.WalkDir(rootFS, ".", func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
@@ -467,4 +434,46 @@ func createTargz(sourceDir, archivePath string) error {
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	if err = tarWriter.Close(); err != nil {
+		return err
+	}
+	if err = gzipWriter.Close(); err != nil {
+		return err
+	}
+	return file.Close()
+}
+
+func writePodLogs(ctx context.Context, kubeClient kubernetes.Interface, ioStreams *genericclioptions.IOStreams, pod *corev1.Pod, logsDir string) error {
+	if err := os.MkdirAll(logsDir, 0o750); err != nil {
+		return err
+	}
+	for _, container := range append(pod.Spec.InitContainers, pod.Spec.Containers...) {
+		logText, err := shputil.GetPodLogs(ctx, kubeClient, *pod, container.Name)
+		if err != nil {
+			fmt.Fprintf(ioStreams.ErrOut, "warning: could not fetch logs for Pod %q container %q: %s\n",
+				pod.Name,
+				container.Name,
+				err.Error(),
+			)
+			continue
+		}
+
+		logPath := filepath.Join(logsDir, fmt.Sprintf("%s.log", container.Name))
+		if err := os.WriteFile(logPath, []byte(logText), 0o600); err != nil {
+			return fmt.Errorf("failed to write logs: %w", err)
+		}
+	}
+	return nil
+}
+
+func getPodName(obj *unstructured.Unstructured) string {
+	if obj == nil {
+		return ""
+	}
+	podName, _, _ := unstructured.NestedString(obj.Object, "status", "podName")
+	return podName
 }
