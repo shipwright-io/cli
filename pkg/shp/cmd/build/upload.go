@@ -56,8 +56,8 @@ In case a source bundle image is defined, the bundling feature is used, which wi
 source code into a bundle container and upload it to the specified container registry. Instead of
 executing using Git in the source step, it will use the container registry to obtain the source code.
 
-	$ shp buildrun upload <build-name>
-	$ shp buildrun upload <build-name> /path/to/repository
+	$ shp build upload <build-name>
+	$ shp build upload <build-name> /path/to/repository
 `
 
 	// targetBaseDir directory where data will be uploaded.
@@ -211,7 +211,7 @@ func (u *UploadCommand) performDataStreaming(target *streamer.Target) error {
 
 	fmt.Fprintf(u.ioStreams.Out, "Streaming %q to the Build POD %q ...\n", u.sourceDir, target.Pod)
 	// creates an in-memory tarball with source directory data, and ready to start data streaming
-	tarball, err := streamer.NewTar(u.sourceDir)
+	tarball, err := streamer.NewTar(u.sourceDir, u.ioStreams)
 	if err != nil {
 		return err
 	}
