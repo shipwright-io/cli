@@ -149,7 +149,7 @@ func TestStartBuildRunFollowLog(t *testing.T) {
 			pm.Timeout = &tests[i].to
 		}
 		failureDuration := 1 * time.Millisecond
-		param := params.NewParamsForTest(kclientset, shpclientset, pm, metav1.NamespaceDefault, &failureDuration, &failureDuration)
+		param := params.NewParamsForTest(kclientset, shpclientset, nil, pm, metav1.NamespaceDefault, &failureDuration, &failureDuration)
 
 		ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
 
