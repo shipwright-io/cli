@@ -1,6 +1,9 @@
 .vscode/
+.idea/
 _output/
 /shp
 /shp-*
 /bin/*
 dist/
+coverage.out
+cover.out
