@@ -21,6 +21,11 @@ func Test_Streamer(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 			Name:      podName,
 		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "container"},
+			},
+		},
 	})
 
 	restConfig := f.RESTConfig()
