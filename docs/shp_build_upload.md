@@ -17,8 +17,8 @@ In case a source bundle image is defined, the bundling feature is used, which wi
 source code into a bundle container and upload it to the specified container registry. Instead of
 executing using Git in the source step, it will use the container registry to obtain the source code.
 
-	$ shp buildrun upload <build-name>
-	$ shp buildrun upload <build-name> /path/to/repository
+	$ shp build upload <build-name>
+	$ shp build upload <build-name> /path/to/repository
 
 
 ```

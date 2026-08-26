@@ -10,18 +10,20 @@ import (
 	"strings"
 
 	ignore "github.com/sabhiram/go-gitignore"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // Tar helper to create a tar instance based on a source directory, skipping entries that are not
 // desired like `.git` directory and entries in `.gitignore` file.
 type Tar struct {
-	src       string            // base directory
-	gitIgnore *ignore.GitIgnore // matcher for git ignored files
+	src       string                       // base directory
+	gitIgnore *ignore.GitIgnore            // matcher for git ignored files
+	ioStreams *genericclioptions.IOStreams // io streams for user-facing output
 }
 
 // skipPath inspect each path and makes sure it skips files the tar helper can't handle.
 func (t *Tar) skipPath(fpath string, stat fs.FileInfo) bool {
-	if !stat.Mode().IsRegular() {
+	if !stat.Mode().IsRegular() && stat.Mode()&fs.ModeSymlink == 0 {
 		return true
 	}
 	if strings.HasPrefix(fpath, path.Join(t.src, ".git")) {
@@ -43,7 +45,7 @@ func (t *Tar) Create(w io.Writer) error {
 		if t.skipPath(fpath, stat) {
 			return nil
 		}
-		return writeFileToTar(tw, t.src, fpath, stat)
+		return writeFileToTar(tw, t, fpath, stat)
 	}); err != nil {
 		return err
 	}
@@ -63,8 +65,8 @@ func (t *Tar) bootstrap() error {
 }
 
 // NewTar instantiate a tar helper based on the source directory path informed.
-func NewTar(src string) (*Tar, error) {
-	t := &Tar{src: src}
+func NewTar(src string, ioStreams *genericclioptions.IOStreams) (*Tar, error) {
+	t := &Tar{src: src, ioStreams: ioStreams}
 	return t, t.bootstrap()
 }
 
