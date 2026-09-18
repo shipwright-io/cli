@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -35,6 +34,9 @@ func (c *GetCommand) Validate() error {
 	if c.name == "" {
 		return fmt.Errorf("name must be provided")
 	}
+	if c.output != "" && c.output != "json" && c.output != "yaml" {
+		return fmt.Errorf("unsupported output format %q. Supported formats are: json, yaml", c.output)
+	}
 	return nil
 }
 
@@ -47,33 +49,29 @@ func (c *GetCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	ns := params.Namespace()
 	build, err := clientset.ShipwrightV1beta1().Builds(ns).Get(c.cmd.Context(), c.name, metav1.GetOptions{})
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			fmt.Fprintf(ioStreams.Out, "Build '%s' not found in namespace '%s'.\n", c.name, ns)
-			return nil
-		}
-		return err
+		return fmt.Errorf("failed to get build %q in namespace %q: %w", c.name, ns, err)
 	}
 
 	switch c.output {
 	case "json":
-		data, err := json.MarshalIndent(build, "", " ");
+		data, err := json.MarshalIndent(build, "", "  ")
 		if err != nil {
 			return err
 		}
 		fmt.Fprintln(ioStreams.Out, string(data))
 		return nil
 	case "yaml":
-		data, err := yaml.Marshal(build);
+		data, err := yaml.Marshal(build)
 		if err != nil {
-			return err;
+			return err
 		}
 		fmt.Fprintln(ioStreams.Out, string(data))
 		return nil
 	case "":
-		w := tabwriter.NewWriter(ioStreams.Out, 0, 8, 2, '\t', 0);
+		w := tabwriter.NewWriter(ioStreams.Out, 0, 8, 2, '\t', 0)
 		fmt.Fprintf(w, "NAME:\t%s\n", build.Name)
 		fmt.Fprintf(w, "NAMESPACE:\t%s\n", build.Namespace)
-		if build.Spec.Source.Git != nil {
+		if build.Spec.Source != nil && build.Spec.Source.Git != nil {
 			fmt.Fprintf(w, "SOURCE URL:\t%s\n", build.Spec.Source.Git.URL)
 			if build.Spec.Source.Git.Revision != nil {
 				fmt.Fprintf(w, "REVISION:\t%s\n", *build.Spec.Source.Git.Revision)

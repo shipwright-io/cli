@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -38,6 +37,9 @@ func (c *GetCommand) Validate() error {
 	if c.name == "" {
 		return fmt.Errorf("name must be provided")
 	}
+	if c.output != "" && c.output != "json" && c.output != "yaml" {
+		return fmt.Errorf("unsupported output format %q. Supported formats are: json, yaml", c.output)
+	}
 	return nil
 }
 
@@ -50,11 +52,7 @@ func (c *GetCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 	ns := params.Namespace()
 	buildRun, err := clientset.ShipwrightV1beta1().BuildRuns(ns).Get(c.cmd.Context(), c.name, metav1.GetOptions{})
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			fmt.Fprintf(ioStreams.Out, "BuildRun '%s' not found in namespace '%s'.\n", c.name, ns)
-			return nil
-		}
-		return err
+		return fmt.Errorf("failed to get buildrun %q in namespace %q: %w", c.name, ns, err)
 	}
 
 	switch c.output {
@@ -83,10 +81,16 @@ func (c *GetCommand) Run(params *params.Params, ioStreams *genericclioptions.IOS
 		}
 
 		status := "Unknown"
-		for _, condition := range buildRun.Status.Conditions {
-			if condition.Type == buildv1beta1.Succeeded {
-				status = condition.Reason
-				break
+		if buildRun.Status.Conditions != nil {
+			for _, condition := range buildRun.Status.Conditions {
+				if condition.Type == buildv1beta1.Succeeded {
+					if condition.Reason != "" {
+						status = condition.Reason
+					} else {
+						status = string(condition.Status)
+					}
+					break
+				}
 			}
 		}
 		fmt.Fprintf(w, "STATUS:\t%s\n", status)

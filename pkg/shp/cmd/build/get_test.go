@@ -19,7 +19,7 @@ func TestBuildGet_DefaultTable(t *testing.T) {
 	strategyKind := buildv1beta1.ClusterBuildStrategyKind
 	testBuild := &buildv1beta1.Build{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "my-build",
+			Name:      "my-build",
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: buildv1beta1.BuildSpec{
@@ -39,25 +39,29 @@ func TestBuildGet_DefaultTable(t *testing.T) {
 		},
 	}
 
-	shpClientset := shpfake.NewSimpleClientset(testBuild);
-	k8sClientset := kclientsetfake.NewSimpleClientset();
+	shpClientset := shpfake.NewSimpleClientset(testBuild)
+	k8sClientset := kclientsetfake.NewSimpleClientset()
 
 	cmd := getCmd()
-	flags := genericclioptions.NewConfigFlags(true);
-	timeout := 10 * time.Second;
-	p := params.NewParamsForTest(k8sClientset, shpClientset, nil, flags, metav1.NamespaceDefault, &timeout, &timeout);
-	
+	flags := genericclioptions.NewConfigFlags(true)
+	timeout := 10 * time.Second
+	p := params.NewParamsForTest(k8sClientset, shpClientset, nil, flags, metav1.NamespaceDefault, &timeout, &timeout)
+
 	ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
 
 	if err := cmd.Complete(p, &ioStreams, []string{"my-build"}); err != nil {
 		t.Fatalf("unexpected error in Complete: %v", err)
 	}
 
+	if err := cmd.Validate(); err != nil {
+		t.Fatalf("unexpected error in Validate: %v", err)
+	}
+
 	if err := cmd.Run(p, &ioStreams); err != nil {
 		t.Fatalf("unexpected error in Run: %v", err)
 	}
 
-	output := out.String();
+	output := out.String()
 	expectedStrings := []string{
 		"NAME:",
 		"my-build",
@@ -73,8 +77,8 @@ func TestBuildGet_DefaultTable(t *testing.T) {
 		"quay.io/myuser/my-app:latest",
 	}
 
-	for _, expected  := range expectedStrings {
-		if !strings.Contains(output, expected){
+	for _, expected := range expectedStrings {
+		if !strings.Contains(output, expected) {
 			t.Errorf("expected output to contain %q, but got:\n%s", expected, output)
 		}
 	}
@@ -107,9 +111,12 @@ func TestBuildGet_JSON(t *testing.T) {
 		t.Fatalf("unexpected error in Complete: %v", err)
 	}
 
-	// Set output flag to "json"
 	if err := cmd.Cmd().Flags().Set("output", "json"); err != nil {
 		t.Fatalf("failed to set output flag: %v", err)
+	}
+
+	if err := cmd.Validate(); err != nil {
+		t.Fatalf("unexpected error in Validate: %v", err)
 	}
 
 	if err := cmd.Run(p, &ioStreams); err != nil {
@@ -149,9 +156,12 @@ func TestBuildGet_YAML(t *testing.T) {
 		t.Fatalf("unexpected error in Complete: %v", err)
 	}
 
-	// Set output flag to "yaml"
 	if err := cmd.Cmd().Flags().Set("output", "yaml"); err != nil {
 		t.Fatalf("failed to set output flag: %v", err)
+	}
+
+	if err := cmd.Validate(); err != nil {
+		t.Fatalf("unexpected error in Validate: %v", err)
 	}
 
 	if err := cmd.Run(p, &ioStreams); err != nil {
@@ -165,26 +175,25 @@ func TestBuildGet_YAML(t *testing.T) {
 }
 
 func TestBuildGet_NotFound(t *testing.T) {
-	shpClientset := shpfake.NewSimpleClientset();
-	k8sClientSet := kclientsetfake.NewSimpleClientset();
+	shpClientset := shpfake.NewSimpleClientset()
+	k8sClientSet := kclientsetfake.NewSimpleClientset()
 
 	cmd := getCmd()
 	flags := genericclioptions.NewConfigFlags(true)
-	timeout := 10 * time.Second;
-	p := params.NewParamsForTest(k8sClientSet, shpClientset, nil, flags, metav1.NamespaceDefault, &timeout, &timeout);
-	
-	ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
+	timeout := 10 * time.Second
+	p := params.NewParamsForTest(k8sClientSet, shpClientset, nil, flags, metav1.NamespaceDefault, &timeout, &timeout)
+
+	ioStreams, _, _, _ := genericclioptions.NewTestIOStreams()
 
 	if err := cmd.Complete(p, &ioStreams, []string{"nonexistent-build"}); err != nil {
 		t.Fatalf("unexpected error in Complete: %v", err)
 	}
-	if err := cmd.Run(p, &ioStreams); err != nil {
-		t.Fatalf("unexpected error in Run: %v", err)
+	err := cmd.Run(p, &ioStreams)
+	if err == nil {
+		t.Fatalf("expected error for nonexistent build, but got nil")
 	}
-	output := out.String()
-	expectedMsg := "Build 'nonexistent-build' not found in namespace 'default'."
-	if !strings.Contains(output, expectedMsg) {
-		t.Errorf("expected output to contain %q, but got:\n%s", expectedMsg, output)
+	if !strings.Contains(err.Error(), "nonexistent-build") {
+		t.Errorf("expected error message to contain build name, got %v", err)
 	}
 }
 
@@ -205,11 +214,10 @@ func TestBuildGet_InvalidOutput(t *testing.T) {
 	if err := cmd.Complete(p, &ioStreams, []string{"my-build"}); err != nil {
 		t.Fatalf("unexpected error in Complete: %v", err)
 	}
-	// Set invalid output flag
 	if err := cmd.Cmd().Flags().Set("output", "invalid"); err != nil {
 		t.Fatalf("failed to set output flag: %v", err)
 	}
-	err := cmd.Run(p, &ioStreams)
+	err := cmd.Validate()
 	if err == nil {
 		t.Fatalf("expected error for unsupported output format, but got nil")
 	}

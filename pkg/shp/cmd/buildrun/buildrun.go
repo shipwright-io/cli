@@ -20,7 +20,6 @@ func Command(p *params.Params, ioStreams *genericclioptions.IOStreams) *cobra.Co
 		},
 	}
 
-	// TODO: add support for `update` and `get` commands
 	command.AddCommand(
 		runner.NewRunner(p, ioStreams, getCmd()).Cmd(),
 		runner.NewRunner(p, ioStreams, listCmd()).Cmd(),

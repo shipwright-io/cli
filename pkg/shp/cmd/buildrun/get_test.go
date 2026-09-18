@@ -52,6 +52,10 @@ func TestBuildRunGet_DefaultTable(t *testing.T) {
 		t.Fatalf("unexpected error in Complete: %v", err)
 	}
 
+	if err := cmd.Validate(); err != nil {
+		t.Fatalf("unexpected error in Validate: %v", err)
+	}
+
 	if err := cmd.Run(p, &ioStreams); err != nil {
 		t.Fatalf("unexpected error in Run: %v", err)
 	}
@@ -101,6 +105,10 @@ func TestBuildRunGet_JSON(t *testing.T) {
 		t.Fatalf("failed to set output flag: %v", err)
 	}
 
+	if err := cmd.Validate(); err != nil {
+		t.Fatalf("unexpected error in Validate: %v", err)
+	}
+
 	if err := cmd.Run(p, &ioStreams); err != nil {
 		t.Fatalf("unexpected error in Run: %v", err)
 	}
@@ -137,6 +145,10 @@ func TestBuildRunGet_YAML(t *testing.T) {
 		t.Fatalf("failed to set output flag: %v", err)
 	}
 
+	if err := cmd.Validate(); err != nil {
+		t.Fatalf("unexpected error in Validate: %v", err)
+	}
+
 	if err := cmd.Run(p, &ioStreams); err != nil {
 		t.Fatalf("unexpected error in Run: %v", err)
 	}
@@ -156,20 +168,55 @@ func TestBuildRunGet_NotFound(t *testing.T) {
 	timeout := 10 * time.Second
 	p := params.NewParamsForTest(k8sClientset, shpClientset, nil, flags, metav1.NamespaceDefault, &timeout, &timeout)
 
-	ioStreams, _, out, _ := genericclioptions.NewTestIOStreams()
+	ioStreams, _, _, _ := genericclioptions.NewTestIOStreams()
 
 	if err := cmd.Complete(p, &ioStreams, []string{"nonexistent-buildrun"}); err != nil {
 		t.Fatalf("unexpected error in Complete: %v", err)
 	}
 
-	if err := cmd.Run(p, &ioStreams); err != nil {
-		t.Fatalf("unexpected error in Run: %v", err)
+	err := cmd.Run(p, &ioStreams)
+	if err == nil {
+		t.Fatalf("expected error for nonexistent buildrun, but got nil")
 	}
 
-	output := out.String()
-	expectedMsg := "BuildRun 'nonexistent-buildrun' not found in namespace 'default'."
-	if !strings.Contains(output, expectedMsg) {
-		t.Errorf("expected output to contain %q, but got:\n%s", expectedMsg, output)
+	if !strings.Contains(err.Error(), "nonexistent-buildrun") {
+		t.Errorf("expected error message to contain buildrun name, got %v", err)
+	}
+}
+
+func TestBuildRunGet_InvalidOutput(t *testing.T) {
+	testBuildRun := &buildv1beta1.BuildRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-buildrun",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	shpClientset := shpfake.NewSimpleClientset(testBuildRun)
+	k8sClientset := kclientsetfake.NewSimpleClientset()
+
+	cmd := getCmd()
+	flags := genericclioptions.NewConfigFlags(true)
+	timeout := 10 * time.Second
+	p := params.NewParamsForTest(k8sClientset, shpClientset, nil, flags, metav1.NamespaceDefault, &timeout, &timeout)
+
+	ioStreams, _, _, _ := genericclioptions.NewTestIOStreams()
+
+	if err := cmd.Complete(p, &ioStreams, []string{"my-buildrun"}); err != nil {
+		t.Fatalf("unexpected error in Complete: %v", err)
+	}
+
+	if err := cmd.Cmd().Flags().Set("output", "invalid"); err != nil {
+		t.Fatalf("failed to set output flag: %v", err)
+	}
+
+	err := cmd.Validate()
+	if err == nil {
+		t.Fatalf("expected error for unsupported output format, but got nil")
+	}
+
+	expectedErr := `unsupported output format "invalid". Supported formats are: json, yaml`
+	if err.Error() != expectedErr {
+		t.Errorf("expected error %q, but got %q", expectedErr, err.Error())
 	}
 }
 
