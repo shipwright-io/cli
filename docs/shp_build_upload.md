@@ -29,6 +29,7 @@ shp build upload <build-name> [path/to/source|.] [flags]
 
 ```
       --buildref-name string                     name of build resource to reference
+      --buildrun-name string                     stream the local source into an existing BuildRun instead of creating one
   -e, --env stringArray                          specify a key-value pair for an environment variable to set for the build container (default [])
   -F, --follow                                   Start a build and watch its log until it completes or fails.
   -h, --help                                     help for upload
@@ -44,6 +45,7 @@ shp build upload <build-name> [path/to/source|.] [flags]
       --runtime-class string                     specify the runtime class to be used for the Pod
       --sa-name string                           Kubernetes service-account name
       --scheduler-name string                    specify the scheduler to be used to dispatch the Pod
+      --step-resources stringArray               override compute resources for a build step, as <step>=<limits|requests>.<resource>=<quantity> (repeatable) (default [])
       --timeout duration                         build process timeout
 ```
 

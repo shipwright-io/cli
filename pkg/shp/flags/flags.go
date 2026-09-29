@@ -56,6 +56,10 @@ const (
 	OutputCredentialsSecretFlag = "output-credentials-secret" // #nosec G101
 	// ParamValueFlag command-line flag.
 	ParamValueFlag = "param-value"
+	// StepResourcesFlag command-line flag.
+	StepResourcesFlag = "step-resources"
+	// BuildrunNameFlag command-line flag.
+	BuildrunNameFlag = "buildrun-name"
 	// ServiceAccountNameFlag command-line flag.
 	ServiceAccountNameFlag = "sa-name"
 	// ServiceAccountGenerateFlag command-line flag.
@@ -316,6 +320,16 @@ func paramValueFlag(flags *pflag.FlagSet, paramValue *[]buildv1beta1.ParamValue)
 		ParamValueFlag,
 		"",
 		"set of key-value pairs to pass as parameters to the buildStrategy",
+	)
+}
+
+// stepResourcesFlag registers flags for adding BuildRunSpec.StepResources.
+func stepResourcesFlag(flags *pflag.FlagSet, stepResources *[]buildv1beta1.StepResourceOverride) {
+	flags.VarP(
+		NewStepResourcesArrayValue(stepResources),
+		StepResourcesFlag,
+		"",
+		"override compute resources for a build step, as <step>=<limits|requests>.<resource>=<quantity> (repeatable)",
 	)
 }
 

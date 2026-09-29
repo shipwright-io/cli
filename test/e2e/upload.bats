@@ -74,6 +74,129 @@ function assert_shp_upload_follow_output() {
 	assert_shp_upload_follow_output
 }
 
+@test "shp build upload with step resources" {
+	build_name=$(random_name)
+
+	output_image="registry.registry.svc.cluster.local:32222/shipwright-io/build-e2e"
+	source_url="https://github.com/shipwright-io/sample-go"
+	repo_dir="${BATS_TEST_TMPDIR}/sample-go"
+
+	run shp build create ${build_name} \
+		--source-git-url="${source_url}" \
+		--source-context-dir="source-build" \
+		--output-image="${output_image}" \
+		--output-insecure=true
+	assert_success
+
+	run git clone "${source_url}" "${repo_dir}"
+	assert_success
+
+	#
+	# Test Cases
+	#
+
+	# uploading with a per-step resource override, the created BuildRun must carry it on its spec
+	run shp build upload ${build_name} "${repo_dir}" \
+		--step-resources=build-and-push=limits.memory=1Gi \
+		--step-resources=build-and-push=requests.cpu=250m
+	assert_success
+	assert_shp_upload_output
+
+	# the created BuildRun spec must contain the requested step resources
+	run kubectl get buildruns.shipwright.io \
+		-o jsonpath='{.items[0].spec.stepResources[0].resources.limits.memory}'
+	assert_success
+	assert_output '1Gi'
+
+	run kubectl get buildruns.shipwright.io \
+		-o jsonpath='{.items[0].spec.stepResources[0].resources.requests.cpu}'
+	assert_success
+	assert_output '250m'
+
+	# the build pod's step container must carry the requested memory limit
+	run kubectl get pods -l "build.shipwright.io/name=${build_name}" \
+		-o jsonpath='{.items[0].spec.containers[?(@.name=="step-build-and-push")].resources.limits.memory}'
+	assert_success
+	assert_output '1Gi'
+
+	# an invalid step-resources value must be rejected before anything is created
+	run shp build upload ${build_name} "${repo_dir}" \
+		--step-resources=build-and-push=limits.memory=not-a-quantity
+	assert_failure
+}
+
+@test "shp build upload into an existing BuildRun" {
+	build_name=$(random_name)
+	buildrun_name=$(random_name)
+
+	output_image="registry.registry.svc.cluster.local:32222/shipwright-io/build-e2e"
+	source_url="https://github.com/shipwright-io/sample-go"
+	repo_dir="${BATS_TEST_TMPDIR}/sample-go"
+
+	run shp build create ${build_name} \
+		--source-git-url="${source_url}" \
+		--source-context-dir="source-build" \
+		--output-image="${output_image}" \
+		--output-insecure=true
+	assert_success
+
+	run git clone "${source_url}" "${repo_dir}"
+	assert_success
+
+	# a BuildRun created out-of-band, carrying fields the upload command does not expose as flags
+	# (here, a local source so the streaming waiter container is present)
+	cat <<-EOF | kubectl create -f -
+	apiVersion: shipwright.io/v1beta1
+	kind: BuildRun
+	metadata:
+	  name: ${buildrun_name}
+	spec:
+	  build:
+	    name: ${build_name}
+	  source:
+	    type: Local
+	    local:
+	      name: local-copy
+	EOF
+
+	#
+	# Test Cases
+	#
+
+	# combining --buildrun-name with a creation-only flag must be rejected
+	run shp build upload ${build_name} "${repo_dir}" \
+		--buildrun-name="${buildrun_name}" \
+		--sa-name=builder
+	assert_failure
+	assert_output --partial 'buildrun-name'
+
+	# the pod of a BuildRun created earlier is usually already running when the upload starts;
+	# kubectl wait fails at once when no pod matches yet, so wait for the pod to exist first
+	for _ in $(seq 1 60); do
+		[ -n "$(kubectl get pods -l "buildrun.shipwright.io/name=${buildrun_name}" -o name)" ] && break
+		sleep 2
+	done
+	run kubectl wait pods -l "buildrun.shipwright.io/name=${buildrun_name}" \
+		--for=jsonpath='{.status.phase}'=Running --timeout=180s
+	assert_success
+
+	# streaming into the pre-created BuildRun, following logs to completion; a global flag such as
+	# --namespace is accepted alongside --buildrun-name
+	ns="${TEST_NAMESPACE:-default}"
+	run shp build upload --follow ${build_name} "${repo_dir}" \
+		--namespace="${ns}" \
+		--buildrun-name="${buildrun_name}"
+	assert_success
+	assert_output --partial 'Streaming into existing BuildRun'
+	assert_output --partial 'to the Build POD'
+	assert_shp_upload_follow_output
+
+	# no extra BuildRun should have been created; only the one we made by hand
+	run kubectl get buildruns.shipwright.io -o jsonpath='{.items[*].metadata.name}'
+	assert_success
+	assert_output "${buildrun_name}"
+}
+
 @test "shp build upload with bundle" {
 	build_name=$(random_name)
 

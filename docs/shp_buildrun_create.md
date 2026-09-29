@@ -33,6 +33,7 @@ shp buildrun create <name> [flags]
       --runtime-class string                     specify the runtime class to be used for the Pod
       --sa-name string                           Kubernetes service-account name
       --scheduler-name string                    specify the scheduler to be used to dispatch the Pod
+      --step-resources stringArray               override compute resources for a build step, as <step>=<limits|requests>.<resource>=<quantity> (repeatable) (default [])
       --timeout duration                         build process timeout
 ```
 
