@@ -113,6 +113,12 @@ function assert_shp_upload_follow_output() {
 	assert_success
 	assert_output '250m'
 
+	# the build pod's step container must carry the requested memory limit
+	run kubectl get pods -l "build.shipwright.io/name=${build_name}" \
+		-o jsonpath='{.items[0].spec.containers[?(@.name=="step-build-and-push")].resources.limits.memory}'
+	assert_success
+	assert_output '1Gi'
+
 	# an invalid step-resources value must be rejected before anything is created
 	run shp build upload ${build_name} "${repo_dir}" \
 		--step-resources=build-and-push=limits.memory=not-a-quantity
@@ -164,8 +170,21 @@ function assert_shp_upload_follow_output() {
 	assert_failure
 	assert_output --partial 'buildrun-name'
 
-	# streaming into the pre-created BuildRun, following logs to completion
+	# the pod of a BuildRun created earlier is usually already running when the upload starts;
+	# kubectl wait fails at once when no pod matches yet, so wait for the pod to exist first
+	for _ in $(seq 1 60); do
+		[ -n "$(kubectl get pods -l "buildrun.shipwright.io/name=${buildrun_name}" -o name)" ] && break
+		sleep 2
+	done
+	run kubectl wait pods -l "buildrun.shipwright.io/name=${buildrun_name}" \
+		--for=jsonpath='{.status.phase}'=Running --timeout=180s
+	assert_success
+
+	# streaming into the pre-created BuildRun, following logs to completion; a global flag such as
+	# --namespace is accepted alongside --buildrun-name
+	ns="${TEST_NAMESPACE:-default}"
 	run shp build upload --follow ${build_name} "${repo_dir}" \
+		--namespace="${ns}" \
 		--buildrun-name="${buildrun_name}"
 	assert_success
 	assert_output --partial 'Streaming into existing BuildRun'

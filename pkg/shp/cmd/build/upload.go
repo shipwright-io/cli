@@ -168,7 +168,8 @@ func (u *UploadCommand) Validate() error {
 
 // checkBuildRunNameConflicts makes sure that, when an existing BuildRun is referenced with the
 // --buildrun-name flag, none of the flags that only apply to a BuildRun this command creates are
-// also set, since those settings would be silently ignored.
+// also set. Those flags would have no effect on an existing BuildRun, so they are rejected with an
+// error. Global flags inherited from the root command, such as --namespace, are not checked.
 func (u *UploadCommand) checkBuildRunNameConflicts() error {
 	if u.buildRunName == "" {
 		return nil
@@ -180,8 +181,8 @@ func (u *UploadCommand) checkBuildRunNameConflicts() error {
 		"follow":               true,
 	}
 	var conflicting []string
-	u.cmd.Flags().Visit(func(f *pflag.Flag) {
-		if !allowed[f.Name] {
+	u.cmd.LocalFlags().VisitAll(func(f *pflag.Flag) {
+		if f.Changed && !allowed[f.Name] {
 			conflicting = append(conflicting, "--"+f.Name)
 		}
 	})
@@ -259,6 +260,14 @@ func (u *UploadCommand) resolveBuildRun(p *params.Params) (*buildv1beta1.BuildRu
 		Get(u.cmd.Context(), u.buildRunName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
+	}
+	// the build pod is found by the Build name, so a BuildRun of another Build would never be matched
+	if br.Spec.Build.Name == nil || *br.Spec.Build.Name != u.buildRefName {
+		return nil, fmt.Errorf("BuildRun '%s' does not reference Build '%s'", br.GetName(), u.buildRefName)
+	}
+	// without a Local source the build pod has no container waiting for the upload
+	if br.Spec.Source == nil || br.Spec.Source.Type != buildv1beta1.LocalType {
+		return nil, fmt.Errorf("BuildRun '%s' must have a source of type %q to receive an upload", br.GetName(), buildv1beta1.LocalType)
 	}
 	fmt.Fprintf(u.ioStreams.Out, "Streaming into existing BuildRun '%s/%s'...\n", ns, br.GetName())
 	return br, nil
@@ -368,7 +377,10 @@ func (u *UploadCommand) Run(p *params.Params, ioStreams *genericclioptions.IOStr
 
 	// Using streaming to upload local source code
 	default:
-		// registering the routine that will react upon build pod state changes
+		// registering the routine that will react upon build pod state changes; it also handles the
+		// first event, since the pod of an existing BuildRun may already be running when the watch
+		// starts and would then only change again when the upload times out
+		u.pw.WithOnPodAddedFn(u.onPodModifiedEventStreaming)
 		u.pw.WithOnPodModifiedFn(u.onPodModifiedEventStreaming)
 	}
 
