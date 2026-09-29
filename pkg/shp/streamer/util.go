@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type writeCounter struct{ total int }
@@ -17,17 +16,17 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
-func trimPrefix(prefix, fpath string) string {
-	return strings.TrimPrefix(strings.ReplaceAll(fpath, prefix, ""), string(filepath.Separator))
-}
-
 func writeFileToTar(tw *tar.Writer, src, fpath string, stat fs.FileInfo) error {
 	header, err := tar.FileInfoHeader(stat, stat.Name())
 	if err != nil {
 		return err
 	}
 
-	header.Name = trimPrefix(src, fpath)
+	relPath, err := filepath.Rel(src, fpath)
+	if err != nil {
+		return err
+	}
+	header.Name = filepath.ToSlash(relPath)
 	if err := tw.WriteHeader(header); err != nil {
 		return err
 	}
