@@ -37,6 +37,8 @@ const (
 	SpecEnvNameCanNotBeBlank BuildReason = "SpecEnvNameCanNotBeBlank"
 	// SpecEnvOnlyOneOfValueOrValueFromMustBeSpecified indicates that both value and valueFrom were specified
 	SpecEnvOnlyOneOfValueOrValueFromMustBeSpecified BuildReason = "SpecEnvOnlyOneOfValueOrValueFromMustBeSpecified"
+	// SpecEnvNameForbidden indicates that an environment variable name is on the security blocklist
+	SpecEnvNameForbidden BuildReason = "SpecEnvNameForbidden"
 	// RuntimePathsCanNotBeEmpty indicates that the spec.runtime feature is used but the paths were not specified
 	RuntimePathsCanNotBeEmpty BuildReason = "RuntimePathsCanNotBeEmpty"
 	// RestrictedParametersInUse indicates the definition of reserved shipwright parameters
@@ -312,11 +314,13 @@ type Image struct {
 	// Annotations references the additional annotations to be applied on the image
 	//
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="self.all(k, k != '' && !k.contains('='))",message="annotation keys must not be empty and must not contain '='"
 	Annotations map[string]string `json:"annotations,omitempty"`
 
 	// Labels references the additional labels to be applied on the image
 	//
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="self.all(k, k != '' && !k.contains('='))",message="label keys must not be empty and must not contain '='"
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// VulnerabilityScan provides configurations about running a scan for your generated image
