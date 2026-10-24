@@ -25,17 +25,17 @@ func (t *Tar) skipPath(fpath string, stat fs.FileInfo) bool {
 		return true
 	}
 	relPath, err := filepath.Rel(t.src, fpath)
-	if err == nil {
-		cleanPath := "/" + filepath.ToSlash(relPath) + "/"
-		if strings.Contains(cleanPath, "/.git/") {
-			return true
-		}
+	if err != nil {
+		return false
+	}
+	relPath = filepath.ToSlash(relPath)
+	if strings.Contains("/"+relPath+"/", "/.git/") {
+		return true
 	}
 
-	if t.gitIgnore != nil {
-		return t.gitIgnore.MatchesPath(fpath)
-	}
-	return false
+	// patterns in .gitignore are relative to the directory holding the file, which is the source
+	// directory, so they must not be matched against the path on disk
+	return t.gitIgnore != nil && t.gitIgnore.MatchesPath(relPath)
 }
 
 // Create the actual tar by inspecting all files in source path, skipping some.
